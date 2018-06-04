@@ -10,13 +10,13 @@ import net.mnist_variant2 as mnistNet
 
 # Data loading and preprocessing
 
-baseDir = "out"
+baseDir = "../res/"
 #X = np.load(baseDir + "/visible_events.npy")\
-X = np.load(baseDir + "/simu_testing_x.npy")\
+X = np.load(baseDir + "simu_testing_x.npy")\
     .reshape([-1, 48, 48, 1])\
     .astype(np.uint32)
 #Y = np.tile([1,0], [int(X.shape[0]/2)])\
-Y = np.load(baseDir + "/simu_testing_y.npy")\
+Y = np.load(baseDir + "simu_testing_y.npy")\
     .reshape([-1, 1])
 
 # Building convolutional network
