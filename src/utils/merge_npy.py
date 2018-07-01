@@ -33,6 +33,6 @@ print("Estimated RAM used 2: " + str(X.nbytes / 1024 / 1024) + " MiB")
 print("read all files")
 
 
-output_dir = "../res"
+output_dir = "res"
 np.save(output_dir + "/visible_events_x", X)
 np.save(output_dir + "/visible_events_y", Y)

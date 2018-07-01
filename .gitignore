@@ -19,14 +19,13 @@ pip-selfcheck.json
 __pycache__
 *.so
 *.o
-
-src/event_visualization/processing_functions.c
+src/event_visualization/*.html
+src/event_visualization/*.c
 
 
 
 #Misc
 .idea/
 logs/
-mnist/
-share/
 res/
+out/
