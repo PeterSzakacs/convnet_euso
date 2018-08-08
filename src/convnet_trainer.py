@@ -10,7 +10,7 @@ import tflearn
 import tensorflow as tf
 import numpy as np
 
-import utils.cmdint.cmd_interface_convnet as cmd
+import utils.cmdint.cmd_interface_trainer as cmd
 import utils.visualization.filters_visualizer as filtersViz
 import utils.visualization.conv_layer_visualizer as convViz
 import utils.visualization.fc_layer_visualizer as fcViz
@@ -38,13 +38,19 @@ if not os.path.exists(current_run_dir):
 
 
 # data loading and preprocessing
-Xfile = args.infile
-Yfile = args.targetfile
-X = np.load(Xfile)
-Y = np.load(Yfile).reshape([-1, 2])
+X_all = np.load(args.infile)
+Y_all = np.load(args.targetfile).reshape([-1, 2])
 
-w, h = X.shape[1], X.shape[2]
-X = X.reshape([-1, w, h, 1]).astype(np.uint32)
+n, w, h = X_all.shape[0], X_all.shape[1], X_all.shape[2]
+X_all = X_all.reshape([n, w, h, 1]).astype(np.uint32)
+
+#select the first 10% of frames into the validation (actually test) set
+test_n = round(0.1*n)
+
+X_train = X_all[test_n:]
+Y_train = Y_all[test_n:]
+X_test = X_all[:test_n]
+Y_test = Y_all[:test_n]
 
 
 # uncomment callbacks-related code if you want to see visually in generated images at each output what the outputs 
@@ -69,7 +75,7 @@ for module_name in network_module_names:
 #        weights_callback = filtersViz.VisualizerCallback(model, conv_layers, weights_output_dir)
 #        convCallback = convViz.VisualizerCallback(model, X[0:100], visual_ouptut_dir, conv_layers)
 #        fcCallback = fcViz.VisualizerCallback(model, X[0:100], visual_output_dir, fc_layers)
-        model.fit({'input': X}, {'target': Y}, n_epoch=epochs, validation_set=0.1,
+        model.fit({'input': X_train}, {'target': Y_train}, n_epoch=epochs, validation_set=({'input': X_test}, {'target': Y_test}),
                   snapshot_step=100, show_metric=True, run_id=module_name)#, callbacks=[weights_callback])
         if save:
             model.save(os.path.join(module_dir, "{}.tflearn".format(module_name)))

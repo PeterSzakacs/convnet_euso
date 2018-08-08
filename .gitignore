@@ -25,6 +25,7 @@ src/event_visualization/*.c
 
 
 #Misc
+.vscode/
 .idea/
 logs/
 res/
