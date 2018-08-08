@@ -4,7 +4,7 @@ import sys
 import csv
 import numpy as np
 
-import utils.cmd_interface_npymerger as cmd
+import utils.cmdint.cmd_interface_npymerger as cmd
 
 # script to coallesce visible event frames from several .npy files
 # into a single larger .npy file for easier loading and processing
