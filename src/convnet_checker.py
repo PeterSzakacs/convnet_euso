@@ -189,7 +189,7 @@ for network in args.networks:
             out = 'noise' if np.array_equal(rounded_prediction, [0, 1]) else 'shower'
             targ = 'noise' if np.array_equal(Y_test[idx], [0, 1]) else 'shower'
             figurename = 'frame-{}'.format(str(frame_idx).zfill(3))
-            frame_creator(X_test[idx], figurename, logdir)
+            frame_creator(X_test[frame_idx], figurename, logdir)
             tbl.append_table_row(row_contents=(img.get_image(figurename + '.svg', width="184px", height="138px"),
                                             "{}%".format(shower_prob), "{}%".format(noise_prob), out, targ, srcfile, packet_idx))
         tbl.end_table()
