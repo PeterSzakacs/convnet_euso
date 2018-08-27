@@ -1,6 +1,6 @@
 import numpy as np
 
-import utils.event_reading as reading
+import .event_reading as reading
 
 def flight_data_to_dataset(acqfile, triggerfile = None, frames_per_packet=128, 
                            start_index_per_packet=27, stop_index_per_packet=47, 

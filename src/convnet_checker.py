@@ -15,9 +15,9 @@ import matplotlib
 matplotlib.use('svg')
 import matplotlib.pyplot as plt
 
-import utils.cmdint.cmd_interface_checker as cmd
-import utils.visualization.html_writers as html
-import utils.data_converters as dataconv
+import cmdint.cmd_interface_checker as cmd
+import visualization.html_writers as html
+import utils.data_tools as datatools
 
 def save_frame(frame, filename):
     fig = plt.figure()
@@ -85,7 +85,7 @@ if args.npy:
     X_all = np.load(args.infile)
     Y_all = np.load(args.targetfile).reshape([-1, 2]).astype(np.uint8)
 else:
-    X_all, Y_all = dataconv.flight_data_to_dataset(args.acqfile, args.triggerfile)
+    X_all, Y_all = datatools.flight_data_to_dataset(args.acqfile, args.triggerfile)
     X_all = np.array(X_all, dtype=np.uint8)
     Y_all = np.array(Y_all, dtype=np.uint8)
 ## prepare evaluation set

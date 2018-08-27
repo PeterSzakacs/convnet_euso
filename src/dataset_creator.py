@@ -4,8 +4,8 @@ import csv
 
 import numpy as np
 
-import utils.data_converters as conv
-import utils.cmdint.cmd_interface_creator as cmd
+import utils.data_tools as conv
+import cmdint.cmd_interface_creator as cmd
 
 # script to coallesce (simulated or real) data from several files 
 # into a single larger .npy file to use as a dataset for training

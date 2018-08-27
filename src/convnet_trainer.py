@@ -10,10 +10,10 @@ import tflearn
 import tensorflow as tf
 import numpy as np
 
-import utils.cmdint.cmd_interface_trainer as cmd
-import utils.visualization.filters_visualizer as filtersViz
-import utils.visualization.conv_layer_visualizer as convViz
-import utils.visualization.fc_layer_visualizer as fcViz
+import cmdint.cmd_interface_trainer as cmd
+import visualization.network.filters_visualizer as filtersViz
+import visualization.network.conv_layer_visualizer as convViz
+import visualization.network.fc_layer_visualizer as fcViz
 
 
 # command line argument parsing

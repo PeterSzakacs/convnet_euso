@@ -75,7 +75,7 @@ import numpy as np
 import random as rand
 from skimage.draw import line_aa
 
-import utils.cmdint.cmd_interface_datagen as cmd
+import cmdint.cmd_interface_datagen as cmd
 
 # command line parsing
 
