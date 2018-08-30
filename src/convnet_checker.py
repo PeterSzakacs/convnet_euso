@@ -123,7 +123,7 @@ for network in args.networks:
     network, conv_layers, fc_layers = net_mod.create(inputShape=[None, w, h, 1])
     model = tflearn.DNN(network, tensorboard_verbose = 0)
     model.load(model_file)
-    
+
     hits = 0
     classes_count = [0, 0]
     log_data = []
@@ -151,7 +151,7 @@ for network in args.networks:
 
     # for every 2500 records of logs create a separate html report
     globalstop = len(log_data)
-    iteration, last_iteration = 0, math.floor(globalstop / table_size) - 1
+    iteration, last_iteration = 0, math.floor(globalstop / table_size)
     for firstrow_idx in range(0, globalstop, table_size):
         fil.begin_html_file(title="Report for network {}".format(network_name), 
                             css_rules="""
@@ -163,7 +163,11 @@ for network in args.networks:
         txt.begin_list()
         txt.add_heading("Statistics", level=2)
         txt.add_list_item("Time run: {}".format(run_time))
-        txt.add_list_item("Network name: {}, trained model file: {}".format(network_name, model_file))
+        txt.add_list_item("Dataset file used for test: {}".format(os.path.abspath(args.infile)))
+        txt.add_list_item("Targets of dataset file: {}".format(os.path.abspath(args.targetfile)))
+        txt.add_list_item("Optional metadata file: {}".format(os.path.abspath(args.metafile)))
+        txt.add_list_item("Network architecture name: {}".format(network_name))
+        txt.add_list_item("Trained model file: {}".format(os.path.abspath(model_file)))
         txt.add_list_item("Number of frames predicted as shower: {}".format(shower_count))
         txt.add_list_item("Number of frames predicted as noise: {}".format(noise_count))
         txt.add_list_item("Total number of frames checked: {}".format(len(X_test)))
@@ -171,7 +175,7 @@ for network in args.networks:
         txt.add_list_item("Error rate: {}%".format(round(err, 2)))
         txt.end_list()
         txt.add_heading("Table of frames", level=2)
-        prevfile = "#" if iteration == 0 or iteration == last_iteration else "report_{}.html".format(iteration - 1)
+        prevfile = "#" if iteration == 0 else "report_{}.html".format(iteration - 1)
         nextfile = "#" if iteration == last_iteration else "report_{}.html".format(iteration + 1)
         l = txt.get_link(href=prevfile, link_contents="prev", styleclass="l")
         r = txt.get_link(href=nextfile, link_contents="next", styleclass="r")
