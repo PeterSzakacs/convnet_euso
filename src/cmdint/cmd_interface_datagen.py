@@ -12,9 +12,13 @@ class cmd_interface(bci):
                                 help=('parameters of generated data to use. The default file names'
                                      ' for output data and targets are constructed from these,'
                                      ' unless explicitly stated with --outfile and --targetfile'))
+        self.parser.add_argument('--malfunctioning_EC', action='store_true',
+                                help=('simulate malfunctioned ECs in the data'))
         self.parser.add_argument('--duration', type=self._positive_int,
                                 help=('duration of shower tracks in number of gtu or frames in which shower pixels'
                                      ' are located. If not specified, uses shower tracks of lengths from 3 to 16 GTU.'))
+        self.parser.add_argument('--num_shuffles', type=self._positive_int, default=1,
+                                help=('number of times the generated data should be shuffled randomly after creation'))
         self.parser.add_argument('-o', '--outfile', 
                                 help=('name of the npy file (sans .npy extension) to store simulated air shower data.'
                                      ' If specified, overrides using values of --params and --destdir to construct'

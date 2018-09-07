@@ -2,101 +2,103 @@ import sys
 import math
 import numpy as np
 import random as rand
-from collections import Counter
+import collections as coll
 
 import cmdint.cmd_interface_datagen as cmd
-
-# generator for shower line values
-class shower_vals_generator():
-    
-    def __init__(self, maximum, duration):
-        self.reset(maximum, duration)
-        
-    def reset(self, maximum, duration):
-        self.iteration = -3*duration/4
-        self.maximum = maximum
-        self.maxinv = 1/maximum
-
-    def next_val(self):
-        self.iteration += 1
-        return -self.maxinv * pow(self.iteration - 2, 2) + self.maximum
+import utils.packet_tools as pack
 
 # command line parsing
 
 ui = cmd.cmd_interface()
 args = ui.get_cmd_args(sys.argv[1:])
+print(args)
 
 # variable initialization
 
-num_samples = args.num_frames
-num_showers = int(num_samples/2)
 width, height = args.width, args.height
+EC_width, EC_height = 16, 16
+num_per_projection = args.num_merged
+num_samples = args.num_frames
 lam, bg_diff = args.lam, args.bg_diff
 
-# use random shower line lengths, unless duration of shower is explicitly stated
-duration_generator = lambda: rand.randrange(3, 16)
-if args.duration != None:
-    # return static value
-    duration_generator = lambda: args.duration
+# declarations of custom functions and value generators
 
-# return limits for top, right, bottom and left start margins
-offsets_generator = lambda edge_limit: (height - edge_limit, width - edge_limit, 0 + edge_limit, 0 + edge_limit)
+manipulator = pack.packet_manipulator(EC_width, EC_height, width, height)
+generator = pack.flat_vals_generator(bg_diff, 10)
+## use random shower line lengths, unless duration of shower is explicitly stated
+duration_generator = lambda: rand.randrange(3, 16)
+## return limits for top, right, bottom and left start margins
+offsets_generator = lambda edge_limit: (int(height - edge_limit), int(width - edge_limit), int(0 + edge_limit), int(0 + edge_limit))
 if args.duration != None:
-    # return precalculated values
-    top, right, bottom, left = offsets_generator(duration_generator())
+    ### return static value
+    duration_generator = lambda: args.duration
+    ### return precalculated values
+    top, right, bottom, left = offsets_generator(3*duration_generator()/4)
     offsets_generator = lambda edge_limit: (top, right, bottom, left)
 
-num_per_frame = args.num_merged
-num_rows = height / 16
-num_regions = width * height / 16*16
+def create_shower_packet(angle, shower_max, max_EC_malfunctions):
+    duration = duration_generator()
+    generator.reset(shower_max, duration)
+    top, right, bottom, left = offsets_generator(3*duration/4)
+    start_x = rand.randrange(left, right)
+    start_y = rand.randrange(bottom, top)
+    ang_rad = math.radians(angle)
 
+    packet = np.random.poisson(lam=lam, size=(num_per_projection, width, height))
+    ECs_used = manipulator.draw_simulated_shower_line(packet, start_x, start_y, ang_rad, generator)
+    frequencies = coll.Counter(ECs_used)
+    shower_indexes = [item[0] for item in frequencies.most_common(2)]
+    manipulator.simu_EC_malfunction(packet, max_EC_malfunctions, shower_EC_indexes=shower_indexes)
+    return packet
+
+def create_noise_packet(max_EC_malfunctions):
+    packet = np.random.poisson(lam=lam, size=(num_per_projection, width, height))
+    manipulator.simu_EC_malfunction(packet, max_EC_malfunctions)
+    return packet
+
+# by default, do not simulate malfunctioned EC cells
+num_showers = int(num_samples/2)
+iteration_handlers = (
+    {'target': [1, 0], 'start': 0, 'stop': num_showers, 'track_ECs': False,
+                            'packet_handler': lambda angle: create_shower_packet(angle, bg_diff, 0)},
+    {'target': [0, 1], 'start': num_showers, 'stop': num_samples, 'track_ECs': False,
+                            'packet_handler': lambda angle: create_noise_packet(0)}
+)
+if args.malfunctioning_EC:
+    maxerr_EC_generator = lambda: rand.randrange(1, int(manipulator.num_EC - 1))
+    iteration_handlers = (
+        {'target': [1, 0], 'start': 0, 'stop': int(num_showers/2), 'track_ECs': True,
+                            'packet_handler': lambda angle: create_shower_packet(angle, bg_diff, maxerr_EC_generator())},
+        {'target': [1, 0], 'start': int(num_showers/2), 'stop': num_showers, 'track_ECs': False,
+                            'packet_handler': lambda angle: create_shower_packet(angle, bg_diff, 0)},
+        {'target': [0, 1], 'start': num_showers, 'stop': num_samples - int(num_showers/2), 'track_ECs': True,
+                            'packet_handler': lambda angle: create_noise_packet(maxerr_EC_generator())},
+        {'target': [0, 1], 'start': num_samples - int(num_showers/2), 'stop': num_samples, 'track_ECs': False,
+                            'packet_handler': lambda angle: create_noise_packet(0)}
+    )
 
 # output and target generation
-
-# First loop: generate frames containing a simulated air shower
 data = np.empty((num_samples, width, height), dtype=np.int32)
 targets = np.empty((num_samples, 2), dtype=np.uint8)
-generator = shower_vals_generator(bg_diff, 10)
-for angle in range(num_showers):
-    angRad = math.radians(angle)
-    duration = duration_generator()
-    generator.reset(bg_diff, duration)
-    top, right, bottom, left = offsets_generator(duration)
-    startX = rand.randrange(left, right)
-    startY = rand.randrange(bottom, top)
-    angRad = math.radians(angle)
-    deltaX = math.sin(angRad)
-    deltaY = math.cos(angRad)
-    # Create background for the frame
-    all_frames = np.random.poisson(lam=lam, size=(num_per_frame, width, height))
-    for idx in range(2, 2 + duration, 1):
-        frame = all_frames[idx]
-        offsetX = startX + math.floor(deltaX * idx)
-        offsetY = startY + math.floor(deltaY * idx)
-        nextval = max(round(generator.next_val()), 0)
-        if offsetX < 0 or offsetX >= 48 or offsetY < 0 or offsetY > 48:
-            break
-        frame[offsetX][offsetY] += nextval
-
-    # Target (expected ouptut) for shower frame is [1, 0]
-    np.put(targets[angle], [0, 1], [1, 0])
-
-    data[angle] = np.max(all_frames, axis=0)
+# main loop
+for handler in iteration_handlers:
+    start, stop = handler['start'], handler['stop']
+    packet_handler = handler['packet_handler']
+    target = handler['target']
+    manipulator.track_ECs = handler['track_ECs']
+    # idx serves as both an index into targets and data, as well as shower angle in xy projection
+    for idx in range(start, stop):
+        packet = packet_handler(idx)
+        data[idx] = np.max(packet, axis=0)
+        np.put(targets[idx], [0, 1], target)
 
 
-# Second loop: generate random noise without showers
-for idx in range(num_showers, num_samples):
-    all_frames = np.random.poisson(lam=lam, size=(num_per_frame, width, height))
-    data[idx] = np.max(all_frames, axis=0)
-    # Target (expected ouptut) for pure noise frame is [0, 1]
-    np.put(targets[idx], [0, 1], [0, 1])
-
-
-# shuffle the data in unison
-rng_state = np.random.get_state()
-np.random.shuffle(data)
-np.random.set_state(rng_state)
-np.random.shuffle(targets)
+# shuffle the data in unison 7 times
+for idx in range(args.num_shuffles):
+    rng_state = np.random.get_state()
+    np.random.shuffle(data)
+    np.random.set_state(rng_state)
+    np.random.shuffle(targets)
 
 # save generated data and targets
 np.save(args.outfile, data)
