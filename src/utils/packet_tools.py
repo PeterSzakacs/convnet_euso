@@ -49,15 +49,14 @@ class flat_vals_generator():
 
 class packet_manipulator():
 
-    def __init__(self, EC_width, EC_height, frame_width, frame_height, track_ECs=True):
+    def __init__(self, EC_width, EC_height, frame_width, frame_height):
         self._EC_width, self._EC_height = EC_width, EC_height
         self._width, self._height = frame_width, frame_height
         self._num_rows = int(frame_height/EC_height)
         self._num_cols = int(frame_width/EC_width)
         self._num_EC = self._num_rows * self._num_cols
-        self.track_ECs = track_ECs
 
-    #properties and setters
+    #properties
 
     @property
     def frame_width(self):
@@ -86,18 +85,6 @@ class packet_manipulator():
     @property
     def num_EC(self):
         return self._num_EC
-    
-    @property
-    def track_ECs(self):
-        return self._track_ECs
-    
-    @track_ECs.setter
-    def track_ECs(self, value):
-        self._track_ECs = value
-        if value:
-            self._EC_tracker_fn = lambda x, y, EC_log: EC_log.append(self.xy_to_ec_idx(x, y))
-        else:
-            self._EC_tracker_fn = lambda x, y, EC_log: None
 
     # unit conversions
 
