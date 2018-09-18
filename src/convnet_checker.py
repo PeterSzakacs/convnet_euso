@@ -17,7 +17,9 @@ import matplotlib.pyplot as plt
 
 import cmdint.cmd_interface_checker as cmd
 import visualization.html_writers as html
-import utils.data_tools as datatools
+import utils.packets.packet_utils as pack
+import utils.data_utils as dat
+import utils.io_utils as io_utils
 
 def save_frame(frame, filename):
     fig = plt.figure()
@@ -45,7 +47,6 @@ if args.usecpu:
 
 
 # frame creation callback
-frame_creator = None
 if args.noframes:
     frame_creator = lambda frame, figurename, outdir: None
 else:
@@ -55,7 +56,6 @@ else:
 
 # log only misses or also hits
 miss_handler = lambda log_data, item: log_data.append(item)
-hit_handler = None
 if args.onlyerr:
     hit_handler = lambda log_data, item: None
 else:
@@ -80,14 +80,19 @@ if not os.path.exists(current_run_dir):
 
 
 # load input data
-X_all = Y_all = X_test = Y_test = None
 if args.npy:
     X_all = np.load(args.infile)
     Y_all = np.load(args.targetfile).reshape([-1, 2]).astype(np.uint8)
 else:
-    X_all, Y_all = datatools.flight_data_to_dataset(args.acqfile, args.triggerfile)
-    X_all = np.array(X_all, dtype=np.uint8)
-    Y_all = np.array(Y_all, dtype=np.uint8)
+    extractor = io_utils.packet_extractor()
+    manipulator = dat.packet_manipulator(extractor.packet_template)
+    X_all = []
+    proj_creator = lambda packet, packet_idx, srcfile: X_all.append(
+                                manipulator.create_x_y_projection(packet, start_idx=27, end_idx=47))
+    extractor.extract_packets_from_rootfile_and_process(args.acqfile, triggerfile=args.triggerfile, on_packet_extracted=proj_creator)
+    # implicitly assuming that all packets will contain noise
+    X_all = np.array(packets, dtype=np.uint8)
+    Y_all = np.array([[0, 1] for idx in range(len(X_all))], dtype=np.uint8)
 ## prepare evaluation set
 if args.numframes != None:
     X_test, Y_test = X_all[:args.numframes], Y_all[:args.numframes]
@@ -97,7 +102,6 @@ else:
 
 
 # load metadata
-metadata = []
 if args.metafile != None:
     # go to next csv row and get 'source_file_acquisition_full'
     with open(args.metafile) as metafile:

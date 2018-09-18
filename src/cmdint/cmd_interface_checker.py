@@ -36,8 +36,8 @@ class cmd_interface(bci):
                                 help=('directory containing input data and target files; only required if --params or --name'
                                       ' is used, otherwise it is completely ignored.'))
         ## single acquisition file in CERN ROOT format with optional L1 trigger file
-        self.parser.add_argument('-a', '--acqfile',
-                                 help=('the acquisition npy file storing air shower data. Can be specified alongside --triggerfile.'))
+        self.parser.add_argument('--acqfile',
+                                 help=('the acquisition ROOT file storing air shower data. Can be specified alongside --triggerfile.'))
         self.parser.add_argument('--triggerfile',
                                  help=('the L1 triggers file for the given acquisition file (--acqfile).'))
         
