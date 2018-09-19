@@ -13,7 +13,7 @@ import utils.data_utils as dat
 def create_shower_packet(template, angle, shower_max, duration, max_EC_malfunctions=0):
     generator.reset(shower_max, duration)
     # let start coordinate be at least a distance of 3/4 * duration from the edges of the frame
-    top, right, bottom, left = edge_generator(template, int(3*duration/4))
+    top, right, bottom, left = edge_generator(int(3*duration/4), template)
 
     start_gtu = 2
     start_x = rand.randrange(left, right)
