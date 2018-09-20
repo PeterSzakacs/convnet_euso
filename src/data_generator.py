@@ -54,38 +54,35 @@ manipulator = dat.packet_manipulator(template, verify_against_template=False)
 generator = dat.default_vals_generator(bg_diff, 10)
 
 # use random shower duration
-duration_generator = lambda: rand.randrange(args.minduration, args.maxduration+1)
+d_min, d_max = args.duration[:]
+duration_generator = lambda: rand.randint(d_min, d_max)
 # and calculate on every call limits for top, right, bottom and left margins of start coordinates
 edge_generator = lambda edge_limit, template: (int(template.frame_height - edge_limit), int(template.frame_width - edge_limit), int(0 + edge_limit), int(0 + edge_limit))
-if args.duration != None:
+if d_min == d_max:
     ## return static or precalculated values
-    duration_generator = lambda: args.duration
+    duration_generator = lambda: d_min
     top, right, bottom, left = edge_generator(3*duration_generator()/4, template)
     edge_generator = lambda template, edge_limit: (top, right, bottom, left)
 
-# by default, do not simulate malfunctioned EC cells unless requested by a flag
-num_showers = int(num_samples/2)
-if args.malfunctioning_EC:
-    maxerr_EC_generator = lambda: rand.randrange(1, int(template.num_EC - 1))
-    iteration_handlers = (
-        {'target': [1, 0], 'start': 0, 'stop': int(num_showers/2),
-                            'packet_handler': lambda angle: create_shower_packet(template, angle, bg_diff, duration_generator(), maxerr_EC_generator())},
-        {'target': [1, 0], 'start': int(num_showers/2), 'stop': num_showers,
-                            'packet_handler': lambda angle: create_shower_packet(template, angle, bg_diff, duration_generator())},
-        {'target': [0, 1], 'start': num_showers, 'stop': num_samples - int(num_showers/2),
-                            'packet_handler': lambda angle: create_noise_packet(template, maxerr_EC_generator())},
-        {'target': [0, 1], 'start': num_samples - int(num_showers/2), 'stop': num_samples,
-                            'packet_handler': lambda angle: create_noise_packet(template)}
-    )
-else:
-    iteration_handlers = (
-        {'target': [1, 0], 'start': 0, 'stop': num_showers,
-                            'packet_handler': lambda angle: create_shower_packet(template, angle, bg_diff, duration_generator())},
-        {'target': [0, 1], 'start': num_showers, 'stop': num_samples,
-                            'packet_handler': lambda angle: create_noise_packet(template)}
-    )
+# malfunctioned ECs simulation
+EC_min, EC_max = args.bad_ECs[:]
+maxerr_EC_generator = lambda: rand.randint(EC_min, EC_max)
+if EC_min == EC_max:
+    ## return static value
+    maxerr_EC_generator = lambda: EC_min
 
 # output and target generation
+num_showers = int(num_samples/2)
+iteration_handlers = (
+    {'target': [1, 0], 'start': 0, 'stop': int(num_showers/2),
+                        'packet_handler': lambda angle: create_shower_packet(template, angle, bg_diff, duration_generator(), maxerr_EC_generator())},
+    {'target': [1, 0], 'start': int(num_showers/2), 'stop': num_showers,
+                        'packet_handler': lambda angle: create_shower_packet(template, angle, bg_diff, duration_generator())},
+    {'target': [0, 1], 'start': num_showers, 'stop': num_samples - int(num_showers/2),
+                        'packet_handler': lambda angle: create_noise_packet(template, maxerr_EC_generator())},
+    {'target': [0, 1], 'start': num_samples - int(num_showers/2), 'stop': num_samples,
+                        'packet_handler': lambda angle: create_noise_packet(template)}
+)
 data = np.empty((num_samples, template.frame_width, template.frame_height), dtype=np.int32)
 targets = np.empty((num_samples, 2), dtype=np.uint8)
 # main loop

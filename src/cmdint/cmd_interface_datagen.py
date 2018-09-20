@@ -6,7 +6,8 @@ class cmd_interface(bci):
 
     def __init__(self):
         bci.__init__(self)
-        self._minduration_default, self._maxduration_default = 3, 15
+        self._bad_ECs_default = (0, 0)
+        self._duration_default = (3, 15)
 
         self.parser = argparse.ArgumentParser(description="Create simulated air shower data as numpy arrays")
         self.parser.add_argument('-p', '--params', metavar=self._param_metavars, type=int, nargs=len(self._param_metavars), 
@@ -14,17 +15,14 @@ class cmd_interface(bci):
                                 help=('parameters of generated data to use. The default file names'
                                      ' for output data and targets are constructed from these,'
                                      ' unless explicitly stated with --outfile and --targetfile'))
-        self.parser.add_argument('--malfunctioning_EC', action='store_true',
-                                help=('simulate malfunctioned ECs in the data'))
-        self.parser.add_argument('--duration', type=self._positive_int,
-                                help=('static duration of shower tracks in number of gtu or frames contatining shower pixels.'
-                                    ' Implicitly overrides both --minduration and --maxduration.'))
-        self.parser.add_argument('--minduration', type=self._positive_int, default=self._minduration_default,
-                                help=('minimum duration of shower tracks in number of gtu or frames containing shower pixels'
-                                    ' Defaul value: {}. Ignored if --duration is explicitly specified.'.format(self._minduration_default)))
-        self.parser.add_argument('--maxduration', type=self._positive_int, default=self._maxduration_default, 
-                                help=('maximum duration of shower tracks in number of gtu or frames containing shower pixels'
-                                    ' Defaul value: {}. Ignored if --duration is explicitly specified.'.format(self._maxduration_default)))
+        self.parser.add_argument('--bad_ECs', nargs=2, metavar=('MIN', 'MAX'), default=(0, 0), type=int,
+                                help=('simulate the effect of malfunctioned EC modules in the data. The actual number of such ECs'
+                                    ' in any data item is from MIN to MAX, inclusive. If MIN == MAX, simulates an exact number of EC'
+                                    ' modules as bad. Default value range: {}'.format(self._bad_ECs_default)))
+        self.parser.add_argument('--duration', nargs=2, metavar=('MIN', 'MAX'), default=(0, 0), type=self._positive_int,
+                                help=('duration of shower tracks in number of GTU or frames contatining shower pixels.'
+                                    ' The actual duration of a shower for any data item is from MIN to MAX, inclusive.'
+                                    ' If MIN == MAX, the duration is always the same. Default value range: {}'.format(self._duration_default)))
         self.parser.add_argument('--num_shuffles', type=self._positive_int, default=1,
                                 help=('number of times the generated data should be shuffled randomly after creation'))
         self.parser.add_argument('-o', '--outfile', 
@@ -54,11 +52,14 @@ class cmd_interface(bci):
         if not of_defined:
             args.outfile = datafile_impl
             args.targetfile =  targetfile_impl
-        if args.duration != None:
-            if args.duration < self._minduration_default:
-                raise ValueError("Error, shower duration must be at least {} GTU".format(self._minduration_default))
-            elif args.duration > self._maxduration_default:
-                raise ValueError("Error, shower duration must be less than {} GTU".format(self._maxduration_default + 1))
+        if args.duration != self._duration_default:
+            min, max = args.duration[0], args.duration[1]
+            if (min > max or min < 0 or max < 0):
+                raise ValueError("Error, invalid range for shower duration {}".format(args.duration))
+        if args.bad_ECs != self._bad_ECs_default:
+            min, max = args.bad_ECs[0], args.bad_ECs[1]
+            if (min > max or min < 0 or max < 0):
+                raise ValueError("Error, invalid range for number of malfunctioned EC modules {}".format(args.bad_ECs))
 
         # not strictly necessary, but easier to use these values later in the data generation script 
         # (otherwise would have to access using args.params[index] instead of args.param_name)
