@@ -101,7 +101,7 @@ class packet_manipulator():
             EC_x, EC_y = self.template.ec_idx_to_ec_xy(index)
             x_start, y_start = EC_x*EC_w, EC_y*EC_h
             x_stop, y_stop = x_start + EC_w, y_start + EC_h
-            (packet[:, x_start:x_stop, y_start:y_stop]).fill(0)
+            (packet[:, y_start:y_stop, x_start:x_stop]).fill(0)
             used_indices.add(index)
             indices.discard(index)
     
@@ -138,7 +138,7 @@ class packet_manipulator():
             at_edge = (offset_x < 0 or offset_x >= width or offset_y < 0 or offset_y >= height)
             if at_edge:
                 break
-            frame[offset_x][offset_y] += val
+            frame[offset_y][offset_x] += val
             ECs_used.append(self.template.xy_to_ec_idx(offset_x, offset_y))
             frame_index += 1
             iteration_index += 1

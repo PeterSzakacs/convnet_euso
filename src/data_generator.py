@@ -22,7 +22,7 @@ def create_shower_packet(template, angle, shower_max, duration, max_EC_malfuncti
     ang_rad = math.radians(angle)
 
     width, height, num_frames = template.frame_width, template.frame_height, template.num_frames
-    packet = np.random.poisson(lam=lam, size=(num_frames, width, height))
+    packet = np.random.poisson(lam=lam, size=(num_frames, height, width))
     ECs_used = manipulator.draw_simulated_shower_line(packet, start, ang_rad, generator)
 
     frequencies = coll.Counter(ECs_used)
@@ -32,7 +32,7 @@ def create_shower_packet(template, angle, shower_max, duration, max_EC_malfuncti
 
 def create_noise_packet(template, max_EC_malfunctions=0):
     width, height, num_frames = template.frame_width, template.frame_height, template.num_frames
-    packet = np.random.poisson(lam=lam, size=(num_frames, width, height))
+    packet = np.random.poisson(lam=lam, size=(num_frames, height, width))
     manipulator.simu_EC_malfunction(packet, max_EC_malfunctions)
     return packet
 
@@ -83,7 +83,7 @@ iteration_handlers = (
     {'target': [0, 1], 'start': num_samples - int(num_showers/2), 'stop': num_samples,
                         'packet_handler': lambda angle: create_noise_packet(template)}
 )
-data = np.empty((num_samples, template.frame_width, template.frame_height), dtype=np.int32)
+data = np.empty((num_samples, template.frame_height, template.frame_width), dtype=np.int32)
 targets = np.empty((num_samples, 2), dtype=np.uint8)
 # main loop
 for handler in iteration_handlers:
@@ -93,7 +93,7 @@ for handler in iteration_handlers:
     # idx serves as both an index into targets and data, as well as shower angle in xy projection
     for idx in range(start, stop):
         packet = packet_handler(idx)
-        data[idx] = np.max(packet, axis=0)
+        data[idx] = manipulator.create_x_y_projection(packet)
         np.put(targets[idx], [0, 1], target)
 
 

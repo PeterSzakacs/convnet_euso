@@ -20,13 +20,13 @@ class TestPacketManipulator(unittest.TestCase):
         width, height, num_frames = 48, 64, 20
         template = pack.packet_template(EC_width, EC_height, width, height, num_frames)
         manipulator = dat.packet_manipulator(template, verify_against_template=True)
-        bad_packet_num = np.empty((num_frames + 10, width, height))
-        bad_packet_width = np.empty((num_frames, width + 10, height))
-        bad_packet_height = np.empty((num_frames, width, height + 10))
+        bad_packet_num = np.empty((num_frames + 10, height, width))
+        bad_packet_height = np.empty((num_frames, height + 10, width))
+        bad_packet_width = np.empty((num_frames, height, width + 10))
         self.assertRaises(ValueError, manipulator.simu_EC_malfunction, bad_packet_num, 0)
-        self.assertRaises(ValueError, manipulator.simu_EC_malfunction, bad_packet_width, 0)
         self.assertRaises(ValueError, manipulator.simu_EC_malfunction, bad_packet_height, 0)
-        good_packet = np.empty((num_frames, width, height))
+        self.assertRaises(ValueError, manipulator.simu_EC_malfunction, bad_packet_width, 0)
+        good_packet = np.empty((num_frames, height, width))
         try:
             manipulator.simu_EC_malfunction(good_packet, 0)
         except ValueError:
@@ -56,8 +56,8 @@ class TestPacketManipulator(unittest.TestCase):
         num_data       = len(start_xs)
         
         for data_idx in range(num_data):
-            packet = np.zeros((num_frames, width, height))
-            reference_packet = np.zeros((num_frames, width, height))
+            packet = np.zeros((num_frames, height, width))
+            reference_packet = np.zeros((num_frames, height, width))
             start_x, start_y, start_gtu = start_xs[data_idx], start_ys[data_idx], start_gtus[data_idx]
             start = (start_gtu, start_x, start_y)
             angle, duration, shower_max = math.radians(angles[data_idx]), durations[data_idx], maximums[data_idx]
@@ -70,7 +70,7 @@ class TestPacketManipulator(unittest.TestCase):
             
             gtu_idx = start_gtu
             for idx in range(iterations):
-                reference_packet[gtu_idx, int(start_x+delta_x*idx), int(start_y+delta_y*idx)] += shower_max
+                reference_packet[gtu_idx, int(start_y+delta_y*idx), int(start_x+delta_x*idx)] += shower_max
                 gtu_idx += 1
             self.assertEqual(np.count_nonzero(packet[start_gtu:gtu_idx]), iterations)
             self.assertTrue(np.array_equal(packet, reference_packet), 
@@ -86,16 +86,16 @@ class TestPacketManipulator(unittest.TestCase):
         shower_ec_indexes = [2, 5]
         template = pack.packet_template(EC_width, EC_height, width, height, num_frames)
         manipulator = dat.packet_manipulator(template, verify_against_template=False)
-        packet = np.ones((num_frames, width, height))
+        packet = np.ones((num_frames, height, width))
 
         # case 1: method should terminate without changing the packet at all
         manipulator.simu_EC_malfunction(packet, 0, excluded_ECs=shower_ec_indexes)
         self.assertTrue(np.array_equal(
-                packet, np.ones((num_frames, width, height))
+                packet, np.ones((num_frames, height, width))
         ))
         manipulator.simu_EC_malfunction(packet, 0, excluded_ECs=[])
         self.assertTrue(np.array_equal(
-                packet, np.ones((num_frames, width, height))
+                packet, np.ones((num_frames, height, width))
         ))
 
         # case 2: method should only leave untouched the rightmost 2 EC cells
@@ -103,7 +103,7 @@ class TestPacketManipulator(unittest.TestCase):
         for frame in packet:
             self.assertEqual(np.count_nonzero(frame), EC_width*EC_height*(len(shower_ec_indexes)))
             self.assertTrue(np.array_equal(
-                    frame[0:2*EC_width, 0:2*EC_height], np.zeros((width - EC_width, height))
+                    frame[0:2*EC_height, 0:2*EC_width], np.zeros((height, width - EC_width))
             ))
         
         # case 3: if more malfunctioned ECs are requested than possible without zeroing-out ECs in shower_ec_indexes, then settle for num_EC - len(shower_ec_indexes) 
@@ -114,8 +114,19 @@ class TestPacketManipulator(unittest.TestCase):
         for frame in packet:
             self.assertEqual(np.count_nonzero(frame), width*height - EC_width*EC_height)
             self.assertTrue(np.array_equal(
-                    frame[0:EC_width, 0:EC_height], np.zeros((EC_width, EC_height))
+                    frame[0:EC_height, 0:EC_width], np.zeros((EC_height, EC_width))
             ))
+
+    def test_projections(self):
+        EC_width, EC_height = 16, 32
+        width, height, num_frames = 48, 64, 20
+        template = pack.packet_template(EC_width, EC_height, width, height, num_frames)
+        manipulator = dat.packet_manipulator(template, verify_against_template=False)
+        packet = np.ones((num_frames, height, width))
+        self.assertTupleEqual(manipulator.create_x_y_projection(packet).shape, (height, width))
+        self.assertTupleEqual(manipulator.create_x_gtu_projection(packet).shape, (num_frames, width))
+        self.assertTupleEqual(manipulator.create_y_gtu_projection(packet).shape, (num_frames, height))
+
 
 if __name__ == '__main__':
     unittest.main()

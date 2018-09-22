@@ -16,7 +16,7 @@ class packet_template():
 
     @property
     def packet_shape(self):
-        return (self._num_frames, self._width, self._height)
+        return (self._num_frames, self._height, self._width)
 
     @property
     def frame_width(self):

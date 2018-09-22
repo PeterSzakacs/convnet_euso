@@ -123,8 +123,8 @@ for network in args.networks:
     logdir = os.path.join(current_run_dir, network_name)
     os.mkdir(logdir)
     net_mod = importlib.import_module("net." + network_name)
-    w, h = int(X_test.shape[1]), int(X_test.shape[2])
-    network, conv_layers, fc_layers = net_mod.create(inputShape=[None, w, h, 1])
+    h, w = int(X_test.shape[1]), int(X_test.shape[2])
+    network, conv_layers, fc_layers = net_mod.create(inputShape=[None, h, w, 1])
     model = tflearn.DNN(network, tensorboard_verbose = 0)
     model.load(model_file)
 

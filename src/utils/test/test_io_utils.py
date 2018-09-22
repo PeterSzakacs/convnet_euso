@@ -58,7 +58,7 @@ class testPacketExtraction(unittest.TestCase):
         self.assertEqual(len(self.packet_idxs), self.num_packets)
         self.assertEqual(self.srcfiles, [self.srcfile] * self.num_packets)
         n, w, h = self.template.num_frames, self.template.frame_width, self.template.frame_height
-        reference_packet = np.empty((n, w, h))
+        reference_packet = np.empty((n, h, w))
         for idx in range(self.num_packets):
             self.assertEqual(idx, self.packet_idxs[idx])
             reference_packet.fill(idx)
@@ -74,18 +74,18 @@ class testPacketExtraction(unittest.TestCase):
         self.packets, self.packet_idxs, self.srcfiles = [], [], []
 
         # packet template for the functions
-        EC_width, EC_height = 16, 16
-        width, height, num_frames = 48, 48, 20
+        EC_width, EC_height = 16, 32
+        width, height, num_frames = 48, 64, 20
         self.template = pack.packet_template(EC_width, EC_height, width, height, num_frames)
         self.num_packets = 4
         self.extractor = io_utils.packet_extractor(packet_template=self.template)
 
         # the list of packets normally loaded from an npy file as a simple numpy array or loaded frame by frame from a ROOT file
-        self.bad_packets_num = np.empty((self.num_packets*num_frames + 1, width, height))
-        self.bad_packets_width = np.empty((self.num_packets*num_frames, width + 1, height))
-        self.bad_packets_height = np.empty((self.num_packets*num_frames, width, height + 1))
+        self.bad_packets_num = np.empty((self.num_packets*num_frames + 1, height, width))
+        self.bad_packets_height = np.empty((self.num_packets*num_frames, height + 1, width))
+        self.bad_packets_width = np.empty((self.num_packets*num_frames, height, width + 1))
         # fill every packet with the value of its index in the list
-        self.good_packets_list = np.empty((self.num_packets*num_frames, width, height))
+        self.good_packets_list = np.empty((self.num_packets*num_frames, height, width))
         for idx in range(0, num_frames*self.num_packets, num_frames):
             val = int(idx/num_frames)
             self.good_packets_list[idx:(idx+num_frames)].fill(val)
@@ -100,10 +100,10 @@ class testPacketExtraction(unittest.TestCase):
         mock_np.load.return_value = self.bad_packets_num
         with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect number of frames"):
             self.extractor.extract_packets_from_npyfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        mock_np.load.return_value = self.bad_packets_width
+        mock_np.load.return_value = self.bad_packets_height
         with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect frame width"):
             self.extractor.extract_packets_from_npyfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        mock_np.load.return_value = self.bad_packets_height
+        mock_np.load.return_value = self.bad_packets_width
         with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect frame width"):
             self.extractor.extract_packets_from_npyfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
         # the function self._append should never be called if the packet template is not valid
@@ -125,10 +125,10 @@ class testPacketExtraction(unittest.TestCase):
         mock_reading.AcqL1EventReader.return_value = npyIterator(self.bad_packets_num)
         with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect number of frames"):
             self.extractor.extract_packets_from_rootfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        mock_reading.AcqL1EventReader.return_value = npyIterator(self.bad_packets_width)
+        mock_reading.AcqL1EventReader.return_value = npyIterator(self.bad_packets_height)
         with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect frame width"):
             self.extractor.extract_packets_from_rootfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        mock_reading.AcqL1EventReader.return_value = npyIterator(self.bad_packets_height)
+        mock_reading.AcqL1EventReader.return_value = npyIterator(self.bad_packets_width)
         with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect frame width"):
             self.extractor.extract_packets_from_rootfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
         # the function self._append should never be called if the packet template is not valid

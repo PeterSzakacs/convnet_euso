@@ -41,8 +41,8 @@ if not os.path.exists(current_run_dir):
 X_all = np.load(args.infile)
 Y_all = np.load(args.targetfile).reshape([-1, 2])
 
-n, w, h = X_all.shape[0], X_all.shape[1], X_all.shape[2]
-X_all = X_all.reshape([n, w, h, 1]).astype(np.uint32)
+n, h, w = X_all.shape[0], X_all.shape[1], X_all.shape[2]
+X_all = X_all.reshape([n, h, w, 1]).astype(np.uint32)
 
 #select the first 10% of frames into the validation (actually test) set
 test_n = round(0.1*n)
@@ -63,7 +63,7 @@ for module_name in network_module_names:
     net_mod = importlib.import_module("net." + module_name)
     graph = tf.Graph()
     with graph.as_default():
-        network, conv_layers, fc_layers = net_mod.create(inputShape=[None, w, h, 1], learning_rate = lr, 
+        network, conv_layers, fc_layers = net_mod.create(inputShape=[None, h, w, 1], learning_rate = lr, 
                                                          optimizer = optimizer, loss_fn = loss)
         model = tflearn.DNN(network, tensorboard_verbose = 0, tensorboard_dir = module_dir)
 #        visual_output_dir = os.path.join(module_dir, 'viz')

@@ -18,7 +18,7 @@ class TestPacketTemplate(unittest.TestCase):
         self.assertEqual(int(height/EC_height), template.num_rows)
         self.assertEqual(num_EC, template.num_EC)
         self.assertEqual(num_frames, template.num_frames)
-        self.assertEqual((num_frames, width, height), template.packet_shape)
+        self.assertEqual((num_frames, height, width), template.packet_shape)
 
 
     def test_unit_conversions(self):
