@@ -1,8 +1,8 @@
 import unittest
 import math
-import collections as coll
 
 import numpy as np
+np.set_printoptions(threshold=np.nan)
 
 import utils.packets.packet_utils as pack
 import utils.data_utils as dat
@@ -15,6 +15,8 @@ import utils.data_utils as dat
 # so simple as to not even warrant unit tests (in effect, it technically is a mock already).
 class TestPacketManipulator(unittest.TestCase):
 
+    # deprecated test: except for projections, packet_manipulator does not really check packets anymore, 
+    # and those methods probably don't belong here anyway
     def test_packet_verification(self):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20
@@ -23,21 +25,23 @@ class TestPacketManipulator(unittest.TestCase):
         bad_packet_num = np.empty((num_frames + 10, height, width))
         bad_packet_height = np.empty((num_frames, height + 10, width))
         bad_packet_width = np.empty((num_frames, height, width + 10))
-        self.assertRaises(ValueError, manipulator.simu_EC_malfunction, bad_packet_num, 0)
-        self.assertRaises(ValueError, manipulator.simu_EC_malfunction, bad_packet_height, 0)
-        self.assertRaises(ValueError, manipulator.simu_EC_malfunction, bad_packet_width, 0)
+        self.assertRaises(ValueError, manipulator.create_x_y_projection, bad_packet_num)
+        self.assertRaises(ValueError, manipulator.create_x_y_projection, bad_packet_height)
+        self.assertRaises(ValueError, manipulator.create_x_y_projection, bad_packet_width)
         good_packet = np.empty((num_frames, height, width))
         try:
-            manipulator.simu_EC_malfunction(good_packet, 0)
+            manipulator.create_x_y_projection(good_packet)
         except ValueError:
             self.fail("manipulator raised ValueError even with a good packet, verification is turned on")
         manipulator.set_packet_verification(False)
         try:
-            manipulator.simu_EC_malfunction(good_packet, 0)
+            manipulator.create_x_y_projection(good_packet)
         except ValueError:
             self.fail("manipulator raised ValueError even with a good packet, verification is turned off")
-        # avoid testing passing bad packets with verification off (programmer using this module is solely responsible for correctness of data passed to it)
+        #avoid testing passing bad packets with verification off (programmer using this module is solely responsible for correctness of data passed to it)
 
+    # testing the returning of a list of used ECs is just commented out instead of removed, 
+    # in case we want to return this feature later
     def test_simu_shower(self):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20
@@ -52,32 +56,40 @@ class TestPacketManipulator(unittest.TestCase):
         durations      = [10, 7, 12, 12, 5, 6, 16, 11]
         num_iterations = [10, 7, 12, 12, 5, 5, 5, 5]
         maximums       = [20, 10, 30, 15, 7, 10, 2, 16]
-        ECs            = [[0], [2], [5], [3], [5], [3], [0], [2]]
         num_data       = len(start_xs)
         
         for data_idx in range(num_data):
-            packet = np.zeros((num_frames, height, width))
-            reference_packet = np.zeros((num_frames, height, width))
+            packet = np.ones((num_frames, height, width))
+            reference_packet = np.ones((num_frames, height, width))
             start_x, start_y, start_gtu = start_xs[data_idx], start_ys[data_idx], start_gtus[data_idx]
             start = (start_gtu, start_x, start_y)
             angle, duration, shower_max = math.radians(angles[data_idx]), durations[data_idx], maximums[data_idx]
             delta_x, delta_y = math.cos(angle), math.sin(angle)
-            EC_indexes = ECs[data_idx]
             iterations = num_iterations[data_idx]
             
             generator.reset(shower_max, duration)
-            ECs_used = manipulator.draw_simulated_shower_line(packet, start, angle, generator)
-            
+            X, Y, GTU, vals = manipulator.draw_simulated_shower_line(start, angle, generator)
+            packet[GTU, Y, X] += vals
+
+            # create reference data to compare the method call results to
             gtu_idx = start_gtu
+            ref_X, ref_Y, ref_GTU = [], [], []
+            # ref_EC = []
+            ref_vals = [shower_max,] * iterations
             for idx in range(iterations):
-                reference_packet[gtu_idx, int(start_y+delta_y*idx), int(start_x+delta_x*idx)] += shower_max
+                y, x = int(start_y+delta_y*idx), int(start_x+delta_x*idx)
+                reference_packet[gtu_idx, y, x] += shower_max
+                ref_X.append(x); ref_Y.append(y)
+                ref_GTU.append(gtu_idx)
+                #ref_EC.append(template.xy_to_ec_idx(x, y))
                 gtu_idx += 1
-            self.assertEqual(np.count_nonzero(packet[start_gtu:gtu_idx]), iterations)
+            self.assertTupleEqual(tuple(ref_X), X)
+            self.assertTupleEqual(tuple(ref_Y), Y)
+            self.assertTupleEqual(tuple(ref_GTU), GTU)
+            self.assertTupleEqual(tuple(ref_vals), vals)
+            #self.assertTupleEqual(tuple(ref_EC), ECs_used)
             self.assertTrue(np.array_equal(packet, reference_packet), 
                             msg="Packets at iteration {} are not equal".format(data_idx))
-            self.assertEqual(list(coll.Counter(ECs_used).keys()), EC_indexes, 
-                            msg="Different number of used ECs at iteration {}".format(data_idx))
-
 
     def test_EC_error(self):
         EC_width, EC_height = 16, 32
@@ -88,35 +100,44 @@ class TestPacketManipulator(unittest.TestCase):
         manipulator = dat.packet_manipulator(template, verify_against_template=False)
         packet = np.ones((num_frames, height, width))
 
-        # case 1: method should terminate without changing the packet at all
-        manipulator.simu_EC_malfunction(packet, 0, excluded_ECs=shower_ec_indexes)
+        # case 1: method should terminate without selecting any ECs at all
+        X, Y, ECs = manipulator.select_random_ECs(0, excluded_ECs=shower_ec_indexes)
+        self._fill_EC_with_zeros(packet, X, Y)
         self.assertTrue(np.array_equal(
                 packet, np.ones((num_frames, height, width))
         ))
-        manipulator.simu_EC_malfunction(packet, 0, excluded_ECs=[])
+        X, Y, ECs = manipulator.select_random_ECs(0, excluded_ECs=[])
+        self._fill_EC_with_zeros(packet, X, Y)
         self.assertTrue(np.array_equal(
                 packet, np.ones((num_frames, height, width))
         ))
 
-        # case 2: method should only leave untouched the rightmost 2 EC cells
-        manipulator.simu_EC_malfunction(packet, num_EC - len(shower_ec_indexes), excluded_ECs=shower_ec_indexes)
+        # case 2: method should select all ECs except the rightmost 2 EC cells
+        X, Y, ECs = manipulator.select_random_ECs(num_EC - len(shower_ec_indexes), excluded_ECs=shower_ec_indexes)
+        self._fill_EC_with_zeros(packet, X, Y)
         for frame in packet:
             self.assertEqual(np.count_nonzero(frame), EC_width*EC_height*(len(shower_ec_indexes)))
             self.assertTrue(np.array_equal(
                     frame[0:2*EC_height, 0:2*EC_width], np.zeros((height, width - EC_width))
             ))
         
-        # case 3: if more malfunctioned ECs are requested than possible without zeroing-out ECs in shower_ec_indexes, then settle for num_EC - len(shower_ec_indexes) 
+        # case 3: if more malfunctioned ECs are requested than possible without selecting ECs in excluded_ECs, then settle for num_EC - len(excluded_ECs)
         packet = np.ones((num_frames, width, height))
         ## only one possible EC can malfunction
         shower_ec_indexes = range(1, num_EC)
-        manipulator.simu_EC_malfunction(packet, num_EC, excluded_ECs=shower_ec_indexes)
+        X, Y, ECs = manipulator.select_random_ECs(num_EC, excluded_ECs=shower_ec_indexes)
+        self._fill_EC_with_zeros(packet, X, Y)
         for frame in packet:
             self.assertEqual(np.count_nonzero(frame), width*height - EC_width*EC_height)
             self.assertTrue(np.array_equal(
                     frame[0:EC_height, 0:EC_width], np.zeros((EC_height, EC_width))
             ))
 
+    def _fill_EC_with_zeros(self, packet, X, Y):
+        for idx in range(len(X)):
+            packet[:, Y[idx], X[idx]] = 0
+
+    # deprecated test: these methods should probably be moved into a different module
     def test_projections(self):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20

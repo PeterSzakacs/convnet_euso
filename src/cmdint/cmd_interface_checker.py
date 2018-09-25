@@ -107,7 +107,7 @@ class cmd_interface(bci):
         else:
             ## single acqfile with optional triggerfile
             args.npy, args.acq = False, True
-            if not os.path.existe(args.acqfile):
+            if not os.path.exists(args.acqfile):
                 raise ValueError('Input acquisition file "{}" does not exist'.format(args.acqfile))
             if args.triggerfile != None and not os.path.exists(args.triggerfile):
                 raise ValueError('Input trigger file "{}" does not exist'.format(args.triggerfile))

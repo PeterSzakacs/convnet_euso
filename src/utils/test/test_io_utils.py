@@ -17,6 +17,8 @@ class npyIterator():
 
     def __init__(self, packets_list):
         self.packets = packets_list
+        frame_h, frame_w = packets_list.shape[1:]
+        self.new_shape = (1, 1, frame_h, frame_w)
         self.tevent_entries = len(packets_list)
         self.index = -1
 
@@ -31,7 +33,7 @@ class npyIterator():
     def __next__(self):
         self.index += 1
         if self.index < self.tevent_entries:
-            return npyIterator.frame(self.packets[self.index])
+            return npyIterator.frame(self.packets[self.index].reshape(self.new_shape))
         else:
             raise StopIteration()
 

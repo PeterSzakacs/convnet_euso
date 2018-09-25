@@ -34,7 +34,9 @@ class packet_extractor():
                                                     on_packet_extracted=lambda packet, packet_idx, srcfile: None):
         reader = reading.AcqL1EventReader(acqfile, triggerfile)
         iterator = reader.iter_gtu_pdm_data()
-        first_frame_shape = next(iterator).photon_count_data.shape
+        first_frame = next(iterator).photon_count_data
+        # NOTE: ROOT file iterator returns packet frames of shape (1, 1, height, width)
+        first_frame_shape = first_frame.shape[2:4]
         total_num_frames = reader.tevent_entries
 
         self._check_packet_against_template(first_frame_shape, total_num_frames, acqfile)

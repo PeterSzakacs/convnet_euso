@@ -83,7 +83,11 @@ if not os.path.exists(current_run_dir):
 if args.npy:
     X_all = np.load(args.infile)
     Y_all = np.load(args.targetfile).reshape([-1, 2]).astype(np.uint8)
+    args.infile = os.path.abspath(args.infile)
+    args.targetfile = os.path.abspath(args.targetfile)
 else:
+    args.infile = args.acqfile
+    args.targetfile = 'None (implicitly assumed_noise in all packets)'
     extractor = io_utils.packet_extractor()
     manipulator = dat.packet_manipulator(extractor.packet_template)
     X_all = []
@@ -91,7 +95,7 @@ else:
                                 manipulator.create_x_y_projection(packet, start_idx=27, end_idx=47))
     extractor.extract_packets_from_rootfile_and_process(args.acqfile, triggerfile=args.triggerfile, on_packet_extracted=proj_creator)
     # implicitly assuming that all packets will contain noise
-    X_all = np.array(packets, dtype=np.uint8)
+    X_all = np.array(X_all, dtype=np.uint8)
     Y_all = np.array([[0, 1] for idx in range(len(X_all))], dtype=np.uint8)
 ## prepare evaluation set
 if args.numframes != None:
@@ -108,9 +112,10 @@ if args.metafile != None:
         reader = csv.DictReader(metafile, delimiter='\t')
         for row in reader:
             metadata.append((row['source_file_acquisition_full'], row['packet_idx']))
+    args.metafile = os.path.abspath(args.metafile)
 else:
-    # just write infile as metafile
-    metadata = [[args.infile]] * len(X_test)
+    # just write infile as source file of packet
+    metadata = [(args.infile, idx) for idx in range(len(X_test))]
 
 
 
@@ -167,9 +172,9 @@ for network in args.networks:
         txt.begin_list()
         txt.add_heading("Statistics", level=2)
         txt.add_list_item("Time run: {}".format(run_time))
-        txt.add_list_item("Dataset file used for test: {}".format(os.path.abspath(args.infile)))
-        txt.add_list_item("Targets of dataset file: {}".format(os.path.abspath(args.targetfile)))
-        txt.add_list_item("Optional metadata file: {}".format(os.path.abspath(args.metafile)))
+        txt.add_list_item("Dataset file used for test: {}".format(args.infile))
+        txt.add_list_item("Targets of dataset file: {}".format(args.targetfile))
+        txt.add_list_item("Optional metadata file: {}".format(args.metafile))
         txt.add_list_item("Network architecture name: {}".format(network_name))
         txt.add_list_item("Trained model file: {}".format(os.path.abspath(model_file)))
         txt.add_list_item("Number of frames predicted as shower: {}".format(shower_count))

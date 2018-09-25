@@ -1,7 +1,7 @@
 import sys
 import math
+import operator
 import random as rand
-import collections as coll
 
 import numpy as np
 
@@ -9,31 +9,44 @@ import cmdint.cmd_interface_datagen as cmd
 import utils.packets.packet_utils as pack
 import utils.data_utils as dat
 
-# declarations of custom functions (they use certain variables and lambdas declared later in this file)
+# declarations of custom functions (unfortunately, they currently use certain variables and lambdas 
+# declared later in this file, in other words, global variables. TODO: have to fix this)
+
 def create_shower_packet(template, angle, shower_max, duration, max_EC_malfunctions=0):
-    generator.reset(shower_max, duration)
+    # get a random start coordinate and calculate parameters to pass to the method of packet_manipulator
     # let start coordinate be at least a distance of 3/4 * duration from the edges of the frame
     top, right, bottom, left = edge_generator(int(3*duration/4), template)
-
     start_gtu = 2
     start_x = rand.randrange(left, right)
     start_y = rand.randrange(bottom, top)
     start = (start_gtu, start_x, start_y)
     ang_rad = math.radians(angle)
+    generator.reset(shower_max, duration)
 
-    width, height, num_frames = template.frame_width, template.frame_height, template.num_frames
-    packet = np.random.poisson(lam=lam, size=(num_frames, height, width))
-    ECs_used = manipulator.draw_simulated_shower_line(packet, start, ang_rad, generator)
+    # create the actual packet
+    packet = np.random.poisson(lam=lam, size=template.packet_shape)
+    X, Y, GTU, vals = manipulator.draw_simulated_shower_line(start, ang_rad, generator)
+    packet[GTU, Y, X] += vals
 
-    frequencies = coll.Counter(ECs_used)
-    shower_indexes = [item[0] for item in frequencies.most_common(2)]
-    manipulator.simu_EC_malfunction(packet, max_EC_malfunctions, excluded_ECs=shower_indexes)
+    # get the sum of shower pixel values in all EC modules
+    ECs_used = [template.xy_to_ec_idx(x, y) for (x, y) in zip(X, Y)]
+    ECs_dict = dict(zip(ECs_used, [0]*len(ECs_used)))
+    for idx in range(len(ECs_used)):
+        EC = ECs_used[idx]
+        ECs_dict[EC] += packet[GTU[idx], Y[idx], X[idx]]
+    # get the EC containing the maximum pixel values
+    maxval_EC = max(ECs_dict.items(), key=operator.itemgetter(1))[0]
+    # zero-out pixels to simulate random EC failures
+    X, Y, indices = manipulator.select_random_ECs(max_EC_malfunctions, excluded_ECs=[maxval_EC])
+    for idx in range(len(indices)):
+        packet[:, Y[idx], X[idx]] = 0
     return packet
 
 def create_noise_packet(template, max_EC_malfunctions=0):
-    width, height, num_frames = template.frame_width, template.frame_height, template.num_frames
-    packet = np.random.poisson(lam=lam, size=(num_frames, height, width))
-    manipulator.simu_EC_malfunction(packet, max_EC_malfunctions)
+    packet = np.random.poisson(lam=lam, size=template.packet_shape)
+    X, Y, indices = manipulator.select_random_ECs(max_EC_malfunctions)
+    for idx in range(len(indices)):
+        packet[:, Y[idx], X[idx]] = 0
     return packet
 
 
@@ -98,7 +111,7 @@ for handler in iteration_handlers:
 
 
 # shuffle the data in unison for a given number of times
-for idx in range(args.num_shuffles):
+for idx in range(0):
     rng_state = np.random.get_state()
     np.random.shuffle(data)
     np.random.set_state(rng_state)
