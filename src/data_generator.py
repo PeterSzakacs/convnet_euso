@@ -111,7 +111,7 @@ for handler in iteration_handlers:
 
 
 # shuffle the data in unison for a given number of times
-for idx in range(0):
+for idx in range(args.num_shuffles):
     rng_state = np.random.get_state()
     np.random.shuffle(data)
     np.random.set_state(rng_state)
