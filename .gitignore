@@ -19,8 +19,8 @@ pip-selfcheck.json
 __pycache__
 *.so
 *.o
-src/visualization/event/*.html
-src/visualization/event/*.c
+src/libs/event_viz/*.html
+src/libs/event_viz/*.c
 
 
 

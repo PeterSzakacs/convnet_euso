@@ -1,7 +1,7 @@
 import numpy as np
 
 from .packets import packet_utils as pack
-from . import event_reading as reading
+from libs import event_reading as reading
 
 class packet_extractor():
 
