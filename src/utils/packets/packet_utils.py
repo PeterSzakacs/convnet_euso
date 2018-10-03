@@ -5,6 +5,16 @@
 class packet_template():
 
     def __init__(self, EC_width, EC_height, frame_width, frame_height, frames_per_packet):
+        arguments = dict(vars())
+        del arguments['self']
+        for key in arguments:
+            if arguments[key] < 0:
+                raise ValueError('Packet property {} cannot be a negative value, got: {}'.format(key, arguments[key]))
+        if frame_width % EC_width != 0:
+            raise ValueError('Frame width must be a multiple of EC width')
+        if frame_height % EC_height != 0:
+            raise ValueError('Frame height must be a multiple of EC height')
+
         self._EC_width, self._EC_height = EC_width, EC_height
         self._width, self._height = frame_width, frame_height
         self._num_rows = int(frame_height/EC_height)

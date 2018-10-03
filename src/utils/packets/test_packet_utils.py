@@ -20,6 +20,17 @@ class TestPacketTemplate(unittest.TestCase):
         self.assertEqual(num_frames, template.num_frames)
         self.assertEqual((num_frames, height, width), template.packet_shape)
 
+        # test creating a template from incosistent properties
+        ## first: negative values
+        self.assertRaises(ValueError, pack.packet_template, -1, EC_height, width, height, num_frames)
+        self.assertRaises(ValueError, pack.packet_template, EC_width, -1, width, height, num_frames)
+        self.assertRaises(ValueError, pack.packet_template, EC_width, EC_height, -1, height, num_frames)
+        self.assertRaises(ValueError, pack.packet_template, EC_width, EC_height, width, -1, num_frames)
+        self.assertRaises(ValueError, pack.packet_template, EC_width, EC_height, width, height, -1)
+
+        # second: width and height that are not evenly divisible by EC_width or EC_height respectively
+        self.assertRaises(ValueError, pack.packet_template, EC_height+1, EC_width, width, height, num_frames)
+        self.assertRaises(ValueError, pack.packet_template, EC_height, EC_width+1, width, height, num_frames)
 
     def test_unit_conversions(self):
         EC_width, EC_height = 16, 32
