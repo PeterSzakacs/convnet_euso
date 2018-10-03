@@ -105,5 +105,5 @@ np.save(out_y_x, YX_proj)
 np.save(out_gtu_x, GTU_X_proj)
 np.save(out_gtu_y, GTU_Y_proj)
 
-out_y = os.path.join(args.outdir, args.name + '_y')
+out_y = os.path.join(args.outdir, args.name + '_targets')
 np.save(out_y, Y)

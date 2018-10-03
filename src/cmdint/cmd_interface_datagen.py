@@ -46,10 +46,10 @@ class cmd_interface():
         # TODO: Might want to use a better way to create dataset files (maybe keep metadata 
         # such as shower and packet properties in an sqlite database and only distinguish files
         # by a string representing its creation timestamp)
-        xy_impl = os.path.join(args.destdir, ('simu_data_xy__{}__{}.npy'.format(params_impl, shower_impl)))
-        xgtu_impl = os.path.join(args.destdir, ('simu_data_xgtu__{}__{}.npy'.format(params_impl, shower_impl)))
-        ygtu_impl = os.path.join(args.destdir, ('simu_data_ygtu__{}__{}.npy'.format(params_impl, shower_impl)))
-        targetfile_impl = os.path.join(args.destdir, ('simu_data_targets__{}__{}.npy'.format(params_impl, shower_impl)))
+        xy_impl = os.path.join(args.destdir, ('simu_data__{}__{}_yx.npy'.format(params_impl, shower_impl)))
+        xgtu_impl = os.path.join(args.destdir, ('simu_data__{}__{}_gtux.npy'.format(params_impl, shower_impl)))
+        ygtu_impl = os.path.join(args.destdir, ('simu_data__{}__{}_gtuy.npy'.format(params_impl, shower_impl)))
+        targetfile_impl = os.path.join(args.destdir, ('simu_data__{}__{}_targets.npy'.format(params_impl, shower_impl)))
 
         args.outfiles = (xy_impl, xgtu_impl, ygtu_impl)
         args.targetfile =  targetfile_impl

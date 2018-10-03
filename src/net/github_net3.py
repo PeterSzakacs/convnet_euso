@@ -13,7 +13,7 @@ def create(inputShape, learning_rate=None, optimizer=None, loss_fn=None):
     optimizer = 'adam' if optimizer is None else optimizer
     loss_fn = 'categorical_crossentropy' if loss_fn is None else loss_fn
     
-    network = input_data(shape=inputShape, name='input')
+    network = input_data(shape=inputShape[0], name='input')
     conv1 = conv_2d(network, 64, 3, strides=1, activation='relu', regularizer='L2')
     network = max_pool_2d(conv1, 2)
     network = local_response_normalization(network)

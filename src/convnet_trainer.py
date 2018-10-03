@@ -38,20 +38,29 @@ if not os.path.exists(current_run_dir):
 
 
 # data loading and preprocessing
-X_all = np.load(args.infile)
+Xs, input_shapes = [], []
+for filename in args.infiles:
+    if filename != 'None':
+        X = np.load(filename)
+        n, h, w = X.shape[0:3]
+        X = X.reshape(n, h, w, 1).astype(np.uint32)
+        Xs.append(X)        
+        input_shapes.append([None, h, w, 1])
 Y_all = np.load(args.targetfile).reshape([-1, 2])
-
-n, h, w = X_all.shape[0], X_all.shape[1], X_all.shape[2]
-X_all = X_all.reshape([n, h, w, 1]).astype(np.uint32)
 
 #select the first 10% of frames into the validation (actually test) set
 test_n = round(0.1*n)
 
-X_train = X_all[test_n:]
+X_trains, X_tests = [], []
+for X in Xs:
+    X_trains.append(X[test_n:])
+    X_tests.append(X[:test_n])
 Y_train = Y_all[test_n:]
-X_test = X_all[:test_n]
 Y_test = Y_all[:test_n]
 
+if len(Xs) == 1:
+    X_trains = X_trains[0]
+    X_tests = X_tests[0]
 
 # uncomment callbacks-related code if you want to see visually in generated images at each output what the outputs 
 # of the convolutional (well, technically, max-pooling, and only first 10 filters) and FC layers are after each epoch
@@ -63,7 +72,7 @@ for module_name in network_module_names:
     net_mod = importlib.import_module("net." + module_name)
     graph = tf.Graph()
     with graph.as_default():
-        network, conv_layers, fc_layers = net_mod.create(inputShape=[None, h, w, 1], learning_rate = lr, 
+        network, conv_layers, fc_layers = net_mod.create(inputShape=input_shapes, learning_rate = lr, 
                                                          optimizer = optimizer, loss_fn = loss)
         model = tflearn.DNN(network, tensorboard_verbose = 0, tensorboard_dir = module_dir)
 #        visual_output_dir = os.path.join(module_dir, 'viz')
@@ -75,7 +84,7 @@ for module_name in network_module_names:
 #        weights_callback = filtersViz.VisualizerCallback(model, conv_layers, weights_output_dir)
 #        convCallback = convViz.VisualizerCallback(model, X[0:100], visual_ouptut_dir, conv_layers)
 #        fcCallback = fcViz.VisualizerCallback(model, X[0:100], visual_output_dir, fc_layers)
-        model.fit({'input': X_train}, {'target': Y_train}, n_epoch=epochs, validation_set=({'input': X_test}, {'target': Y_test}),
+        model.fit(X_trains, Y_train, n_epoch=epochs, validation_set=(X_tests, Y_test),
                   snapshot_step=100, show_metric=True, run_id=module_name)#, callbacks=[weights_callback])
         if save:
             model.save(os.path.join(module_dir, "{}.tflearn".format(module_name)))
