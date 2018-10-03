@@ -24,17 +24,12 @@ class cmd_interface(bci):
                                       ' to construct the target file name. Must be specified alongside --infile.'))
         self.parser.add_argument('-m', '--metafile',
                                 help=('optional TSV file storing dataset metadata.'))
-        ## input files with frames and targets, both located in the same directory with default filenames
-        self.parser.add_argument('-p', '--params', metavar=self._param_metavars, type=int, nargs=len(self._param_metavars),
-                                help=('parameters of input data to use; the input data and targets file names'
-                                      ' are constructed from these parameters.'))
         ## dataset files identified by name, also all located in the same directory
         self.parser.add_argument('--name',
                                 help=('name of the dataset, input, targets and meta file names are constructed from these.'))
-        #### source directory, common for both options above
-        self.parser.add_argument('-s', '--srcdir',
-                                help=('directory containing input data and target files; only required if --params or --name'
-                                      ' is used, otherwise it is completely ignored.'))
+        self.parser.add_argument('--srcdir',
+                                help=('directory containing input data and target files; only required if --name is used,'
+                                      ' otherwise it is completely ignored.'))
         ## single acquisition file in CERN ROOT format with optional L1 trigger file
         self.parser.add_argument('--acqfile',
                                  help=('the acquisition ROOT file storing air shower data. Can be specified alongside --triggerfile.'))
@@ -68,33 +63,25 @@ class cmd_interface(bci):
         
         use_srcdir = (args.srcdir != None)
         use_name = (args.name != None and use_srcdir)
-        use_params = (args.params != None and use_srcdir)
-        use_infile = (args.infile != None and args.targetfile != None)
+        use_infiles = (args.infiles != None and args.targetfile != None)
 
         # != is basically XOR in python
-        npy_input = ((use_params != use_name) != use_infile)
+        npy_input = (use_name != use_infiles)
         acq_input = (args.acqfile != None)
 
         # valid inputs:
         #     infile, triggerfile, [metafile]
-        #     params, srcdir
         #     name, srcdir
         #     acqfile, triggerfile
 
         if npy_input == acq_input:
             raise ValueError(('Input method not specified or vague, please use just one of the following:'
-                             ' srcdir and params, srcdir and name, inputfile and targetfile [and metafile]'
-                             ' acqfile [and triggerfile]'))
+                             ' srcdir and name, inputfiles and targetfile [and metafile] acqfile [and triggerfile]'))
         # Check if input method is valid
         if npy_input:
-            ## params/srcdir, name/srcdir and infile/targetfile combinations
+            ## name/srcdir and infile/targetfile/[metafile] combinations
             args.npy, args.acq = True, False
-            if use_params:
-                data, targets = self.params_to_filenames(args.srcdir, args.params)
-                args.infile = data + '.npy'
-                args.targetfile = targets + '.npy'
-                args.metafile = None
-            elif use_name:
+            if use_name:
                 args.infile = os.path.join(args.srcdir, args.name + "_x.npy")
                 args.targetfile = os.path.join(args.srcdir, args.name + "_y.npy")
                 args.metafile = os.path.join(args.srcdir, args.name + "_meta.tsv")
@@ -111,7 +98,6 @@ class cmd_interface(bci):
                 raise ValueError('Input acquisition file "{}" does not exist'.format(args.acqfile))
             if args.triggerfile != None and not os.path.exists(args.triggerfile):
                 raise ValueError('Input trigger file "{}" does not exist'.format(args.triggerfile))
-        
         # Check network modules and trained models built from those modules
         for network in args.networks:
             network_name = network[0]

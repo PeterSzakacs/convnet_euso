@@ -106,6 +106,7 @@ else:
 
 
 # load metadata
+metadata = []
 if args.metafile != None:
     # go to next csv row and get 'source_file_acquisition_full'
     with open(args.metafile) as metafile:
