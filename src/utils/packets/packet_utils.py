@@ -1,7 +1,4 @@
-# classes and functions for manipulating data in packets of simulated frames
-
 # Packet data template
-
 class packet_template():
 
     def __init__(self, EC_width, EC_height, frame_width, frame_height, frames_per_packet):
@@ -55,7 +52,7 @@ class packet_template():
     @property
     def num_EC(self):
         return self._num_EC
-    
+
     @property
     def num_frames(self):
         return self._num_frames
@@ -76,3 +73,10 @@ class packet_template():
 
     def ec_idx_to_ec_xy(self, ec_idx):
         return ec_idx % self._num_cols, int(ec_idx / self._num_cols)
+
+    def ec_idx_to_xy_slice(self, ec_idx):
+        EC_w, EC_h = self._EC_width, self._EC_height
+        EC_x, EC_y = self.ec_idx_to_ec_xy(ec_idx)
+        x_start, y_start = EC_x*EC_w, EC_y*EC_h
+        x_stop, y_stop = x_start + EC_w, y_start + EC_h
+        return slice(x_start, x_stop), slice(y_start, y_stop)

@@ -1,121 +1,220 @@
+import itertools
+import math
+import random as rand
+
+import utils.common_utils as cutils
+import utils.data_utils as dat
+
+"""Create a simulated shower line and return its coordinates (GTU, X, Y) and values in the form of tuples of ints
+
+The shower line is inclined under ang_rad and starts at a given GTU, X and Y coordinate
+Vals_generator is used to generate the values for every coordinate tuple.
+
+The values and coordinates are trimmed if necessary to conform spatially to a packet conforming
+to self.template (to prevent going outside template.num_frames or frame width or height)
+
+The returned tuples of coordinates and values can be used directly to draw the line into the actual packet.
+
+Parameters
+----------
+start_coordinate :  tuple of int
+                    start coordinates from which to start the shower line in the form (start_gtu, start_y, start_x).
+ang_rad :           float.
+                    angle in radians under which the shower line appears in the xy projection of the packet.
+packet_template :   utils.packets.packet_utils.packet_template.
+                    template of the packet in which this simulated shower occurs. This is to shave off any coordinates
+                    that are outside the packet boundaries.
+vals_generator :    iterable returning int
+                    iterable object returning the desired shower value at each ieration. MUST BE PRESET TO GENERATE
+                    THE CORRECT VALUES FOR EVERY GTU.
+
+Returns
+-------
+GTU :               tuple of int
+                    tuple, where a given element represents the GTU-axis coordinate
+                    for a particular shower value at the same index in Values.
+Y :                 tuple of int
+                    tuple, where a given element represents the Y-axis coordinate
+                    for a particular shower value at the same index in Values.
+X :                 tuple of int
+                    tuple, where a given element represents the X-axis coordinate
+                    for a particular shower value at the same index in Values.
+Values:             tuple of int
+                    tuple of shower values in ordered ordered with respect to time (GTU)
 """
-Collection of tools for parsing and checking parameters of synthetically generated data 
-(i.e. data with simulated backgrounds instead of a background recorded during experiments).
+def create_simu_shower_line(yx_angle, start_coordinate, packet_template, values_generator):
+    ang_rad = math.radians(yx_angle)
+    delta_x, delta_y = math.cos(ang_rad), math.sin(ang_rad)
+
+    start_gtu, start_y, start_x = start_coordinate[0:3]
+    num_frames, height, width = packet_template.num_frames, packet_template.frame_height, packet_template.frame_width
+
+    # generate shower values for every GTU from start_gtu to num_frames or until the shower generator finishes
+    Values = [val for val in itertools.islice(values_generator, num_frames - start_gtu)]
+    GTU = range(start_gtu, start_gtu + len(Values))
+    # get x, y coordinates for every gtu
+    X = [start_x + math.floor(delta_x * idx) for idx in range(len(Values))]
+    Y = [start_y + math.floor(delta_y * idx) for idx in range(len(Values))]
+    # remove those that are outside the edge of a packet frame
+    X = [x for x in X if x >= 0 and x < width]
+    Y = [y for y in Y if y >= 0 and y < height]
+    num_frames = min(len(X), len(Y))
+    X, Y, GTU, Values = tuple(X[:num_frames]), tuple(Y[:num_frames]), tuple(GTU[:num_frames]), tuple(Values[:num_frames])
+    return GTU, Y, X, Values
+
+def create_simu_shower_line_from_template(shower_template, yx_angle):
+    start = shower_template.get_new_start_coordinate()
+    shower_max = shower_template.get_new_shower_max()
+    duration = shower_template.get_new_shower_duration()
+    vals_generator = shower_template.values_generator
+    vals_generator.reset(shower_max, duration)
+
+    packet_template = shower_template.packet_template
+    return create_simu_shower_line(yx_angle, start, packet_template, vals_generator)
+
+"""Randomly select regions of a packet frame corresponding to the EC modules on the surface of a source detector
+(can be used to e.g. simulate malfunctioning EC units of a detector).
+
+The number of regions or ECs actually selected is the minimum of (max_ECs) or (all possible ECs minus those in excluded_ECs).
+
+Parameters
+----------
+packet_template :   utils.packets.packet_utils.packet_template
+                    template of packet data
+max_errors :        int
+                    maximum number of ECs to select.
+excluded_ECs :      (list or tuple) of ints
+                    EC indexes that should not be selected.
+
+Returns
+-------
+X :                 tuple of slices
+                    tuple, where a given element represents the X-axis slice for an EC whose EC index
+                    is in EC_indices at the same index as the slice.
+Y :                 tuple of slices
+                    tuple, where a given element represents the Y-axis slice for an EC whose EC index
+                    is in EC_indices at the same index as the slice.
+EC_indices :        tuple of int
+                    EC indexes of selected ECs.
 """
+def select_random_ECs(packet_template, max_ECs, excluded_ECs=[]):
+    EC_n = packet_template.num_EC
+    indices = set(range(0, EC_n, 1)).difference(excluded_ECs)
+    used_indices = set()
+    X, Y = [], []
+    stop = min(len(indices), max_ECs)
+    for iteration in range(0, stop):
+        index = rand.randrange(0, EC_n)
+        # do not use an EC index that was explicitly excluded nor one already used
+        while not index in indices or index in used_indices:
+            index = rand.randrange(0, EC_n)
+        x, y = packet_template.ec_idx_to_xy_slice(index)
+        # perhaps it is better to not store slices but the actual X and Y positions
+        X.append(x), Y.append(y)
+        used_indices.add(index)
+        indices.discard(index)
+    return tuple(X), tuple(Y), tuple(used_indices)
 
-import utils.packets.packet_utils as pack
 
-def _test_num(value, lower_bound, err_msg):
-    if value < lower_bound:
-        raise ValueError(err_msg)
 
-# arguments that influence packet shape, number of packets and packet backgrounds
-class params_args:
+class simulated_shower_template():
 
-    def __init__(self):
-        self._packet_dims_metavar = ('NUM_GTU', 'HEIGHT', 'WIDTH', 'EC_HEIGHT', 'EC_WIDTH')
-    
-    def add_packet_cmd_args(self, parser):
-        parser.add_argument('--packet_dims', required=True, type=int, nargs=5, metavar=self._packet_dims_metavar,
-                            help=('Dimensions of packets from which individual data items are created. Width and height'
-                                ' of individual frames in a packet must be evenly divisible by EC width or height respectively'))
+    def __init__(self, packet_template, shower_duration, shower_max,
+                        start_gtu=None, start_y=None, start_x=None,
+                        values_generator=dat.default_vals_generator(10, 10)):
+        self._template = packet_template
+        self.shower_duration = shower_duration
+        self.shower_max = shower_max
+        # set default value ranges for start coordinates if not provided
+        # let start coordinates be at least a distance of 3/4 * duration from the edges of a packet
+        limit = int(3*self.shower_duration[1]/4)
+        self.start_gtu = (0, packet_template.num_frames - limit) if start_gtu == None else start_gtu
+        self.start_y = (limit, packet_template.frame_height - limit) if start_y == None else start_y
+        self.start_x = (limit, packet_template.frame_width - limit) if start_x == None else start_x
+        self.values_generator = values_generator
+        # generator functions for shower parameter ranges
+        static_lam = lambda min, max: min
+        random_lam = lambda min, max: rand.randint(min, max)
+        for prop_name in ['start_gtu', 'start_y', 'start_x', 'shower_max', 'shower_duration']:
+            min, max = getattr(self, prop_name)
+            setattr(self, '_{}_gen'.format(prop_name), (static_lam if min == max else random_lam))
 
-    def add_other_cmd_args(self, parser, bad_ECs_default=None):
-        bad_ec_def = '' if bad_ECs_default == None else' Default value range: {}.'.format(bad_ECs_default)
+    # shower properties
 
-        parser.add_argument('--num_data', required=True, type=int,
-                            help=('Number of data items (both noise and shower), corresponds to number of packets'))
-        parser.add_argument('--bg_lambda', required=True, type=float,
-                            help=('Average of background pixel values (lambda in Poisson distributions'))
-        parser.add_argument('--bad_ECs', required=True, type=int, nargs=2, metavar=('MIN', 'MAX'),
-                            help=('Number of malfunctioned EC modules in the data. The actual number of such ECs'
-                                ' in any data item is from MIN to MAX, inclusive. If MIN == MAX, the number of bad ECs'
-                                ' is an exact number, barring cases where keeping this requirement would knock out ECs'
-                                ' containing shower pixels.{}'.format(bad_ec_def)))
+    @property
+    def packet_template(self):
+        return self._template
 
-    def check_cmd_args(self, args):
-        # a packet template already checks its own dimensions and raises errors in its constructor
-        template = self.args_to_packet_template(args)
-        _test_num(args.num_data, 1, 'number of data items must be greater than 0')
-        _test_num(args.bg_lambda, 0, 'background mean (lambda) must be greater than or equal to 0')
-        _test_num(args.bad_ECs[0], 0, 'minimum number of bad ECs cannot be a negative value')
-        _test_num(args.bad_ECs[1], args.bad_ECs[0], 'maximum number of bad ECs cannot be less than the minimum value')
-        _test_num(template.num_EC, args.bad_ECs[1], 'maximum number of bad ECs cannot exceed the total number of ECs per frame {}'.format(template.num_EC))
+    @property
+    def packet_template(self):
+        return self._template
 
-    def args_to_packet_template(self, args):
-        n_gtu, f_h, f_w, ec_h, ec_w = args.packet_dims[0:5]
-        return pack.packet_template(ec_w, ec_h, f_w, f_h, n_gtu)
+    @property
+    def start_gtu(self):
+        return self._start_gtu
 
-    def args_to_string(self, args):
-        n_gtu, f_h, f_w, ec_h, ec_w = args.packet_dims[0:5]
-        n_data = args.num_data
-        lam = args.bg_lambda
-        bec_min, bec_max = args.bad_ECs[0:2]
-        return 'pack_{}_{}_{}_{}_{}_num_{}_bad_ecs_{}-{}_lam_{}'.format(n_gtu, f_h, f_w, ec_h, ec_w, n_data, bec_min, bec_max, lam)
+    @start_gtu.setter
+    def start_gtu(self, value):
+        vals = cutils.check_and_convert_value_to_tuple(value, 'start_gtu')
+        cutils.check_interval_tuple(vals, 'start_gtu', lower_limit=0, upper_limit=self._template.num_frames - 1)
+        self._start_gtu = vals
 
-# arguments directly affecting simulated shower properties
-class shower_args:
+    @property
+    def start_y(self):
+        return self._start_y
 
-    def add_cmd_args(self, parser, duration_default=None, bg_diff_default=None, 
-                    start_gtu_default=None, start_x_default=None, start_y_default=None):
-        dur_def = '' if duration_default == None else ' Default value range: {}.'.format(duration_default)
-        bg_diff_def = '' if bg_diff_default == None else ' Default value range: {}.'.format(bg_diff_default)
-        start_gtu_def = '' if start_gtu_default == None else ' Default value range: {}.'.format(start_gtu_default)
-        start_x_def = '' if start_x_default == None else ' Default value range: {}.'.format(start_x_default)
-        start_y_def = '' if start_y_default == None else ' Default value range: {}.'.format(start_y_default)
+    @start_y.setter
+    def start_y(self, value):
+        vals = cutils.check_and_convert_value_to_tuple(value, 'start_y')
+        cutils.check_interval_tuple(vals, 'start_y', lower_limit=0, upper_limit=self._template.frame_height - 1)
+        self._start_y = vals
 
-        parser.add_argument('--bg_diff', metavar=('MIN', 'MAX'), nargs=2, type=int, required=True,
-                                help=('Relative difference between pixel values of shower track and background. This is'
-                                    ' a range of values from MIN to MAX, inclusive. If MIN == MAX, for all packets'
-                                    ' the shower line has the same peak potential intensity.{}'.format(dur_def)))
-        parser.add_argument('--duration', metavar=('MIN', 'MAX'), nargs=2, type=int, required=True,
-                                help=('Duration of shower tracks in number of GTU or frames containing shower pixels.'
-                                    ' The actual duration of a shower for any data item is from MIN to MAX, inclusive.'
-                                    ' If MIN == MAX, the duration is always the same.{}'.format(dur_def)))
-        parser.add_argument('--start_gtu', metavar=('MIN', 'MAX'), nargs=2, type=int,
-                                help=('First GTU containing shower pixels. This is a range of GTUs from MIN to MAX, inclusive,'
-                                    ' where a simulated shower line begins. If MIN == MAX, for all packets the shower line'
-                                    ' starts at the same GTU in a packet.{}'.format(start_gtu_def)))
-        parser.add_argument('--start_y', metavar=('MIN', 'MAX'), nargs=2, type=int,
-                                help=('The y coordinate of a packet frame at which a shower line begins. This is a range'
-                                    ' of y coordinate values from MIN to MAX, inclusive, where a shower line can begin.'
-                                    ' If MIN == MAX, all packets have shower lines starting at the same y coordinate.{}'
-                                    .format(start_y_def)))
-        parser.add_argument('--start_x', metavar=('MIN', 'MAX'), nargs=2, type=int,
-                                help=('The x coordinate of a packet frame at which a shower line begins. This is a range'
-                                    ' of x coordinate values from MIN to MAX, inclusive, where a shower line can begin.'
-                                    ' If MIN == MAX, all packets have shower lines starting at the same x coordinate.{}'
-                                    .format(start_x_def)))
+    @property
+    def start_x(self):
+        return self._start_x
 
-    def check_cmd_args(self, args, template):
-        dims_and_limits = { 'start_gtu' : [template.num_frames, 'number of frames in a packet'], 
-                            'start_x'   : [template.frame_width, 'width of a packet frame'], 
-                            'start_y'   : [template.frame_height, 'height of a packet frame']}
+    @start_x.setter
+    def start_x(self, value):
+        vals = cutils.check_and_convert_value_to_tuple(value, 'start_x')
+        cutils.check_interval_tuple(vals, 'start_x', lower_limit=0, upper_limit=self._template.frame_width - 1)
+        self._start_x = vals
 
-        for key in dims_and_limits:
-            val = getattr(args, key)
-            if val != None:
-                # MIN cannot be less than zero
-                _test_num(val[0], 0, 'Lower bound for shower property {} must be greater than or eual to 0'.format(key))
-                # MIN cannot be greater than MAX
-                _test_num(val[1], val[0], 'Upper bound of shower property {} must be greater than or equal to its lower bound'.format(key))
-                limit, msg = dims_and_limits[key][0:2]
-                # MAX cannot exceed its respective packet dimension
-                _test_num(limit, val[1], 'Upper bound of {} cannot be larger or the same as the {} ({})'.format(key, msg, limit))
-        for key in ['bg_diff', 'duration']:
-            val = getattr(args, key)
-            _test_num(val[0], 1, 'Lower bound for shower property {} must be greater than or eual to 1'.format(key))
-            # MIN cannot be greater than MAX
-            _test_num(val[1], val[0], 'Upper bound of shower property {} must be greater than or equal to its lower bound'.format(key))
-        if args.duration[1] >= template.num_frames:
-            raise ValueError('Upper bound of shower duration cannot be larger than the number of frames in a packet')
+    @property
+    def shower_max(self):
+        return self._max
 
-    def args_to_dict(self, args):
-        return {'start_gtu': args.start_gtu, 'start_x': args.start_x, 'start_y': args.start_y, 
-                'bg_diff': args.bg_diff, 'duration': args.duration}
+    @shower_max.setter
+    def shower_max(self, value):
+        vals = cutils.check_and_convert_value_to_tuple(value, 'shower_max')
+        cutils.check_interval_tuple(vals, 'shower_max', lower_limit=1)
+        self._max = vals
 
-    def args_to_string(self, args):
-        sx, sy, sgtu = args.start_x, args.start_y, args.start_gtu
-        diff, dur = args.bg_diff, args.duration
-        return 'shower_gtu_{}-{}_y_{}-{}_x_{}-{}_duration_{}-{}_bgdiff_{}-{}'.format(sgtu[0], sgtu[1], sy[0], sy[1], sx[0], sx[1], 
-                                                                dur[0], dur[1], diff[0], diff[1])
+    @property
+    def shower_duration(self):
+        return self._duration
+
+    @shower_duration.setter
+    def shower_duration(self, value):
+        vals = cutils.check_and_convert_value_to_tuple(value, 'shower_duration')
+        cutils.check_interval_tuple(vals, 'shower_duration', lower_limit=1, upper_limit=self._template.num_frames)
+        self._duration = vals
+
+    @property
+    def values_generator(self):
+        return self._vals_generator
+
+    @values_generator.setter
+    def values_generator(self, value):
+        self._vals_generator = value
+
+    def get_new_start_coordinate(self):
+        start_gtu = self._start_gtu_gen(*(self._start_gtu))
+        start_y = self._start_y_gen(*(self._start_y))
+        start_x = self._start_x_gen(*(self._start_x))
+        return (start_gtu, start_y, start_x)
+
+    def get_new_shower_max(self):
+        return self._shower_max_gen(*(self._max))
+
+    def get_new_shower_duration(self):
+        return self._shower_duration_gen(*(self._duration))

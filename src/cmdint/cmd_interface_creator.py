@@ -1,6 +1,7 @@
 import os
-import sys
 import argparse
+
+import cmdint.common_args as common_args
 
 class cmd_interface():
 
@@ -17,6 +18,9 @@ class cmd_interface():
         input_type.add_argument('--simu', action='store_true', help=('specifies to use simulated air shower data in npy format'))
         input_type.add_argument('--flight', action='store_true', help=('specifies to use recorded flight data in CERN ROOT format'))
 
+        common_args.add_output_type_dataset_args(self.parser)
+
+
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
@@ -26,5 +30,14 @@ class cmd_interface():
             raise ValueError("output directory {} is not a directory".format(args.outdir))
         if not os.path.exists(args.filelist):
             raise ValueError("list of files to process {} does not exist".format(args.filelist))
+
+        common_args.check_output_type_dataset_args(args)
+        args.helper = common_args.output_type_dataset_args_to_helper(args)
+
+        common_filename_part = os.path.join(args.outdir, args.name)
+        outfiles, targetfile = common_args.output_type_dataset_args_to_filenames(args, common_filename_part)
+        args.outfiles = outfiles
+        args.targetfile = targetfile
+        args.metafile = os.path.join(args.outdir, args.name + '_meta.tsv')
 
         return args
