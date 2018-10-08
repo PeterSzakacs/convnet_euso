@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# github_net3 with a different number of filters in the first conv layer 
-# (to sum up: layers structure before the first fc layer is modeled exactly 
+# github_net3 with a different number of filters in the first conv layer
+# (to sum up: layers structure before the first fc layer is modeled exactly
 # after the mnist network)
 
 from tflearn.layers.core import input_data, dropout, fully_connected, flatten
@@ -16,7 +16,7 @@ def create(inputShape, learning_rate=None, optimizer=None, loss_fn=None):
     loss_fn = 'categorical_crossentropy' if loss_fn is None else loss_fn
 
 
-    network = input_data(shape=inputShape[0], name='input')
+    network = input_data(shape=inputShape['yx'], name='input')
     network = conv_2d(network, 32, 3, strides=1, activation='relu', regularizer='L2')
     conv1 = max_pool_2d(network, 2)
     network = local_response_normalization(conv1)

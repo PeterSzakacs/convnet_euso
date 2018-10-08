@@ -144,6 +144,37 @@ class numpy_dataset_helper:
     def create_converted_packets_holders(self, num_packets, packet_shape):
         return tuple(creator(num_packets, packet_shape) for creator in self._curr_creators)
 
+    # misc
+
+    def get_holder_shapes(self, num_data, packet_shape, only_used_outputs=True):
+        n_f, f_h, f_w = packet_shape[0:3]
+        output_shapes = {'raw': (num_data, n_f, f_h, f_w),
+                         'yx': (num_data, f_h, f_w),
+                         'gtux': (num_data, n_f, f_w),
+                         'gtuy': (num_data, n_f, f_h)}
+        if only_used_outputs:
+            flag_set = lambda flag: getattr(self, '_{}'.format(flag)) == True
+            output_shapes = {o_type:(o_shape if flag_set(o_type) else None)
+                             for o_type, o_shape in output_shapes.items()}
+        return output_shapes
+
+    def get_data_item_shapes(self, packet_shape, only_used_outputs=True, start_idx=0, end_idx=None):
+        n_f, f_h, f_w = packet_shape[0:3]
+        if end_idx != None:
+            n_f = end_idx - start_idx
+        output_shapes = {'raw': (n_f, f_h, f_w),
+                         'yx': (f_h, f_w),
+                         'gtux': (n_f, f_w),
+                         'gtuy': (n_f, f_h)}
+        if only_used_outputs:
+            flag_set = lambda flag: getattr(self, '_{}'.format(flag)) == True
+            output_shapes = {o_type:(o_shape if flag_set(o_type) else None)
+                             for o_type, o_shape in output_shapes.items()}
+        return output_shapes
+
+
+
+
 
 """Shuffle dataset data and their targets in unison for a given number of times.
 
@@ -169,3 +200,18 @@ def save_dataset(dataset, targets, dataset_filenames, targets_filename):
     for idx in range(len(dataset)):
         np.save(dataset_filenames[idx], dataset[idx])
     np.save(targets_filename, targets)
+
+def load_dataset(dataset_filenames, targets_filename):
+    data = tuple(np.load(filename) for filename in dataset_filenames)
+    targets = np.load(targets_filename)
+    return data, targets
+
+def get_evalutation_set(dataset, targets, eval_fraction=0.1):
+    if eval_fraction > 1:
+        raise ValueError(('Requested an evaluation set from original dataset,'
+                          ' that is {}% the size of the original').format(
+                          eval_fraction*100))
+    eval_num = round(eval_fraction * len(dataset[0]))
+    eval_set = tuple(item_collection[:eval_num] for item_collection in dataset)
+    eval_targets = targets[:eval_num]
+    return eval_set, eval_targets

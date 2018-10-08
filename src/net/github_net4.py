@@ -14,7 +14,7 @@ def create(inputShape, learning_rate=None, optimizer=None, loss_fn=None):
     loss_fn = 'categorical_crossentropy' if loss_fn is None else loss_fn
 
 
-    network = input_data(shape=inputShape[0], name='input')
+    network = input_data(shape=inputShape['yx'], name='input')
     network = conv_2d(network, 64, 3, strides=1, activation='relu', regularizer='L2')
     network = conv_2d(network, 64, 3, strides=1, activation='relu', regularizer='L2')
     conv1 = max_pool_2d(network, 2)
