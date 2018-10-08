@@ -77,14 +77,9 @@ def output_type_dataset_args_to_helper(args):
     return ds.numpy_dataset_helper(output_raw=raw, output_yx=yx, output_gtux=gtux, output_gtuy=gtuy)
 
 def _dataset_file_types_to_filenames(common_filename_part, raw, yx, gtux, gtuy):
-    filenames = []
-    if raw:
-        filenames.append('{}_raw'.format(common_filename_part))
-    if yx:
-        filenames.append('{}_yx'.format(common_filename_part))
-    if gtux:
-        filenames.append('{}_gtux'.format(common_filename_part))
-    if gtuy:
-        filenames.append('{}_gtuy'.format(common_filename_part))
-    targetsfile = '{}_targets'.format(common_filename_part)
+    data_types = (raw, yx, gtux, gtuy)
+    file_tags = ('raw', 'yx', 'gtux', 'gtuy')
+    filenames = tuple('{}_{}.npy'.format(common_filename_part, file_tags[idx])
+                      for idx in range(4) if data_types[idx] == True)
+    targetsfile = '{}_targets.npy'.format(common_filename_part)
     return filenames, targetsfile

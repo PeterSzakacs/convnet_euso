@@ -38,7 +38,7 @@ class cmd_interface():
                             help=('Number of data items (both noise and shower), corresponds to number of packets'))
         self.parser.add_argument('--bg_lambda', required=True, type=float,
                             help=('Average of background pixel values (lambda in Poisson distributions'))
-        self.parser.add_argument('--bad_ECs', required=True, type=int, nargs=2, metavar=('MIN', 'MAX'),
+        self.parser.add_argument('--bad_ECs', type=int, nargs=2, metavar=('MIN', 'MAX'), default=(0, 0)
                             help=('Number of malfunctioned EC modules in the data. The actual number of such ECs'
                                 ' in any data item is from MIN to MAX, inclusive. If MIN == MAX, the number of bad ECs'
                                 ' is an exact number, barring cases where keeping this requirement would knock out ECs'

@@ -146,10 +146,6 @@ class simulated_shower_template():
         return self._template
 
     @property
-    def packet_template(self):
-        return self._template
-
-    @property
     def start_gtu(self):
         return self._start_gtu
 
