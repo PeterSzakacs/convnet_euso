@@ -21,6 +21,7 @@ def create(inputShape, learning_rate=None, optimizer=None, loss_fn=None):
     conv_yx = conv_2d(conv_yx, 64, 3, strides=1, activation='relu', regularizer='L2')
     conv_yx = max_pool_2d(conv_yx, 2)
     conv_yx = local_response_normalization(conv_yx)
+    conv_yx = flatten(conv_yx)
 
     conv_gtux = input_data(shape=inputShape['gtux'], name='gtux_input')
     conv_gtux = conv_2d(conv_gtux, 32, 3, strides=1, activation='relu', regularizer='L2')
@@ -29,6 +30,7 @@ def create(inputShape, learning_rate=None, optimizer=None, loss_fn=None):
     conv_gtux = conv_2d(conv_gtux, 64, 3, strides=1, activation='relu', regularizer='L2')
     conv_gtux = max_pool_2d(conv_gtux, 2)
     conv_gtux = local_response_normalization(conv_gtux)
+    conv_gtux = flatten(conv_gtux)
 
     conv_gtuy = input_data(shape=inputShape['gtuy'], name='gtuy_input')
     conv_gtuy = conv_2d(conv_gtuy, 32, 3, strides=1, activation='relu', regularizer='L2')
@@ -37,6 +39,7 @@ def create(inputShape, learning_rate=None, optimizer=None, loss_fn=None):
     conv_gtuy = conv_2d(conv_gtuy, 64, 3, strides=1, activation='relu', regularizer='L2')
     conv_gtuy = max_pool_2d(conv_gtuy, 2)
     conv_gtuy = local_response_normalization(conv_gtuy)
+    conv_gtuy = flatten(conv_gtuy)
 
     network = merge((conv_yx, conv_gtux, conv_gtuy), 'concat')
     fc1 = fully_connected(network, 128, activation='relu')

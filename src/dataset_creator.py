@@ -104,4 +104,4 @@ with open(output_tsv, 'w') as outfile:
     writer.writerows(metadata_dict)
 
 # save dataset
-ds.save_dataset(data, targets, args.outfiles, args.metafile)
+ds.save_dataset(data, targets, args.outfiles, args.targetfile)
