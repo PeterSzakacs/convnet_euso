@@ -8,7 +8,6 @@ class default_vals_generator():
     def reset(self, maximum, duration):
         self.duration, self.maximum = duration, maximum
         self.iteration = 0
-        self.maxinv = 1/maximum
 
     def __iter__(self):
         return self
@@ -16,7 +15,7 @@ class default_vals_generator():
     def __next__(self):
         if (self.iteration < self.duration):
             self.iteration += 1
-            return round(-self.maxinv * pow(self.iteration - 2, 2) + self.maximum)
+            return round(self.maximum * (-pow(2*self.iteration/self.duration -1, 2) + 1))
         else:
             raise StopIteration()
 
