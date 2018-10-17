@@ -17,28 +17,17 @@ import cmdint.cmd_interface_creator as cmd
 # declarations of custom functions (they use certain variables declared later in this file)
 # for creating projections from the extracted packets, targets and metadata for them
 def on_packet_extracted_flight(packet, packet_idx, srcfile):
-    global data, targets, metadata_dict, helper, num_data_counter
-    result = helper.convert_packet(packet, start_idx=27, end_idx=47)
-    for idx in range(len(data)):
-        data[idx].append(result[idx])
-    metadata_dict.append({'source_file_acquisition_full': srcfile, 'packet_idx': packet_idx})
-    targets.append([0, 1])
+    global dataset, num_data_counter
+    metadata_dict = {'source_file_acquisition_full': srcfile, 'packet_idx': packet_idx}
+    dataset.add_data_item(packet[27:47], [0, 1], metadata_dict)
     num_data_counter += 1
 
 def on_packet_extracted_simu(packet, packet_idx, srcfile):
     if (packet_idx == 1):
-        global data, targets, metadata_dict, helper, num_data_counter
-        data_len = len(data)
-        result = helper.convert_packet(packet, start_idx=27, end_idx=47)
-        for idx in range(data_len):
-            data[idx].append(result[idx])
-        result = helper.convert_packet(packet, start_idx=0, end_idx=20)
-        metadata_dict.append({'source_file_acquisition_full': srcfile, 'packet_idx': packet_idx})
-        targets.append([1, 0])
-        for idx in range(data_len):
-            data[idx].append(result[idx])
-        metadata_dict.append({'source_file_acquisition_full': srcfile, 'packet_idx': packet_idx})
-        targets.append([0, 1])
+        global dataset, num_data_counter
+        metadata_dict = {'source_file_acquisition_full': srcfile, 'packet_idx': packet_idx}
+        dataset.add_data_item(packet[27:47], [1, 0], metadata_dict)
+        dataset.add_data_item(packet[0:20], [0, 1], metadata_dict)
         num_data_counter += 2
 
 # command line parsing
@@ -49,19 +38,16 @@ print(args)
 
 # variable initialization (might need to transform these into user-settable cmd args)
 
-EC_width, EC_height = 16, 16
-frame_width, frame_height = 48, 48
-num_frames_per_packet = 128
-packet_template = pack.packet_template(EC_width, EC_height, frame_width, frame_height, num_frames_per_packet)
+packet_template = args.template
 extractor = iout.packet_extractor(packet_template=packet_template)
+# the data items are only ever made from 20 frames from the extracted packet
+extracted_packet_shape = list(packet_template.packet_shape)
+extracted_packet_shape[0] = 20
 
 # globals
-helper = args.helper
 ## We do not know how many data items there will be, as the input tsv might not have information
 ## on how many packets there are per file
-data = helper.create_converted_packets_holders(1, (1, 1, 1))
-data = tuple([] for holder in data)
-targets, metadata_dict = [], []
+dataset = ds.numpy_dataset(args.name, extracted_packet_shape, item_types=args.item_types)
 num_data_counter = 0
 
 if args.simu:
@@ -74,13 +60,7 @@ else:
                                                         on_packet_extracted=on_packet_extracted_flight)
 
 input_tsv = args.filelist
-output_tsv = args.metafile
 total_num_data = 0
-
-# We do not know how many data items there will be, as the input tsv might not have information
-# on how many packets there are per file
-dataset_holders = helper.create_converted_packets_holders(1, (1, 1, 1))
-dataset_holders = tuple([] for holder in dataset_holders)
 
 # main loop
 with open(input_tsv, 'r') as infile:
@@ -96,12 +76,4 @@ with open(input_tsv, 'r') as infile:
 
 
 print('Creating dataset "{}" containing {} items'.format(args.name, total_num_data))
-
-# write out dataset metadata
-with open(output_tsv, 'w') as outfile:
-    writer = csv.DictWriter(outfile, fieldnames=['source_file_acquisition_full', 'packet_idx'], delimiter='\t')
-    writer.writeheader()
-    writer.writerows(metadata_dict)
-
-# save dataset
-ds.save_dataset(data, targets, args.outfiles, args.targetfile)
+dataset.save(args.outdir)

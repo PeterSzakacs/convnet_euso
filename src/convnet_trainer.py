@@ -16,10 +16,11 @@ import utils.dataset_utils as ds
 
 class convnet_trainer:
 
-    def __init__(self, logdir, input_shapes, n_epochs=11, save=False,
+    def __init__(self, logdir, n_epochs=11, save=False,
                  optimizer=None, loss_fn=None, learning_rate=None):
-        self.logdir = logdir
-        self.input_shapes = input_shapes
+        current_time = dt.now().strftime('%Y-%m-%d_%H:%M:%S')
+        self.current_run_dir = os.path.join(logdir, current_time)
+        os.mkdir(self.current_run_dir)
         self.n_epochs = n_epochs
         self.save = save
         self.optimizer = optimizer
@@ -38,32 +39,53 @@ class convnet_trainer:
                              value))
         self._logdir = value
 
-    def train_networks(self, network_module_names, data, targets, eval_set=0.1,
-                       log_verbosity=0):
+    def _reshape_data(self, dataset, eval_set_fraction=0.1, eval_set_num=None):
+        train_data, train_targets, test_data, test_targets = ds.get_train_and_test_sets(
+            dataset, test_fraction=eval_set_fraction, test_num_items=eval_set_num
+        )
+        item_shapes = dataset.item_shapes
+        data_train, data_test = [], []
+        for key in ds.ALL_ITEM_TYPES:
+            if train_data.get(key, None) is not None:
+                data_train.append(train_data[key].reshape(-1, *item_shapes[key], 1))
+                data_test.append(test_data[key].reshape(-1, *item_shapes[key], 1))
+        # tflearn does not seem to like single element sequences,
+        # (the single element within is the actual input data).
+        if len(data_train) == 1:
+            data_train = data_train[0]
+            data_test = data_test[0]
+        return data_train, train_targets, data_test, test_targets 
+
+
+    def train_network(self, network_module_name, dataset, log_verbosity=0, 
+                      eval_set_fraction=0.1, eval_set_num=None):
         # New subdirectory for logging the results of the current training
-        current_run_dir = os.path.join(self.logdir, dt.now().strftime(
-                                       '%Y-%m-%d_%H:%M:%S'))
-        os.mkdir(current_run_dir)
-        for module_name in network_module_names:
-            module_dir = os.path.join(current_run_dir, module_name)
-            os.mkdir(module_dir)
-            graph = tf.Graph()
-            with graph.as_default():
-                network_module = importlib.import_module(module_name)
-                network, conv_layers, fc_layers = network_module.create(
-                    inputShape=self.input_shapes, learning_rate=self.learning_rate,
-                    optimizer=self.optimizer, loss_fn=self.loss_fn
-                )
-                model = tflearn.DNN(network, tensorboard_verbose=log_verbosity,
-                                    tensorboard_dir=module_dir)
-                model.fit(data, targets, n_epoch=self.n_epochs,
-                        validation_set=eval_set, snapshot_step=100,
-                        show_metric=True, run_id=module_name)
-                if save:
-                    model_file = os.path.join(module_dir, "{}.tflearn".format(
-                        module_name
-                    ))
-                    model.save(model_file)
+        module_dir = os.path.join(self.current_run_dir, network_module_name)
+        os.mkdir(module_dir)
+        input_shapes = dataset.item_shapes
+        data, targ, test_data, test_targ = self._reshape_data(
+            dataset, eval_set_fraction=eval_set_fraction, eval_set_num=eval_set_num
+        )
+        eval_set = (test_data, test_targ)
+        item_shapes = {k:[None, *v, 1] for k, v in dataset.item_shapes.items() if v != None}
+
+        graph = tf.Graph()
+        with graph.as_default():
+            network_module = importlib.import_module(network_module_name)
+            network, conv_layers, fc_layers = network_module.create(
+                inputShape=item_shapes, learning_rate=self.learning_rate,
+                optimizer=self.optimizer, loss_fn=self.loss_fn
+            )
+            model = tflearn.DNN(network, tensorboard_verbose=log_verbosity,
+                                tensorboard_dir=module_dir)
+            model.fit(data, targ, n_epoch=self.n_epochs,
+                      validation_set=eval_set, snapshot_step=100,
+                      show_metric=True, run_id=network_module_name)
+            if save:
+                model_file = os.path.join(module_dir, "{}.tflearn".format(
+                    module_name
+                ))
+                model.save(model_file)
 
 
 if __name__ == '__main__':
@@ -77,30 +99,21 @@ if __name__ == '__main__':
 
     lr, epochs = args.learning_rate, args.epochs
     optimizer, loss = args.optimizer, args.loss
-    network_module_names = args.networks
     save = args.save
 
     logdir = args.logdir
     if not os.path.exists(logdir):
         os.mkdir(logdir)
 
-    data, targets = ds.load_dataset(args.infiles, args.targetfile)
-    data = tuple(dh.reshape([*dh.shape, 1]) for dh in data)
-    eval_data, eval_targets = ds.get_evalutation_set(data, targets)
+    dataset = ds.numpy_dataset.load_dataset(args.srcdir, args.name, 
+                                            item_types=args.item_types)
 
-    # tflearn does not seem to like single element sequences,
-    # (the single element within is the actual input data).
-    if (len(data) == 1):
-        data = data[0]
-        eval_data = eval_data[0]
-
-    input_shapes = args.input_shapes
-    args.networks = tuple('net.' + net_name for net_name in args.networks)
-
-    trainer = convnet_trainer(logdir, input_shapes, n_epochs=epochs,
+    trainer = convnet_trainer(logdir, n_epochs=epochs, save=save,
                               optimizer=optimizer, loss_fn=loss,
                               learning_rate=lr)
-    trainer.train_networks(args.networks, data, targets, eval_set=(eval_data, eval_targets))
+    for network_name in args.networks:
+        network_module_name = 'net.' + network_name
+        trainer.train_network(network_module_name, dataset, eval_set_fraction=0.1)
 
 # uncomment callbacks-related code if you want to see visually in generated images at each output what the outputs
 # of the convolutional (well, technically, max-pooling, and only first 10 filters) and FC layers are after each epoch

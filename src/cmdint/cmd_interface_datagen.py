@@ -50,7 +50,9 @@ class cmd_interface():
         common_args.add_output_type_dataset_args(self.parser)
 
         # output directory
-        self.parser.add_argument('-d', '--destdir', default=os.path.curdir,
+        self.parser.add_argument('--name',
+                                help=('The name of the dataset, overrides the default name created from the other parameters passed.'))
+        self.parser.add_argument('--outdir', default=os.path.curdir,
                                 help=('The directory in which to store output and target files, defaults to current'
                                      ' working directory.'))
 
@@ -77,21 +79,19 @@ class cmd_interface():
 
         if args.num_shuffles < 0:
             raise ValueError('Number of times the data is shuffled cannot be negative')
-        if not os.path.exists(args.destdir):
-            os.mkdir(args.destdir)
-            raise ValueError('The output directory {} does not exist'.format(args.destdir))
+        if not os.path.exists(args.outdir):
+            raise ValueError('The output directory {} does not exist'.format(args.outdir))
+        if not os.path.isdir(args.outdir):
+            raise ValueError("Output directory {} is not a directory".format(args.outdir))
 
-        args.dataset_helper = common_args.output_type_dataset_args_to_helper(args)
+        args.item_types = common_args.output_type_dataset_args_to_dict(args)
 
-        # set default filenames for data and targets
         # TODO: Might want to use a better way to create dataset files (maybe keep metadata
         # such as shower and packet properties in an sqlite database and only distinguish files
         # by a string representing its creation timestamp)
-        common_filename_part = os.path.join(args.destdir, ('simu_data__{}__{}__{}'.format(packet_str, shower_str, dataset_str)))
-        outfiles, targetfile = common_args.output_type_dataset_args_to_filenames(args, common_filename_part)
-
-        args.outfiles = outfiles
-        args.targetfile =  targetfile
+        args.name = args.name or 'simu_data__{}__{}__{}'.format(
+            packet_str, shower_str, dataset_str
+        )
 
         return args
 

@@ -56,30 +56,12 @@ def check_output_type_dataset_args(args):
     if (no_output):
         raise Exception('Please select at least one output type to store dataset packet data (raw, yx, gtux, gtuy)')
 
-def input_type_dataset_args_to_filenames(args, common_filename_part):
+def input_type_dataset_args_to_dict(args):
     raw, yx = args.input_raw_packets, args.input_yx_proj
     gtux, gtuy = args.input_gtux_proj, args.input_gtuy_proj
-    return _dataset_file_types_to_filenames(common_filename_part, raw, yx, gtux, gtuy)
+    return {'raw': raw, 'yx': yx, 'gtux': gtux, 'gtuy': gtuy}
 
-def output_type_dataset_args_to_filenames(args, common_filename_part):
+def output_type_dataset_args_to_dict(args):
     raw, yx = args.create_raw_packets, args.create_yx_proj
     gtux, gtuy = args.create_gtux_proj, args.create_gtuy_proj
-    return _dataset_file_types_to_filenames(common_filename_part, raw, yx, gtux, gtuy)
-
-def input_type_dataset_args_to_helper(args):
-    raw, yx = args.input_raw_packets, args.input_yx_proj
-    gtux, gtuy = args.input_gtux_proj, args.input_gtuy_proj
-    return ds.numpy_dataset_helper(output_raw=raw, output_yx=yx, output_gtux=gtux, output_gtuy=gtuy)
-
-def output_type_dataset_args_to_helper(args):
-    raw, yx = args.create_raw_packets, args.create_yx_proj
-    gtux, gtuy = args.create_gtux_proj, args.create_gtuy_proj
-    return ds.numpy_dataset_helper(output_raw=raw, output_yx=yx, output_gtux=gtux, output_gtuy=gtuy)
-
-def _dataset_file_types_to_filenames(common_filename_part, raw, yx, gtux, gtuy):
-    data_types = (raw, yx, gtux, gtuy)
-    file_tags = ('raw', 'yx', 'gtux', 'gtuy')
-    filenames = tuple('{}_{}.npy'.format(common_filename_part, file_tags[idx])
-                      for idx in range(4) if data_types[idx] == True)
-    targetsfile = '{}_targets.npy'.format(common_filename_part)
-    return filenames, targetsfile
+    return {'raw': raw, 'yx': yx, 'gtux': gtux, 'gtuy': gtuy}

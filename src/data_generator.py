@@ -11,22 +11,21 @@ import utils.synth_data_utils as sdutils
 
 class simulated_data_generator():
 
-    def __init__(self, shower_template, bg_lambda=1, bad_ECs_range=(0, 0),
-                 dataset_helper=ds.numpy_dataset_helper()):
+    def __init__(self, shower_template, bg_lambda=1, bad_ECs_range=(0, 0)):
         self.shower_template = shower_template
         self.bg_lambda = bg_lambda
         self.bad_ECs_range = bad_ECs_range
-        self._helper = dataset_helper
 
     # generator properties
 
-    """Template for simulated shower.
-
-    Determines the range of values of start coordinates, number of frames
-    the shower line spans and its intensity relative to the background.
-    """
     @property
     def shower_template(self):
+        """
+            Template for simulated shower.
+
+            Determines the range of values of start coordinates, number of frames
+            the shower line spans and its intensity relative to the background.
+        """
         return self._template
 
     @shower_template.setter
@@ -36,31 +35,21 @@ class simulated_data_generator():
                             ' template').format(type(value)))
         self._template = value
 
-    """Helper class to create appropriate output types as well as data
-    structures to store them in (holders).
-
-    Determines which type of items (projections or packets) to create and
-    store for the dataset. In case the caller wants to change output types,
-    just get this property and set the flags on the object as appropriate.
-    """
-    @property
-    def dataset_helper(self):
-        return self._helper
-
-    """Tuple of 2 integers (MIN, MAX) representing how many EC units within
-    the data should haved simulated malfunctions.
-
-    The effect of EC malfunction is simulated for half of all items in the
-    dataset, where the actual number of these units per frame is from MIN
-    to MAX inclusive. MIN == MAX impies a constant number of malfunctioned
-    EC units per frame. MAX can not bet more than the total number of ECs
-    per frame. Note also that in the case of packets with simulated showers,
-    some EC units are not allowed to be malfunctioned. Therefore, even if
-    this property were set to (num ECs, num ECs), data items with smulated
-    showers shall never have every EC unit malfunctioned.
-    """
     @property
     def bad_ECs_range(self):
+        """
+            Tuple of 2 integers (MIN, MAX) representing how many EC units within
+            the data should haved simulated malfunctions.
+
+            The effect of EC malfunction is simulated for half of all items in the
+            dataset, where the actual number of these units per frame is from MIN
+            to MAX inclusive. MIN == MAX impies a constant number of malfunctioned
+            EC units per frame. MAX can not be more than the total number of ECs
+            per frame. Note also that in the case of packets with simulated showers,
+            some EC units are not allowed to be malfunctioned. Therefore, even if
+            this property were set to (num ECs, num ECs), data items with smulated
+            showers shall never have every EC unit malfunctioned.
+        """
         return self._bad_ECs
 
     @bad_ECs_range.setter
@@ -114,44 +103,44 @@ class simulated_data_generator():
             packet[:, Y[idx], X[idx]] = 0
         return packet
 
-    """Generates and returns a set of data containing simulated shower lines
-    and corresponding targets, both as numpy arrays, for use in training neural
-    networks for classifiction tasks.
+    def create_dataset(self, name, num_data, item_types):
+        """
+            Generates and returns a set of data containing simulated shower lines
+            and corresponding targets, both as numpy arrays, for use in training neural
+            networks for classifiction tasks.
 
-    Individual data items are created by first creating a packet for each data
-    item and then creating projections which are the actual data items returned
-    along with targets for them.
+            Individual data items are created by first creating a packet for each data
+            item and then creating projections which are the actual data items returned
+            along with targets for them.
 
-    The data returned is divided into equal-sized quarters as follows:
+            The data returned is divided into equal-sized quarters as follows:
 
-    1/4: shower data (possibly with malfunctioned EC units)
-    2/4: shower data (without malfunctioned EC units)
-    3/4: noise data (possibly with malfunctioned EC units)
-    4/4: noise data (without malfunctioned EC units)
+            1/4: shower data (possibly with malfunctioned EC units)
+            2/4: shower data (without malfunctioned EC units)
+            3/4: noise data (possibly with malfunctioned EC units)
+            4/4: noise data (without malfunctioned EC units)
 
-    Whether there are any data items with malfunctioning ECs depends on the
-    property bad_ECs_range.
+            Whether there are any data items with malfunctioning ECs depends on the
+            property bad_ECs_range.
 
-    Parameters
-    ----------
-    num_data :          int
-                        The number of data items to create in total
-    Returns
-    -------
-    data :      tuple of np.ndarray
-                A tuple where each item is a numpy array containing packets or
-                projections of a given type (raw, xy, xgtu, ygtu) numbering
-                num_data projections for each type.
-    targets :   np.ndarray
-                Numpy array containing classification targets for each item at
-                the same index (for any projection type)
-    """
-    def create_dataset(self, num_data):
+            Parameters
+            ----------
+            num_data :          int
+                                The number of data items to create in total
+            Returns
+            -------
+            data :      tuple of np.ndarray
+                        A tuple where each item is a numpy array containing packets or
+                        projections of a given type (raw, xy, xgtu, ygtu) numbering
+                        num_data projections for each type.
+            targets :   np.ndarray
+                        Numpy array containing classification targets for each item at
+                        the same index (for any projection type)
+        """
         # create output data holders as needed
         template_shape = self._template.packet_template.packet_shape
-        data = self._helper.create_converted_packets_holders(num_data,
-                                                             template_shape)
-        targets = np.empty((num_data, 2), dtype=np.uint8)
+        dataset = ds.numpy_dataset(name, template_shape, capacity=num_data, 
+                                   item_types=item_types)
 
         # output and target generation
         ec_gen = self._bad_ECs_gen
@@ -180,11 +169,8 @@ class simulated_data_generator():
             # shower angle in xy projection
             for idx in range(start, stop):
                 packet = packet_handler(idx)
-                outputs = self._helper.convert_packet(packet)
-                for data_idx in range(len(data)):
-                    data[data_idx][idx] = outputs[data_idx]
-                np.put(targets[idx], [0, 1], target)
-        return data, targets
+                dataset.add_data_item(packet, target)
+        return dataset
 
 
 if __name__ == '__main__':
@@ -195,12 +181,9 @@ if __name__ == '__main__':
     args = ui.get_cmd_args(sys.argv[1:])
     print(args)
 
-    helper = args.dataset_helper
     data_generator = simulated_data_generator(args.shower_template,
-                                              dataset_helper=helper,
                                               bg_lambda=args.bg_lambda,
                                               bad_ECs_range=args.bad_ECs)
-    data, targets = data_generator.create_dataset(args.num_data)
-
-    ds.shuffle_dataset(args.num_shuffles, data, targets)
-    ds.save_dataset(data, targets, args.outfiles, args.targetfile)
+    dataset = data_generator.create_dataset(args.name, args.num_data, args.item_types)
+    dataset.shuffle_dataset(args.num_shuffles)
+    dataset.save(args.outdir)

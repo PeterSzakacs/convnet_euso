@@ -9,7 +9,6 @@ class cmd_interface():
         self.default_logdir = os.path.join('/run/user/', str(os.getuid()), 'convnet_trainer/')
         self.parser = argparse.ArgumentParser(description="Train candidate network(s) with simulated data")
         common_args.add_input_type_dataset_args(self.parser)
-        common_args.add_packet_args(self.parser)
 
         # data and logging configuration parameters
         self.parser.add_argument('--name', required=True,
@@ -42,26 +41,7 @@ class cmd_interface():
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        common_filename_part = os.path.join(args.srcdir, args.name)
-        infiles, targetfile = common_args.input_type_dataset_args_to_filenames(
-            args, common_filename_part
-        )
-        args.infiles, args.targetfile = infiles, targetfile
-
-        packet_template = common_args.packet_args_to_packet_template(args)
-        print(packet_template.packet_shape)
-        dataset_helper = common_args.input_type_dataset_args_to_helper(args)
-        input_shapes = dataset_helper.get_data_item_shapes(
-            packet_template.packet_shape
-        )
-        args.input_shapes = {k:((None, *v, 1) if v != None else None)
-                             for k,v in input_shapes.items()}
-
-        for filename in args.infiles:
-            if not os.path.exists(filename):
-                raise ValueError('Input data file {} does not exist'.format(filename))
-        if not os.path.exists(args.targetfile):
-            raise ValueError('Input target file does not exist')
+        args.item_types = common_args.input_type_dataset_args_to_dict(args)
         if args.logdir != self.default_logdir and not os.path.exists(args.logdir):
             raise ValueError('Non-default logging output directory does not exist')
 
