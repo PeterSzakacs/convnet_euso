@@ -35,13 +35,14 @@ class packet_extractor():
         reader = reading.AcqL1EventReader(acqfile, triggerfile)
         iterator = reader.iter_gtu_pdm_data()
         first_frame = next(iterator).photon_count_data
+        dtype = first_frame.dtype
         # NOTE: ROOT file iterator returns packet frames of shape (1, 1, height, width)
         first_frame_shape = first_frame.shape[2:4]
         total_num_frames = reader.tevent_entries
 
         self._check_packet_against_template(first_frame_shape, total_num_frames, acqfile)
 
-        packets = np.empty((total_num_frames, self._template.frame_height, self._template.frame_width))
+        packets = np.empty((total_num_frames, self._template.frame_height, self._template.frame_width), dtype=dtype)
         iterator = reader.iter_gtu_pdm_data()
         frame_idx, num_frames = 0, self._template.num_frames
         next_packet_idx, curr_packet_idx = 0, 0

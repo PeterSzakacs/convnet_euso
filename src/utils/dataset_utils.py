@@ -13,7 +13,7 @@ ALL_ITEM_TYPES = ('raw', 'yx', 'gtux', 'gtuy')
 # holder creation
 
 
-def create_packet_holder(packet_shape, num_items=None):
+def create_packet_holder(packet_shape, num_items=None, dtype=np.uint8):
     """
         Create a data structure for holding raw packets with shape packet_shape
         and able to hold either an unlimited or at most num_items number of
@@ -31,10 +31,10 @@ def create_packet_holder(packet_shape, num_items=None):
     if num_items is None:
         return []
     else:
-        return np.empty((num_items, n_f, f_h, f_w))
+        return np.empty((num_items, n_f, f_h, f_w), dtype=dtype)
 
 
-def create_y_x_projection_holder(packet_shape, num_items=None):
+def create_y_x_projection_holder(packet_shape, num_items=None, dtype=np.uint8):
     """
         Create a data structure for holding packet projections along the GTU
         axis created from packets with shape packet_shape and able to hold
@@ -52,10 +52,11 @@ def create_y_x_projection_holder(packet_shape, num_items=None):
     if num_items is None:
         return []
     else:
-        return np.empty((num_items, f_h, f_w))
+        return np.empty((num_items, f_h, f_w), dtype=dtype)
 
 
-def create_gtu_x_projection_holder(packet_shape, num_items=None):
+def create_gtu_x_projection_holder(packet_shape, num_items=None,
+                                   dtype=np.uint8):
     """
         Create a data structure for holding packet projections along the Y
         axis created from packets with shape packet_shape and able to hold
@@ -73,10 +74,11 @@ def create_gtu_x_projection_holder(packet_shape, num_items=None):
     if num_items is None:
         return []
     else:
-        return np.empty((num_items, n_f, f_w))
+        return np.empty((num_items, n_f, f_w), dtype=dtype)
 
 
-def create_gtu_y_projection_holder(packet_shape, num_items=None):
+def create_gtu_y_projection_holder(packet_shape, num_items=None,
+                                   dtype=np.uint8):
     """
         Create a data structure for holding packet projections along the X
         axis created from packets with shape packet_shape and able to hold
@@ -94,7 +96,7 @@ def create_gtu_y_projection_holder(packet_shape, num_items=None):
     if num_items is None:
         return []
     else:
-        return np.empty((num_items, n_f, f_h))
+        return np.empty((num_items, n_f, f_h), dtype=dtype)
 
 
 _holder_creators = {
@@ -105,8 +107,8 @@ _holder_creators = {
 }
 
 
-def create_data_holders(packet_shape, num_items=None, item_types={
-                        'raw': True, 'yx': False, 'gtux': False,
+def create_data_holders(packet_shape, num_items=None, dtype=np.uint8,
+                        item_types={'raw': True, 'yx': False, 'gtux': False,
                         'gtuy': False}):
     """
         Create a collection of data structures for holding data items specified
@@ -127,8 +129,8 @@ def create_data_holders(packet_shape, num_items=None, item_types={
             or None if not known in advance
     """
     return {k: (None if item_types[k] is False else
-            _holder_creators[k](packet_shape, num_items))
-            for k in item_types.keys()}
+            _holder_creators[k](packet_shape, num_items, dtype))
+            for k in ALL_ITEM_TYPES}
 
 # data item creation
 
@@ -235,7 +237,7 @@ def convert_packet(packet, start_idx=0, end_idx=None, item_types={'raw': True,
     """
     return {k: (None if item_types[k] is False else
             _packet_converters[k](packet, start_idx, end_idx))
-            for k in item_types.keys()}
+            for k in ALL_ITEM_TYPES}
 
 # get data item shape
 
@@ -309,7 +311,7 @@ def get_data_item_shapes(packet_shape, item_types={'raw': True, 'yx': False,
     """
     return {k: (None if item_types[k] is False else
             _item_shape_getters[k](packet_shape))
-            for k in item_types.keys()}
+            for k in ALL_ITEM_TYPES}
 
 # other functions
 
