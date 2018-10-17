@@ -1,6 +1,8 @@
 import unittest
 import unittest.mock as mock
 
+import numpy as np
+
 import utils.dataset_utils as ds
 
 @mock.patch('utils.dataset_utils.np')
@@ -24,23 +26,23 @@ class TestDatasetUtilsFunctions(unittest.TestCase):
 
         # First test individual holder creation functions
         ds.create_packet_holder(packet_shape, num_items=n_packets)
-        mock_np.empty.assert_called_with(holder_shapes['raw'])
+        mock_np.empty.assert_called_with(holder_shapes['raw'], dtype=np.uint8)
         ds.create_y_x_projection_holder(packet_shape, num_items=n_packets)
-        mock_np.empty.assert_called_with(holder_shapes['yx'])
+        mock_np.empty.assert_called_with(holder_shapes['yx'], dtype=np.uint8)
         ds.create_gtu_x_projection_holder(packet_shape, num_items=n_packets)
-        mock_np.empty.assert_called_with(holder_shapes['gtux'])
+        mock_np.empty.assert_called_with(holder_shapes['gtux'], dtype=np.uint8)
         ds.create_gtu_y_projection_holder(packet_shape, num_items=n_packets)
-        mock_np.empty.assert_called_with(holder_shapes['gtuy'])
+        mock_np.empty.assert_called_with(holder_shapes['gtuy'], dtype=np.uint8)
 
         # Now test function which creates multiple data holders and returns 
         # them in a dict (based on which item type flags are set to True)
-        side_effect = lambda shape: shape
+        side_effect = lambda shape, dtype: shape
         mock_np.empty.side_effect = side_effect
         item_types = {k: True for k in ds.ALL_ITEM_TYPES}
         ## gradually turn off all item types except 'gtuy'
         for item_type in ds.ALL_ITEM_TYPES:
             holders = ds.create_data_holders(packet_shape, num_items=n_packets,
-                                             item_types=item_types)
+                                             dtype='a', item_types=item_types)
             self.assertDictEqual(holders, holder_shapes)
             holder_shapes[item_type] = None
             item_types[item_type] = False
