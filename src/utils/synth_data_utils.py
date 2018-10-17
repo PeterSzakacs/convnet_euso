@@ -74,7 +74,7 @@ def create_simu_shower_line_from_template(shower_template, yx_angle, return_meta
     if return_metadata:
         return X, Y, GTU, Vals, {"start_gtu": start[0], "start_y": start[1],
                                  "start_x": start[2], "duration": len(Vals),
-                                 "max": max(Vals), "yx_angle": yx_angle}
+                                 "max": max(Vals), "yx_angle": round(yx_angle % 360)}
     else:
         return X, Y, GTU, Vals
 

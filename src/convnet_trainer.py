@@ -83,7 +83,7 @@ class convnet_trainer:
                       show_metric=True, run_id=network_module_name)
             if save:
                 model_file = os.path.join(module_dir, "{}.tflearn".format(
-                    module_name
+                    network_module_name
                 ))
                 model.save(model_file)
 
