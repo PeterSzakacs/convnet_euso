@@ -578,7 +578,7 @@ class numpy_dataset:
 
         # save targets
         filename = os.path.join(outdir, '{}_targets.npy'.format(name))
-        np.save(os.path.join(outdir, filename), self._targets)
+        np.save(filename, self._targets)
 
         # save metadata
         filename = os.path.join(outdir, '{}_meta.tsv'.format(name))
@@ -587,3 +587,4 @@ class numpy_dataset:
                                     delimiter='\t')
             writer.writeheader()
             writer.writerows(self._metadata)
+

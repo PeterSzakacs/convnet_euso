@@ -14,10 +14,7 @@ def packet_args_to_packet_template(args):
 
 def packet_args_to_string(args):
     n_gtu, f_h, f_w, ec_h, ec_w = args.packet_dims[0:5]
-    n_data = args.num_data
-    lam = args.bg_lambda
-    bec_min, bec_max = args.bad_ECs[0:2]
-    return 'pack_{}_{}_{}_{}_{}_num_{}_bad_ecs_{}-{}_lam_{}'.format(n_gtu, f_h, f_w, ec_h, ec_w, n_data, bec_min, bec_max, lam)
+    return 'pack_{}_{}_{}_{}_{}'.format(n_gtu, f_h, f_w, ec_h, ec_w)
 
 # type of packet data input to load from or output to store to files (since a neural network can use
 # either only one packet projection type or multiple projections or even raw packets)
