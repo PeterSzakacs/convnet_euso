@@ -62,7 +62,7 @@ def create_simu_shower_line(yx_angle, start_coordinate, packet_template, values_
     X, Y, GTU, Values = tuple(X[:num_frames]), tuple(Y[:num_frames]), tuple(GTU[:num_frames]), tuple(Values[:num_frames])
     return GTU, Y, X, Values
 
-def create_simu_shower_line_from_template(shower_template, yx_angle):
+def create_simu_shower_line_from_template(shower_template, yx_angle, return_metadata=False):
     start = shower_template.get_new_start_coordinate()
     shower_max = shower_template.get_new_shower_max()
     duration = shower_template.get_new_shower_duration()
@@ -70,7 +70,13 @@ def create_simu_shower_line_from_template(shower_template, yx_angle):
     vals_generator.reset(shower_max, duration)
 
     packet_template = shower_template.packet_template
-    return create_simu_shower_line(yx_angle, start, packet_template, vals_generator)
+    X, Y, GTU, Vals = create_simu_shower_line(yx_angle, start, packet_template, vals_generator)
+    if return_metadata:
+        return X, Y, GTU, Vals, {"start_gtu": start[0], "start_y": start[1],
+                                 "start_x": start[2], "duration": len(Vals),
+                                 "max": max(Vals), "yx_angle": yx_angle}
+    else:
+        return X, Y, GTU, Vals
 
 """Randomly select regions of a packet frame corresponding to the EC modules on the surface of a source detector
 (can be used to e.g. simulate malfunctioning EC units of a detector).

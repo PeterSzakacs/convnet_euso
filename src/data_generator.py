@@ -72,8 +72,8 @@ class simulated_data_generator():
         packet_template = self._template.packet_template
         packet = np.random.poisson(lam=self.bg_lambda,
                                    size=packet_template.packet_shape)
-        GTU, Y, X, vals = sdutils.create_simu_shower_line_from_template(
-            self._template, yx_angle
+        GTU, Y, X, vals, meta = sdutils.create_simu_shower_line_from_template(
+            self._template, yx_angle, return_metadata=True
         )
         packet[GTU, Y, X] += vals
 
@@ -89,9 +89,12 @@ class simulated_data_generator():
         X, Y, indices = sdutils.select_random_ECs(packet_template,
                                                   max_EC_malfunctions,
                                                   excluded_ECs=[maxval_EC])
-        for idx in range(len(indices)):
+        num_bad_ECs = len(indices)
+        meta['shower'] = True
+        meta['num_bad_ECs'] = num_bad_ECs
+        for idx in range(num_bad_ECs):
             packet[:, Y[idx], X[idx]] = 0
-        return packet
+        return packet, meta
 
     def create_noise_packet(self, max_EC_malfunctions=0):
         packet_template = self._template.packet_template
@@ -99,9 +102,13 @@ class simulated_data_generator():
                                    size=packet_template.packet_shape)
         X, Y, indices = sdutils.select_random_ECs(packet_template,
                                                   max_EC_malfunctions)
+        num_bad_ECs = len(indices)
+        meta = dict()
+        meta['shower'] = False
+        meta['num_bad_ECs'] = num_bad_ECs
         for idx in range(len(indices)):
             packet[:, Y[idx], X[idx]] = 0
-        return packet
+        return packet, meta
 
     def create_dataset(self, name, num_data, item_types):
         """
@@ -168,8 +175,8 @@ class simulated_data_generator():
             # idx serves as both an index into targets and data, as well as
             # shower angle in xy projection
             for idx in range(start, stop):
-                packet = packet_handler(idx)
-                dataset.add_data_item(packet, target)
+                packet, meta = packet_handler(idx)
+                dataset.add_data_item(packet, target, meta)
         return dataset
 
 
