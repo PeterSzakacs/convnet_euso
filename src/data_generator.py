@@ -11,9 +11,10 @@ import utils.synth_data_utils as sdutils
 
 class simulated_data_generator():
 
-    def __init__(self, shower_template, bg_lambda=1, bad_ECs_range=(0, 0)):
+    def __init__(self, shower_template, bg_lambda=(1, 1),
+                 bad_ECs_range=(0, 0)):
         self.shower_template = shower_template
-        self.bg_lambda = bg_lambda
+        self.bg_lambda_range = bg_lambda
         self.bad_ECs_range = bad_ECs_range
 
     # generator properties
@@ -23,8 +24,9 @@ class simulated_data_generator():
         """
             Template for simulated shower.
 
-            Determines the range of values of start coordinates, number of frames
-            the shower line spans and its intensity relative to the background.
+            Determines the range of values of start coordinates, number of
+            frames the shower line spans and its intensity relative to the
+            background.
         """
         return self._template
 
@@ -38,19 +40,41 @@ class simulated_data_generator():
     @property
     def bad_ECs_range(self):
         """
-            Tuple of 2 integers (MIN, MAX) representing how many EC units within
-            the data should haved simulated malfunctions.
+            Tuple of 2 integers (MIN, MAX) representing how many EC units
+            within the data should haved simulated malfunctions.
 
-            The effect of EC malfunction is simulated for half of all items in the
-            dataset, where the actual number of these units per frame is from MIN
-            to MAX inclusive. MIN == MAX impies a constant number of malfunctioned
-            EC units per frame. MAX can not be more than the total number of ECs
-            per frame. Note also that in the case of packets with simulated showers,
-            some EC units are not allowed to be malfunctioned. Therefore, even if
-            this property were set to (num ECs, num ECs), data items with smulated
-            showers shall never have every EC unit malfunctioned.
+            The effect of EC malfunction is simulated for half of all items in
+            the dataset, where the actual number of these units per frame is
+            from MIN to MAX inclusive. MIN == MAX impies a constant number of
+            malfunctioned EC units per frame. MAX can not be more than the
+            total number of ECs per frame. Note also that in case of packets
+            with simulated showers, some EC cannot be malfunctioned. Therefore,
+            even if this property were set to (num ECs, num ECs), data items
+            with smulated showers shall never have every EC unit malfunctioned.
         """
         return self._bad_ECs
+
+    @property
+    def bg_lambda_range(self):
+        """
+            Tuple of 2 integers (MIN, MAX) representing the average background
+            value of pixels in the data items.
+
+            The actual average value is different from item to item but always
+            from MIN to MAX inclusive. MIN == MAX impies a constant value for
+            all items. MIN can not be less than 0.
+        """
+        return self._bg_lambda
+
+    @bg_lambda_range.setter
+    def bg_lambda_range(self, value):
+        interval = cutils.check_and_convert_value_to_tuple(value,
+                                                           'bg_lambda_range')
+        cutils.check_interval_tuple(interval, 'bg_lambda_range', lower_limit=0)
+        self._bg_lambda = interval
+        lam_min, lam_max = interval[0:2]
+        self._bg_lambda_gen = ((lambda: lam_min) if lam_min == lam_max else
+                               (lambda: rand.uniform(lam_min, lam_max)))
 
     @bad_ECs_range.setter
     def bad_ECs_range(self, value):
@@ -70,8 +94,8 @@ class simulated_data_generator():
     def create_shower_packet(self, yx_angle, max_EC_malfunctions=0):
         # create the actual packet
         packet_template = self._template.packet_template
-        packet = np.random.poisson(lam=self.bg_lambda,
-                                   size=packet_template.packet_shape)
+        lam = self._bg_lambda_gen()
+        packet = np.random.poisson(lam=lam, size=packet_template.packet_shape)
         GTU, Y, X, vals, meta = sdutils.create_simu_shower_line_from_template(
             self._template, yx_angle, return_metadata=True
         )
@@ -90,6 +114,7 @@ class simulated_data_generator():
                                                   max_EC_malfunctions,
                                                   excluded_ECs=[maxval_EC])
         num_bad_ECs = len(indices)
+        meta['bg_lambda'] = lam
         meta['shower'] = True
         meta['num_bad_ECs'] = num_bad_ECs
         for idx in range(num_bad_ECs):
@@ -98,12 +123,13 @@ class simulated_data_generator():
 
     def create_noise_packet(self, max_EC_malfunctions=0):
         packet_template = self._template.packet_template
-        packet = np.random.poisson(lam=self.bg_lambda,
-                                   size=packet_template.packet_shape)
+        lam = self._bg_lambda_gen()
+        packet = np.random.poisson(lam=lam, size=packet_template.packet_shape)
         X, Y, indices = sdutils.select_random_ECs(packet_template,
                                                   max_EC_malfunctions)
         num_bad_ECs = len(indices)
         meta = dict()
+        meta['bg_lambda'] = lam
         meta['shower'] = False
         meta['num_bad_ECs'] = num_bad_ECs
         for idx in range(len(indices)):
@@ -112,13 +138,9 @@ class simulated_data_generator():
 
     def create_dataset(self, name, num_data, item_types):
         """
-            Generates and returns a set of data containing simulated shower lines
-            and corresponding targets, both as numpy arrays, for use in training neural
+            Generate and return a numpy dataset containing simulated showers
+            and corresponding targets for them, for use in training neural
             networks for classifiction tasks.
-
-            Individual data items are created by first creating a packet for each data
-            item and then creating projections which are the actual data items returned
-            along with targets for them.
 
             The data returned is divided into equal-sized quarters as follows:
 
@@ -127,26 +149,26 @@ class simulated_data_generator():
             3/4: noise data (possibly with malfunctioned EC units)
             4/4: noise data (without malfunctioned EC units)
 
-            Whether there are any data items with malfunctioning ECs depends on the
-            property bad_ECs_range.
+            Whether there are any data items with malfunctioning ECs depends on
+            the property bad_ECs_range.
 
             Parameters
             ----------
             num_data :          int
-                                The number of data items to create in total
+                                The number of data items to create in total.
+            item_types :        dict of str to bool
+                                The requested item types, where the keys are
+                                from the utils.dataset_utils.item_types
+                                module-level constant.
             Returns
             -------
-            data :      tuple of np.ndarray
-                        A tuple where each item is a numpy array containing packets or
-                        projections of a given type (raw, xy, xgtu, ygtu) numbering
-                        num_data projections for each type.
-            targets :   np.ndarray
-                        Numpy array containing classification targets for each item at
-                        the same index (for any projection type)
+            dataset :   utils.dataset_utils.numpy_dataset
+                        A numpy dataset with capacity and num_items both equal
+                        to num_data.
         """
         # create output data holders as needed
         template_shape = self._template.packet_template.packet_shape
-        dataset = ds.numpy_dataset(name, template_shape, capacity=num_data, 
+        dataset = ds.numpy_dataset(name, template_shape, capacity=num_data,
                                    item_types=item_types)
 
         # output and target generation
@@ -191,6 +213,7 @@ if __name__ == '__main__':
     data_generator = simulated_data_generator(args.shower_template,
                                               bg_lambda=args.bg_lambda,
                                               bad_ECs_range=args.bad_ECs)
-    dataset = data_generator.create_dataset(args.name, args.num_data, args.item_types)
+    dataset = data_generator.create_dataset(args.name, args.num_data,
+                                            args.item_types)
     dataset.shuffle_dataset(args.num_shuffles)
     dataset.save(args.outdir)

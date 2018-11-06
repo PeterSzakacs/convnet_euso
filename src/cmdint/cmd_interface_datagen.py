@@ -36,9 +36,11 @@ class cmd_interface():
         # additional arguments applying to generated dataset
         self.parser.add_argument('--num_data', required=True, type=int,
                             help=('Number of data items (both noise and shower), corresponds to number of packets'))
-        self.parser.add_argument('--bg_lambda', required=True, type=float,
-                            help=('Average of background pixel values (lambda in Poisson distributions'))
-        self.parser.add_argument('--bad_ECs', type=int, nargs=2, metavar=('MIN', 'MAX'), default=(0, 0),
+        self.parser.add_argument('--bg_lambda', metavar=('MIN', 'MAX'), nargs=2, type=float, required=True,
+                            help=('Average of background pixel values (lambda in Poisson distributions). The actual'
+                                ' background mean in any data item is from MIN to MAX, inclusive. If MIN == MAX, the'
+                                ' background mean is constant and the same in all packets from which itmes are created.'))
+        self.parser.add_argument('--bad_ECs', metavar=('MIN', 'MAX'), nargs=2, type=int, default=(0, 0),
                             help=('Number of malfunctioned EC modules in the data. The actual number of such ECs'
                                 ' in any data item is from MIN to MAX, inclusive. If MIN == MAX, the number of bad ECs'
                                 ' is an exact number, barring cases where keeping this requirement would knock out ECs'
@@ -73,9 +75,9 @@ class cmd_interface():
                         sgtu[0], sgtu[1], sy[0], sy[1], sx[0], sx[1], dur[0], dur[1], smax[0], smax[1])
 
         n_data = args.num_data
-        lam = args.bg_lambda
+        lam_min, lam_max = args.bg_lambda[0:2]
         bec_min, bec_max = args.bad_ECs[0:2]
-        dataset_str = 'num_{}_bad_ecs_{}-{}_lam_{}'.format(n_data, bec_min, bec_max, lam)
+        dataset_str = 'num_{}_bad_ecs_{}-{}_lam_{}-{}'.format(n_data, bec_min, bec_max, lam_min, lam_max)
 
         if args.num_shuffles < 0:
             raise ValueError('Number of times the data is shuffled cannot be negative')
