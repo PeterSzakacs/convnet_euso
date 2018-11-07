@@ -4,88 +4,30 @@ import random as rand
 
 import numpy as np
 
-import utils.common_utils as cutils
 import utils.dataset_utils as ds
 import utils.synth_data_utils as sdutils
 
 
 class simulated_data_generator():
 
-    def __init__(self, shower_template, bg_lambda=(1, 1),
-                 bad_ECs_range=(0, 0)):
-        self.shower_template = shower_template
-        self.bg_lambda_range = bg_lambda
-        self.bad_ECs_range = bad_ECs_range
+    def __init__(self, shower_template, bg_template):
+        if shower_template.packet_template != bg_template.packet_template:
+            raise ValueError(("Shower and background templates do not share"
+                             " the same packet template."))
+        self._shower_template = shower_template
+        self._bg_template = bg_template
 
     # generator properties
 
     @property
     def shower_template(self):
-        """
-            Template for simulated shower.
-
-            Determines the range of values of start coordinates, number of
-            frames the shower line spans and its intensity relative to the
-            background.
-        """
-        return self._template
-
-    @shower_template.setter
-    def shower_template(self, value):
-        if not isinstance(value, sdutils.simulated_shower_template):
-            raise TypeError(('Wrong template type, cannot use {} as shower '
-                            ' template').format(type(value)))
-        self._template = value
+        """Template for simulated shower parameters."""
+        return self._shower_template
 
     @property
-    def bad_ECs_range(self):
-        """
-            Tuple of 2 integers (MIN, MAX) representing how many EC units
-            within the data should haved simulated malfunctions.
-
-            The effect of EC malfunction is simulated for half of all items in
-            the dataset, where the actual number of these units per frame is
-            from MIN to MAX inclusive. MIN == MAX impies a constant number of
-            malfunctioned EC units per frame. MAX can not be more than the
-            total number of ECs per frame. Note also that in case of packets
-            with simulated showers, some EC cannot be malfunctioned. Therefore,
-            even if this property were set to (num ECs, num ECs), data items
-            with smulated showers shall never have every EC unit malfunctioned.
-        """
-        return self._bad_ECs
-
-    @property
-    def bg_lambda_range(self):
-        """
-            Tuple of 2 integers (MIN, MAX) representing the average background
-            value of pixels in the data items.
-
-            The actual average value is different from item to item but always
-            from MIN to MAX inclusive. MIN == MAX impies a constant value for
-            all items. MIN can not be less than 0.
-        """
-        return self._bg_lambda
-
-    @bg_lambda_range.setter
-    def bg_lambda_range(self, value):
-        interval = cutils.check_and_convert_value_to_tuple(value,
-                                                           'bg_lambda_range')
-        cutils.check_interval_tuple(interval, 'bg_lambda_range', lower_limit=0)
-        self._bg_lambda = interval
-        lam_min, lam_max = interval[0:2]
-        self._bg_lambda_gen = ((lambda: lam_min) if lam_min == lam_max else
-                               (lambda: rand.uniform(lam_min, lam_max)))
-
-    @bad_ECs_range.setter
-    def bad_ECs_range(self, value):
-        interval = cutils.check_and_convert_value_to_tuple(value,
-                                                           'bad_ECs_range')
-        cutils.check_interval_tuple(interval, 'bad_ECs_range', 0,
-                                    self._template.packet_template.num_EC)
-        self._bad_ECs = interval
-        EC_min, EC_max = interval[0:2]
-        self._bad_ECs_gen = ((lambda: EC_min) if EC_min == EC_max else
-                             (lambda: rand.randint(EC_min, EC_max)))
+    def bg_template(self):
+        """Template for background parameters"""
+        return self._bg_template
 
     # methods
 
@@ -97,7 +39,7 @@ class simulated_data_generator():
         lam = self._bg_lambda_gen()
         packet = np.random.poisson(lam=lam, size=packet_template.packet_shape)
         GTU, Y, X, vals, meta = sdutils.create_simu_shower_line_from_template(
-            self._template, yx_angle, return_metadata=True
+            self._shower_template, yx_angle, return_metadata=True
         )
         packet[GTU, Y, X] += vals
 
@@ -210,9 +152,9 @@ if __name__ == '__main__':
     args = ui.get_cmd_args(sys.argv[1:])
     print(args)
 
-    data_generator = simulated_data_generator(args.shower_template,
-                                              bg_lambda=args.bg_lambda,
-                                              bad_ECs_range=args.bad_ECs)
+    data_generator = simulated_data_generator(
+        args.shower_template, args.bg_template
+    )
     dataset = data_generator.create_dataset(args.name, args.num_data,
                                             args.item_types)
     dataset.shuffle_dataset(args.num_shuffles)

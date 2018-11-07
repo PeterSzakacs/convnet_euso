@@ -3,95 +3,11 @@ import unittest
 
 import numpy as np
 
-import utils.data_utils as dat
-import utils.packets.packet_utils as pack
+import utils.shower_generators as gen
+import utils.data_templates as templates
 import utils.synth_data_utils as sdutils
 
 # TODO: might want to use custom error message when testing arguments checking
-
-class TestSimuShowerTemplate(unittest.TestCase):
-
-    def _assert_set_prop_raises(self, obj, prop_name, value, expected_exception):
-        with self.assertRaises(expected_exception, msg=('Failed to raise {}'
-                               ' for property {} being set to {}').format(
-                                   expected_exception, prop_name, value)):
-            setattr(obj, prop_name, value)
-
-    def _assert_set_prop_not_raises(self, obj, prop_name, value):
-        try:
-            setattr(obj, prop_name, value)
-        except Exception:
-            self.fail(msg=('Exception raised when setting property {}'
-                           ' to value {}').format(prop_name, value))
-
-    def test_property_checking(self):
-        gtu, w, h, ec_w, ec_h = 128, 64, 48, 32, 16
-        template = pack.packet_template(ec_w, ec_h, w, h, gtu)
-        start_x, start_y, start_gtu = (3, 5), (1, 10), (2, 4)
-        duration, shower_max = (2, 10), (7, 15)
-        shower_template = sdutils.simulated_shower_template(template, duration, shower_max)
-
-        # start_x lower bound is less than 0, upper bound is less than lower bound or upper bound is larger than frame width
-        self._assert_set_prop_raises(shower_template, 'start_x', (-start_x[0], start_x[1]), ValueError)
-        self._assert_set_prop_raises(shower_template, 'start_x', (start_x[1], start_x[0]), ValueError)
-        self._assert_set_prop_raises(shower_template, 'start_x', (start_x[0], w+1), ValueError)
-        self._assert_set_prop_not_raises(shower_template, 'start_x', start_x)
-        # start_y lower bound is less than 0, upper bound is less than lower bound or upper bound is larger than frame height
-        self._assert_set_prop_raises(shower_template, 'start_y', (-start_y[0], start_y[1]), ValueError)
-        self._assert_set_prop_raises(shower_template, 'start_y', (start_y[1], start_y[0]), ValueError)
-        self._assert_set_prop_raises(shower_template, 'start_y', (start_y[0], h+1), ValueError)
-        self._assert_set_prop_not_raises(shower_template, 'start_y', start_y)
-        # start_gtu lower bound is less than 0, upper bound is less than lower bound or upper bound is larger than number of frames
-        self._assert_set_prop_raises(shower_template, 'start_gtu', (-start_gtu[0], start_gtu[1]), ValueError)
-        self._assert_set_prop_raises(shower_template, 'start_gtu', (start_gtu[1], start_gtu[0]), ValueError)
-        self._assert_set_prop_raises(shower_template, 'start_gtu', (start_gtu[0], gtu+1), ValueError)
-        self._assert_set_prop_not_raises(shower_template, 'start_gtu', start_gtu)
-        # duration lower bound is less than 1, upper bound is less than lower bound or upper bound is larger than the number of frames
-        self._assert_set_prop_raises(shower_template, 'shower_duration', (0, duration[1]), ValueError)
-        self._assert_set_prop_raises(shower_template, 'shower_duration', (duration[1], duration[0]), ValueError)
-        self._assert_set_prop_raises(shower_template, 'shower_duration', (duration[0], gtu+1), ValueError)
-        self._assert_set_prop_not_raises(shower_template, 'duration', duration)
-        # bg_diff lower bound is less than 1 or upper bound is less than lower bound
-        self._assert_set_prop_raises(shower_template, 'shower_max', (0, shower_max[1]), ValueError)
-        self._assert_set_prop_raises(shower_template, 'shower_max', (shower_max[1], shower_max[0]), ValueError)
-        self._assert_set_prop_not_raises(shower_template, 'shower_max', shower_max)
-
-    def test_property_generators(self):
-        gtu, w, h, ec_w, ec_h = 128, 64, 48, 32, 16
-        template = pack.packet_template(ec_w, ec_h, w, h, gtu)
-        sx, sy, sg = 3, 10, 2
-        d, m = 7, 15
-        shower_template = sdutils.simulated_shower_template(template,
-                                                            (d, d), (m, m),
-                                                            start_x=(sx, sx),
-                                                            start_y=(sy, sy),
-                                                            start_gtu=(sg, sg))
-        # if MIN == MAX, returned value should never change
-        for idx in range(10):
-            self.assertTupleEqual(shower_template.get_new_start_coordinate(), (sg, sy, sx))
-            self.assertEqual(shower_template.get_new_shower_max(), m)
-            self.assertEqual(shower_template.get_new_shower_duration(), d)
-
-        sx, sy, sg = (3, 5), (1, 10), (2, 4)
-        d, m = (2, 10), (7, 15)
-        shower_template.start_x, shower_template.start_y = sx, sy
-        shower_template.start_gtu = sg
-        shower_template.shower_duration, shower_template.shower_max = d, m
-        # if MIN != MAX, returned values should be within a certain range
-        for idx in range(10):
-            start_gtu, start_y, start_x = shower_template.get_new_start_coordinate()[0:3]
-            self.assertGreaterEqual(start_gtu, sg[0])
-            self.assertGreaterEqual(start_y, sy[0])
-            self.assertGreaterEqual(start_x, sx[0])
-            self.assertLessEqual(start_gtu, sg[1])
-            self.assertLessEqual(start_y, sy[1])
-            self.assertLessEqual(start_x, sx[1])
-            shower_max = shower_template.get_new_shower_max()
-            self.assertGreaterEqual(shower_max, m[0])
-            self.assertLessEqual(shower_max, m[1])
-            duration = shower_template.get_new_shower_duration()
-            self.assertGreaterEqual(duration, d[0])
-            self.assertLessEqual(duration, d[1])
 
 class TestModuleFunctions(unittest.TestCase):
 
@@ -102,8 +18,8 @@ class TestModuleFunctions(unittest.TestCase):
     def test_simu_shower(self):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20
-        template = pack.packet_template(EC_width, EC_height, width, height, num_frames)
-        generator = dat.flat_vals_generator(20, 10)
+        template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
+        generator = gen.flat_vals_generator(20, 10)
 
         angles         = [45, 135, 225, 315, 45, 135, 225, 315]
         start_xs       = [0, width-1, width-1, 0, width-3, 3, 3, width-3]
@@ -150,7 +66,7 @@ class TestModuleFunctions(unittest.TestCase):
         width, height, num_frames = 48, 64, 20
         num_EC = int((width * height) / (EC_width * EC_height))
         shower_ec_indexes = [2, 5]
-        template = pack.packet_template(EC_width, EC_height, width, height, num_frames)
+        template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
         packet = np.ones((num_frames, height, width))
 
         # case 1: method should terminate without selecting any ECs at all

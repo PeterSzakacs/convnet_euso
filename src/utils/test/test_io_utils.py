@@ -3,7 +3,7 @@ import unittest.mock as mock
 
 import numpy as np
 
-import utils.packets.packet_utils as pack
+import utils.data_templates as templates
 import utils.io_utils as io_utils
 
 # mock class for utils.event_reading.GtuPdmDataIterator and .AcqL1EventReader
@@ -78,7 +78,7 @@ class testPacketExtraction(unittest.TestCase):
         # packet template for the functions
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20
-        self.template = pack.packet_template(EC_width, EC_height, width, height, num_frames)
+        self.template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
         self.num_packets = 4
         self.extractor = io_utils.packet_extractor(packet_template=self.template)
 

@@ -2,7 +2,7 @@ import os
 import argparse
 
 import cmdint.common_args as common_args
-import utils.synth_data_utils as sdutils
+import utils.data_templates as templates
 
 class cmd_interface():
 
@@ -34,8 +34,6 @@ class cmd_interface():
                                     ' If MIN == MAX, all packets have shower lines starting at the same x coordinate.'))
 
         # additional arguments applying to generated dataset
-        self.parser.add_argument('--num_data', required=True, type=int,
-                            help=('Number of data items (both noise and shower), corresponds to number of packets'))
         self.parser.add_argument('--bg_lambda', metavar=('MIN', 'MAX'), nargs=2, type=float, required=True,
                             help=('Average of background pixel values (lambda in Poisson distributions). The actual'
                                 ' background mean in any data item is from MIN to MAX, inclusive. If MIN == MAX, the'
@@ -47,6 +45,8 @@ class cmd_interface():
                                 ' containing shower pixels. Default value range: (0, 0).'))
         self.parser.add_argument('--num_shuffles', type=int, default=1,
                                 help=('Number of times the generated data should be shuffled randomly after creation'))
+        self.parser.add_argument('--num_data', required=True, type=int,
+                            help=('Number of data items (both noise and shower), corresponds to number of packets'))
 
         # information about which output files to create
         common_args.add_output_type_dataset_args(self.parser)
@@ -67,17 +67,18 @@ class cmd_interface():
 
         sx, sy, sgtu = args.start_x, args.start_y, args.start_gtu
         smax, dur = args.shower_max, args.duration
-        shower_templ = sdutils.simulated_shower_template(packet_templ, dur, smax, start_gtu=sgtu,
-                                                        start_y=sy, start_x=sx)
+        shower_templ = templates.simulated_shower_template(
+            packet_templ, dur, smax, start_gtu=sgtu, start_y=sy, start_x=sx
+        )
         args.shower_template = shower_templ
         sx, sy, sgtu = shower_templ.start_x, shower_templ.start_y, shower_templ.start_gtu
         shower_str = 'shower_gtu_{}-{}_y_{}-{}_x_{}-{}_duration_{}-{}_bgdiff_{}-{}'.format(
                         sgtu[0], sgtu[1], sy[0], sy[1], sx[0], sx[1], dur[0], dur[1], smax[0], smax[1])
 
         n_data = args.num_data
-        lam_min, lam_max = args.bg_lambda[0:2]
-        bec_min, bec_max = args.bad_ECs[0:2]
-        dataset_str = 'num_{}_bad_ecs_{}-{}_lam_{}-{}'.format(n_data, bec_min, bec_max, lam_min, lam_max)
+        lam, bec = args.bg_lambda, args.bad_ECs
+        args.bg_template = templates.synthetic_background_template(packet_templ, lam, bad_ECs)
+        dataset_str = 'num_{}_bad_ecs_{}-{}_lam_{}-{}'.format(n_data, bec[0], bec[1], lam[0], lam[1])
 
         if args.num_shuffles < 0:
             raise ValueError('Number of times the data is shuffled cannot be negative')

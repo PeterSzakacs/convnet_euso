@@ -1,4 +1,4 @@
-import utils.packets.packet_utils as pack
+import utils.data_templates as templates
 import utils.dataset_utils as ds
 
 # packet dimensions (directly required to create a packet template)
@@ -10,7 +10,7 @@ def add_packet_args(parser, required=True):
 
 def packet_args_to_packet_template(args):
     n_gtu, f_h, f_w, ec_h, ec_w = args.packet_dims[0:5]
-    return pack.packet_template(ec_w, ec_h, f_w, f_h, n_gtu)
+    return templates.packet_template(ec_w, ec_h, f_w, f_h, n_gtu)
 
 def packet_args_to_string(args):
     n_gtu, f_h, f_w, ec_h, ec_w = args.packet_dims[0:5]

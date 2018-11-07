@@ -1,11 +1,11 @@
 import numpy as np
 
-from .packets import packet_utils as pack
-from libs import event_reading as reading
+import utils.data_templates as templates
+import libs.event_reading as reading
 
 class packet_extractor():
 
-    def __init__(self, packet_template=pack.packet_template(16, 16, 48, 48, 128)):
+    def __init__(self, packet_template=templates.packet_template(16, 16, 48, 48, 128)):
         self.packet_template = packet_template
     
     @property
@@ -14,7 +14,7 @@ class packet_extractor():
 
     @packet_template.setter
     def packet_template(self, value):
-        if (value == None or not isinstance(value, pack.packet_template)):
+        if (value == None or not isinstance(value, templates.packet_template)):
             raise TypeError("Not a valid packet template object: {}".format(value))
         self._template = value
 
@@ -28,7 +28,6 @@ class packet_extractor():
             raise ValueError(("Invalid packet template: The width or height of frames ({}) in {} "
                                 "does not match that of the template ({})")
                                 .format(frame_shape, srcfile, self._template.packet_shape[1:]))
-
 
     def extract_packets_from_rootfile_and_process(self, acqfile, triggerfile = None, 
                                                     on_packet_extracted=lambda packet, packet_idx, srcfile: None):
