@@ -2,7 +2,6 @@ import argparse
 import unittest
 
 import cmdint.common_args as common_args
-import utils.packets.packet_utils as pack
 
 class TestCommonArgs(unittest.TestCase):
 
