@@ -39,3 +39,18 @@ def check_interval_tuple(interval_tuple, property_name, lower_limit=None, upper_
         raise ValueError('Upper bound of property {} must be greater than or equal to its lower bound'.format(property_name))
     if interval_tuple[1] > upper_limit:
         raise ValueError('Upper bound of property {} must not be greater than {}'.format(property_name, upper_limit))
+
+
+# equality implementation for classes primarily intended to hold simple values
+# (templates)
+
+class CommonEqualityMixin(object):
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)

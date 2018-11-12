@@ -1,5 +1,6 @@
 import unittest
 
+import utils.shower_generators as gen
 import utils.data_templates as templates
 
 # Note: EC height is delibarately unrealistic and different from EC_width for better testing and debugging
@@ -47,6 +48,20 @@ class TestPacketTemplate(unittest.TestCase):
             self.assertEqual(template.ec_idx_to_ec_xy(ec_idx), (ec_x, ec_y))
             self.assertEqual(template.xy_to_ec_idx(x, y), ec_idx)
             self.assertEqual(template.ec_xy_to_ec_idx(ec_x, ec_y), ec_idx)
+        self.assertTupleEqual(template.ec_idx_to_xy_slice(1), (slice(16,32), slice(0,32)))
+
+    def test_equality_check(self):
+        EC_width, EC_height = 16, 32
+        width, height, num_frames = 48, 64, 128
+        template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
+        template2 = templates.packet_template(EC_width, EC_height, width, height, num_frames)
+        self.assertEqual(template, template2)
+        template2 = templates.packet_template(EC_width, EC_height, width + EC_width, height, num_frames)
+        self.assertNotEqual(template, template2)
+        template2 = templates.packet_template(EC_width, EC_height, width, height + EC_height, num_frames)
+        self.assertNotEqual(template, template2)
+        template2 = templates.packet_template(EC_width, EC_height, width, height, num_frames + 1)
+        self.assertNotEqual(template, template2)
 
 
 class TestSimuShowerTemplate(unittest.TestCase):
@@ -132,6 +147,58 @@ class TestSimuShowerTemplate(unittest.TestCase):
             duration = shower_template.get_new_shower_duration()
             self.assertGreaterEqual(duration, d[0])
             self.assertLessEqual(duration, d[1])
+
+    def test_equality_check(self):
+        gtu, w, h, ec_w, ec_h = 128, 64, 48, 32, 16
+        template = templates.packet_template(ec_w, ec_h, w, h, gtu)
+        sx, sy, sg = (3, 5), (1, 10), (2, 4)
+        d, m = (2, 10), (7, 15)
+        shower_template = templates.simulated_shower_template(template, d, m,
+                                                              start_x=sx,
+                                                              start_y=sy,
+                                                              start_gtu=sg)
+        shower_template2 = templates.simulated_shower_template(template, d, m,
+                                                               start_x=sx,
+                                                               start_y=sy,
+                                                               start_gtu=sg)
+        self.assertEqual(shower_template, shower_template2)
+
+        shower_template2.start_x = (sx[0], sx[1] + 1)
+        self.assertNotEqual(shower_template, shower_template2)
+        shower_template2.start_x = sx
+        shower_template2.start_y = (sy[0], sy[1] + 1)
+        self.assertNotEqual(shower_template, shower_template2)
+        shower_template2.start_y = sy
+        shower_template2.start_gtu = (sg[0], sg[1] + 1)
+        self.assertNotEqual(shower_template, shower_template2)
+        shower_template2.start_gtu = sg
+        shower_template2.shower_duration = (d[0], d[1] + 1)
+        self.assertNotEqual(shower_template, shower_template2)
+        shower_template2.shower_duration = d
+        shower_template2.shower_max = (m[0], m[1] + 1)
+        self.assertNotEqual(shower_template, shower_template2)
+        shower_template2.shower_max = m
+        shower_template2.values_generator = gen.flat_vals_generator(10, 10)
+        self.assertNotEqual(shower_template, shower_template2)
+
+
+class TestSimuShowerTemplate(unittest.TestCase):
+
+    def test_equality_check(self):
+        gtu, w, h, ec_w, ec_h = 128, 64, 48, 32, 16
+        t = templates.packet_template(ec_w, ec_h, w, h, gtu)
+
+        lam, bec = (0.1, 0.6), (1, 2)
+        bg_temp = templates.synthetic_background_template(t, bg_lambda=lam,
+                                                          bad_ECs_range=bec)
+        bg_temp2 = templates.synthetic_background_template(t, bg_lambda=lam,
+                                                           bad_ECs_range=bec)
+        self.assertEqual(bg_temp, bg_temp2)
+        bg_temp2.bg_lambda_range = (0.2, 0.6)
+        self.assertNotEqual(bg_temp, bg_temp2)
+        bg_temp2.bg_lambda_range = lam
+        bg_temp2.bad_ECs_range = (3, 4)
+        self.assertNotEqual(bg_temp, bg_temp2)
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,7 +3,7 @@ import random as rand
 import utils.common_utils as cutils
 import utils.shower_generators as gen
 
-class packet_template():
+class packet_template(cutils.CommonEqualityMixin):
     """Template for storing dimensions of packet data"""
 
     def __init__(self, EC_width, EC_height, frame_width, frame_height, frames_per_packet):
@@ -28,38 +28,50 @@ class packet_template():
 
     @property
     def packet_shape(self):
+        """
+            Shape of the packets expressed as a tuple of:
+            (num_frames, frame_height, frame_width)
+        """
         return (self._num_frames, self._height, self._width)
 
     @property
     def frame_width(self):
+        """Number of pixels along the horizontal (X) axis of a packet frame"""
         return self._width
 
     @property
     def frame_height(self):
+        """Number of pixels along the vertical (Y) axis of a packet frame"""
         return self._height
 
     @property
     def EC_width(self):
+        """Number of pixels along the horizontal (X) axis of an EC unit"""
         return self._EC_width
 
     @property
     def EC_height(self):
+        """Number of pixels along the vertical (Y) axis of an EC unit"""
         return self._EC_height
 
     @property
     def num_rows(self):
+        """Number of EC units along the vertical (Y) axis of a packet frame"""
         return self._num_rows
 
     @property
     def num_cols(self):
+        """Number of EC units along the horizontal (X) axis of a packet frame"""
         return self._num_cols
 
     @property
     def num_EC(self):
+        """Number of EC units per packet frame"""
         return self._num_EC
 
     @property
     def num_frames(self):
+        """Number of frames or GTU per packet"""
         return self._num_frames
 
     # unit conversions
@@ -87,30 +99,37 @@ class packet_template():
         return slice(x_start, x_stop), slice(y_start, y_stop)
 
 
-class simulated_shower_template():
+class simulated_shower_template(cutils.CommonEqualityMixin):
     """Template for storing parameters of generated showers"""
 
     def __init__(self, p_template, shower_duration, shower_max,
                         start_gtu=None, start_y=None, start_x=None,
-                        values_generator=gen.default_vals_generator(10, 10)):
+                        values_generator=None):
         if not isinstance(p_template, packet_template):
             raise TypeError("Required object of class packet_template as first argument, got {}".format(type(p_template)))
         self._template = p_template
         self.shower_duration = shower_duration
         self.shower_max = shower_max
-        # set default value ranges for start coordinates if not provided
+        # set default value ranges for start coordinates and value generator if not provided
         # let start coordinates be at least a distance of 3/4 * duration from the edges of a packet
         limit = int(3*self.shower_duration[1]/4)
-        self.start_gtu = (0, p_template.num_frames - limit) if start_gtu == None else start_gtu
-        self.start_y = (limit, p_template.frame_height - limit) if start_y == None else start_y
-        self.start_x = (limit, p_template.frame_width - limit) if start_x == None else start_x
-        self.values_generator = values_generator
-        # generator functions for shower parameter ranges
-        static_lam = lambda min, max: min
-        random_lam = lambda min, max: rand.randint(min, max)
-        for prop_name in ['start_gtu', 'start_y', 'start_x', 'shower_max', 'shower_duration']:
-            min, max = getattr(self, prop_name)
-            setattr(self, '_{}_gen'.format(prop_name), (static_lam if min == max else random_lam))
+        self.start_gtu = start_gtu or (0, p_template.num_frames - limit)
+        self.start_y = start_y or (limit, p_template.frame_height - limit)
+        self.start_x = start_x or (limit, p_template.frame_width - limit)
+        self.values_generator = values_generator or gen.default_vals_generator(10, 10)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            if not isinstance(other._vals_generator, self._vals_generator.__class__):
+                return False
+            else:
+                d1 = self.__dict__.copy()
+                del d1['_vals_generator']
+                d2 = other.__dict__.copy()
+                del d2['_vals_generator']
+                return d1 == d2
+        else:
+            return false
 
     # shower properties
 
@@ -120,6 +139,12 @@ class simulated_shower_template():
 
     @property
     def start_gtu(self):
+        """
+            Tuple of 2 integers, MIN and MAX, representing the range of first
+            GTUs (packet frames) usable for the first pixels of a shower track.
+
+            The actual value is randomly generated
+        """
         return self._start_gtu
 
     @start_gtu.setter
@@ -130,6 +155,11 @@ class simulated_shower_template():
 
     @property
     def start_y(self):
+        """
+            Tuple of 2 integers, MIN and MAX, representing the range of
+            vertical (Y) coordinates usable for the first pixel of a
+            shower track in the first frame (GTU).
+        """
         return self._start_y
 
     @start_y.setter
@@ -140,6 +170,11 @@ class simulated_shower_template():
 
     @property
     def start_x(self):
+        """
+            Tuple of 2 integers, MIN and MAX, representing the range of
+            horizontal (X) coordinates usable for the first pixel of a
+            shower track in the first frame (GTU).
+        """
         return self._start_x
 
     @start_x.setter
@@ -150,6 +185,11 @@ class simulated_shower_template():
 
     @property
     def shower_max(self):
+        """
+            Tuple of 2 integers, MIN and MAX, representing the range of peak
+            shower intensities usable. Shower intensity is expressed relative
+            to the previous pixel values at the given spots.
+        """
         return self._max
 
     @shower_max.setter
@@ -160,6 +200,12 @@ class simulated_shower_template():
 
     @property
     def shower_duration(self):
+        """
+            Tuple of 2 integers, MIN and MAX, representing the range of shower
+            duration values usable. Duration of the shower is expressed as the
+            number of consecutive frames (or GTUs) on which shower track pixels
+            are located.
+        """
         return self._duration
 
     @shower_duration.setter
@@ -177,22 +223,26 @@ class simulated_shower_template():
         self._vals_generator = value
 
     def get_new_start_coordinate(self):
-        start_gtu = self._start_gtu_gen(*(self._start_gtu))
-        start_y = self._start_y_gen(*(self._start_y))
-        start_x = self._start_x_gen(*(self._start_x))
+        """
+            Generate a random new start coordinate for the shower and return it
+            as a tuple of integers with the meaning: (GTU, Y, X)
+        """
+        start_gtu = rand.randint(*(self._start_gtu))
+        start_y = rand.randint(*(self._start_y))
+        start_x = rand.randint(*(self._start_x))
         return (start_gtu, start_y, start_x)
 
     def get_new_shower_max(self):
-        return self._shower_max_gen(*(self._max))
+        return rand.randint(*(self._max))
 
     def get_new_shower_duration(self):
-        return self._shower_duration_gen(*(self._duration))
+        return rand.randint(*(self._duration))
 
 
-class synthetic_background_template():
+class synthetic_background_template(cutils.CommonEqualityMixin):
     """Template for storing information about a synthetic (simulated) background"""
 
-    def __init__(self, p_template, bg_lambda=(1, 1),
+    def __init__(self, p_template, bg_lambda=(1.0, 1.0),
                  bad_ECs_range=(0, 0)):
         if not isinstance(p_template, packet_template):
             raise TypeError("Required object of class packet_template as first argument, got {}".format(type(p_template)))
@@ -215,55 +265,48 @@ class synthetic_background_template():
     @property
     def bg_lambda_range(self):
         """
-            Tuple of 2 integers (MIN, MAX) representing the average background
-            value of pixels in the data items.
+            Tuple of 2 floats (MIN, MAX) representing the range of average
+            background pixel values (not counting any potential shower track
+            pixels) on a per-packet basis.
 
-            The actual average value is different from item to item but always
-            from MIN to MAX inclusive. MIN == MAX impies a constant value for
-            all items. MIN can not be less than 0.
+            The actual average value per packet is always from MIN to MAX
+            inclusive. MIN == MAX impies the same value for all packets. MIN
+            can not be less than 0.
         """
         return self._bg_lambda
 
     @bg_lambda_range.setter
     def bg_lambda_range(self, value):
-        interval = cutils.check_and_convert_value_to_tuple(value,
-                                                           'bg_lambda_range')
+        interval = cutils.check_and_convert_value_to_tuple(
+            value, 'bg_lambda_range'
+        )
         cutils.check_interval_tuple(interval, 'bg_lambda_range', lower_limit=0)
         self._bg_lambda = interval
-        lam_min, lam_max = interval[0:2]
-        self._bg_lambda_gen = ((lambda: lam_min) if lam_min == lam_max else
-                               (lambda: rand.uniform(lam_min, lam_max)))
 
     @property
     def bad_ECs_range(self):
         """
             Tuple of 2 integers (MIN, MAX) representing how many EC units
-            within the data should haved simulated malfunctions.
+            on a per-packet basis should haved simulated malfunctions.
 
-            The effect of EC malfunction is simulated for half of all items in
-            the dataset, where the actual number of these units per frame is
-            from MIN to MAX inclusive. MIN == MAX impies a constant number of
-            malfunctioned EC units per frame. MAX can not be more than the
-            total number of ECs per frame. Note also that in case of packets
-            with simulated showers, some EC cannot be malfunctioned. Therefore,
-            even if this property were set to (num ECs, num ECs), data items
-            with smulated showers shall never have every EC unit malfunctioned.
+            The actual value per packets is always from MIN to MAX inclusive.
+            MIN == MAX impies a constant number of malfunctioned EC units per
+            packet. MIN, cannot be less than 0 and MAX can not be more than
+            the total number of EC units per packet frame.
         """
         return self._bad_ECs
 
     @bad_ECs_range.setter
     def bad_ECs_range(self, value):
-        interval = cutils.check_and_convert_value_to_tuple(value,
-                                                           'bad_ECs_range')
+        interval = cutils.check_and_convert_value_to_tuple(
+            value, 'bad_ECs_range'
+        )
         cutils.check_interval_tuple(interval, 'bad_ECs_range', 0,
-                                    self._template.packet_template.num_EC)
+                                    self._template.num_EC)
         self._bad_ECs = interval
-        EC_min, EC_max = interval[0:2]
-        self._bad_ECs_gen = ((lambda: EC_min) if EC_min == EC_max else
-                             (lambda: rand.randint(EC_min, EC_max)))
 
     def get_new_bg_lambda(self):
-        return self._bg_lambda_gen()
+        return rand.uniform(*(self._bg_lambda))
 
     def get_new_bad_ECs(self):
-        return self._bad_ECs_gen()
+        return rand.randint(*(self._bad_ECs))

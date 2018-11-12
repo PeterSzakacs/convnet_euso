@@ -35,8 +35,8 @@ class simulated_data_generator():
     # to different modules as well
     def create_shower_packet(self, yx_angle, max_EC_malfunctions=0):
         # create the actual packet
-        packet_template = self._template.packet_template
-        lam = self._bg_lambda_gen()
+        packet_template = self._bg_template.packet_template
+        lam = self._bg_template.get_new_bg_lambda()
         packet = np.random.poisson(lam=lam, size=packet_template.packet_shape)
         GTU, Y, X, vals, meta = sdutils.create_simu_shower_line_from_template(
             self._shower_template, yx_angle, return_metadata=True
@@ -64,8 +64,8 @@ class simulated_data_generator():
         return packet, meta
 
     def create_noise_packet(self, max_EC_malfunctions=0):
-        packet_template = self._template.packet_template
-        lam = self._bg_lambda_gen()
+        packet_template = self._bg_template.packet_template
+        lam = self._bg_template.get_new_bg_lambda()
         packet = np.random.poisson(lam=lam, size=packet_template.packet_shape)
         X, Y, indices = sdutils.select_random_ECs(packet_template,
                                                   max_EC_malfunctions)
@@ -109,12 +109,12 @@ class simulated_data_generator():
                         to num_data.
         """
         # create output data holders as needed
-        template_shape = self._template.packet_template.packet_shape
+        template_shape = self._bg_template.packet_template.packet_shape
         dataset = ds.numpy_dataset(name, template_shape, capacity=num_data,
                                    item_types=item_types)
 
         # output and target generation
-        ec_gen = self._bad_ECs_gen
+        ec_gen = self._bg_template.get_new_bad_ECs
         num_showers = int(num_data / 2)
         shower_creator = self.create_shower_packet
         noise_creator = self.create_noise_packet

@@ -77,8 +77,12 @@ class cmd_interface():
 
         n_data = args.num_data
         lam, bec = args.bg_lambda, args.bad_ECs
-        args.bg_template = templates.synthetic_background_template(packet_templ, lam, bad_ECs)
-        dataset_str = 'num_{}_bad_ecs_{}-{}_lam_{}-{}'.format(n_data, bec[0], bec[1], lam[0], lam[1])
+        args.bg_template = templates.synthetic_background_template(
+            packet_templ, bg_lambda=lam, bad_ECs_range=bec
+        )
+        dataset_str = 'num_{}_bad_ecs_{}-{}_lam_{}-{}'.format(
+            n_data, bec[0], bec[1], lam[0], lam[1]
+        )
 
         if args.num_shuffles < 0:
             raise ValueError('Number of times the data is shuffled cannot be negative')
