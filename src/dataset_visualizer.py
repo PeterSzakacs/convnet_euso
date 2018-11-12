@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 import utils.dataset_utils as ds
 
+
 def visualize_frame(frame, frame_type, metadata, idx, outdir):
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -36,6 +37,7 @@ def visualize_frame(frame, frame_type, metadata, idx, outdir):
     plt.savefig(os.path.join(outdir, filename))
     plt.close()
 
+
 if __name__ == '__main__':
     import sys
     import cmdint.cmd_interface_visualizer as cmd
@@ -45,7 +47,7 @@ if __name__ == '__main__':
     args = ui.get_cmd_args(sys.argv[1:])
     print(args)
 
-    dataset = ds.numpy_dataset.load_dataset(args.srcdir, args.name, 
+    dataset = ds.numpy_dataset.load_dataset(args.srcdir, args.name,
                                             item_types=args.item_types)
     data = dataset.get_data_as_dict(slice(args.num_items))
     targets = dataset.get_targets(slice(args.num_items))

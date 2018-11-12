@@ -109,7 +109,7 @@ _holder_creators = {
 
 def create_data_holders(packet_shape, num_items=None, dtype=np.uint8,
                         item_types={'raw': True, 'yx': False, 'gtux': False,
-                        'gtuy': False}):
+                                    'gtuy': False}):
     """
         Create a collection of data structures for holding data items specified
         in item_types (with these items being created from packets with shape
@@ -587,4 +587,3 @@ class numpy_dataset:
                                     delimiter='\t')
             writer.writeheader()
             writer.writerows(self._metadata)
-

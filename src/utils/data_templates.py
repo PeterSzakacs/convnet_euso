@@ -3,15 +3,18 @@ import random as rand
 import utils.common_utils as cutils
 import utils.shower_generators as gen
 
+
 class packet_template(cutils.CommonEqualityMixin):
     """Template for storing dimensions of packet data"""
 
-    def __init__(self, EC_width, EC_height, frame_width, frame_height, frames_per_packet):
+    def __init__(self, EC_width, EC_height, frame_width, frame_height,
+                 frames_per_packet):
         arguments = dict(vars())
         del arguments['self']
         for key in arguments:
             if arguments[key] < 0:
-                raise ValueError('Packet property {} cannot be a negative value, got: {}'.format(key, arguments[key]))
+                raise ValueError(('Property {} cannot be a negative value,'
+                                 ' got: {}').format(key, arguments[key]))
         if frame_width % EC_width != 0:
             raise ValueError('Frame width must be a multiple of EC width')
         if frame_height % EC_height != 0:
@@ -24,7 +27,7 @@ class packet_template(cutils.CommonEqualityMixin):
         self._num_EC = self._num_rows * self._num_cols
         self._num_frames = frames_per_packet
 
-    #properties
+    # properties
 
     @property
     def packet_shape(self):
@@ -56,17 +59,17 @@ class packet_template(cutils.CommonEqualityMixin):
 
     @property
     def num_rows(self):
-        """Number of EC units along the vertical (Y) axis of a packet frame"""
+        """Number of ECs along the vertical (Y) axis of a packet frame"""
         return self._num_rows
 
     @property
     def num_cols(self):
-        """Number of EC units along the horizontal (X) axis of a packet frame"""
+        """Number of ECs along the horizontal (X) axis of a packet frame"""
         return self._num_cols
 
     @property
     def num_EC(self):
-        """Number of EC units per packet frame"""
+        """Number of ECs per packet frame"""
         return self._num_EC
 
     @property
@@ -103,24 +106,29 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
     """Template for storing parameters of generated showers"""
 
     def __init__(self, p_template, shower_duration, shower_max,
-                        start_gtu=None, start_y=None, start_x=None,
-                        values_generator=None):
+                 start_gtu=None, start_y=None, start_x=None,
+                 values_generator=None):
         if not isinstance(p_template, packet_template):
-            raise TypeError("Required object of class packet_template as first argument, got {}".format(type(p_template)))
+            raise TypeError(('Required object of type packet_template as first'
+                            ' argument, got {}').format(type(p_template)))
         self._template = p_template
         self.shower_duration = shower_duration
         self.shower_max = shower_max
-        # set default value ranges for start coordinates and value generator if not provided
-        # let start coordinates be at least a distance of 3/4 * duration from the edges of a packet
+        # Set default value ranges for start coordinates and value generator,
+        # if not provided
+        # Let start coordinates be at least a distance of 3/4 * duration from
+        # the edges of a packet
         limit = int(3*self.shower_duration[1]/4)
         self.start_gtu = start_gtu or (0, p_template.num_frames - limit)
         self.start_y = start_y or (limit, p_template.frame_height - limit)
         self.start_x = start_x or (limit, p_template.frame_width - limit)
-        self.values_generator = values_generator or gen.default_vals_generator(10, 10)
+        self.values_generator = (values_generator or
+                                 gen.default_vals_generator(10, 10))
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            if not isinstance(other._vals_generator, self._vals_generator.__class__):
+            if not isinstance(other._vals_generator,
+                              self._vals_generator.__class__):
                 return False
             else:
                 d1 = self.__dict__.copy()
@@ -129,7 +137,7 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
                 del d2['_vals_generator']
                 return d1 == d2
         else:
-            return false
+            return False
 
     # shower properties
 
@@ -150,7 +158,9 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
     @start_gtu.setter
     def start_gtu(self, value):
         vals = cutils.check_and_convert_value_to_tuple(value, 'start_gtu')
-        cutils.check_interval_tuple(vals, 'start_gtu', lower_limit=0, upper_limit=self._template.num_frames - 1)
+        limits = (0, self._template.num_frames - 1)
+        cutils.check_interval_tuple(vals, 'start_gtu', lower_limit=limits[0],
+                                    upper_limit=limits[1])
         self._start_gtu = vals
 
     @property
@@ -165,7 +175,9 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
     @start_y.setter
     def start_y(self, value):
         vals = cutils.check_and_convert_value_to_tuple(value, 'start_y')
-        cutils.check_interval_tuple(vals, 'start_y', lower_limit=0, upper_limit=self._template.frame_height - 1)
+        limits = (0, self._template.frame_height - 1)
+        cutils.check_interval_tuple(vals, 'start_y', lower_limit=limits[0],
+                                    upper_limit=limits[1])
         self._start_y = vals
 
     @property
@@ -180,7 +192,9 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
     @start_x.setter
     def start_x(self, value):
         vals = cutils.check_and_convert_value_to_tuple(value, 'start_x')
-        cutils.check_interval_tuple(vals, 'start_x', lower_limit=0, upper_limit=self._template.frame_width - 1)
+        limits = (0, self._template.frame_width - 1)
+        cutils.check_interval_tuple(vals, 'start_x', lower_limit=limits[0],
+                                    upper_limit=limits[1])
         self._start_x = vals
 
     @property
@@ -210,8 +224,13 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
 
     @shower_duration.setter
     def shower_duration(self, value):
-        vals = cutils.check_and_convert_value_to_tuple(value, 'shower_duration')
-        cutils.check_interval_tuple(vals, 'shower_duration', lower_limit=1, upper_limit=self._template.num_frames)
+        vals = cutils.check_and_convert_value_to_tuple(
+            value, 'shower_duration'
+        )
+        limits = (1, self._template.num_frames)
+        cutils.check_interval_tuple(vals, 'shower_duration',
+                                    lower_limit=limits[0],
+                                    upper_limit=limits[1])
         self._duration = vals
 
     @property
@@ -240,12 +259,17 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
 
 
 class synthetic_background_template(cutils.CommonEqualityMixin):
-    """Template for storing information about a synthetic (simulated) background"""
+    """
+        Template for storing information about a synthetic (simulated)
+        background
+    """
 
     def __init__(self, p_template, bg_lambda=(1.0, 1.0),
                  bad_ECs_range=(0, 0)):
         if not isinstance(p_template, packet_template):
-            raise TypeError("Required object of class packet_template as first argument, got {}".format(type(p_template)))
+            raise TypeError(('First parameter must be an object of type'
+                            ' packet_template, instead got {}').format(
+                            type(p_template)))
         self._template = p_template
         self.bg_lambda_range = bg_lambda
         self.bad_ECs_range = bad_ECs_range
