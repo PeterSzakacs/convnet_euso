@@ -327,24 +327,6 @@ def check_item_types(item_types):
         raise Exception(('Unknown keys found: {}'.format(illegal_keys)))
 
 
-def get_train_and_test_sets(dataset, test_num_items=None, test_fraction=0.1):
-    num_data = dataset.num_data
-    if test_fraction > 1:
-        raise ValueError(('Requested an evaluation set from original dataset,'
-                          ' that is {}% the size of the original').format(
-                          test_fraction*100))
-    if test_num_items is not None and test_num_items > num_data:
-        raise ValueError(('The number of items to select from the dataset ({})'
-                          '  is larger than the dataset ({})').format(
-                          test_num_items, dataset.size))
-    test_num = test_num_items or round(test_fraction * num_data)
-    train_data = dataset.get_data_as_dict(slice(test_num, num_data))
-    train_targets = dataset.get_targets(slice(test_num, num_data))
-
-    test_data = dataset.get_data_as_dict(slice(test_num))
-    test_targets = dataset.get_targets(slice(test_num))
-    return train_data, train_targets, test_data, test_targets
-
 # classes
 
 
