@@ -24,7 +24,7 @@ class cmd_interface():
         #                          help=('the acquisition ROOT file storing air shower data. Can be specified alongside --triggerfile.'))
         # self.parser.add_argument('--triggerfile',
         #                          help=('the L1 triggers file for the given acquisition file (--acqfile).'))
-        
+
         # How many frames (at most) to use:
         self.parser.add_argument('--eval_numframes', type=int,
                                 help=('number of frames out of the passed dataset to use for evaluation (Selects first n frames).'))
@@ -32,7 +32,7 @@ class cmd_interface():
         # misc
         self.parser.add_argument('--logdir', default=self.default_logdir,
                                 help=('Directory to store output logs, default: "/run/user/$USERID/convnet_checker/".'
-                                      ' If a non-default directory is used, it must exist prior to calling this script,' 
+                                      ' If a non-default directory is used, it must exist prior to calling this script,'
                                       ' otherwise an error will be thrown.'))
         self.parser.add_argument('--tablesize', type=int,
                                 help=('Maximum number of table rows for every html report file.'))
@@ -40,23 +40,21 @@ class cmd_interface():
                                 help=('Use the CPU of the running machine instead of the CUDA device.'
                                       ' On systems without a dedicated CUDA device and no GPU version '
                                       ' of tensorflow installed, this flag has no effect.'))
-        self.parser.add_argument('--noframes', action='store_true',
-                                help=('Only create the actual report file but do not save images of frames in the dataset'
-                                      ' Only do this if you are reevaluating on an existing dataset and those frames have'
-                                      ' already been generated (as the report table will still reference them).'))
         self.parser.add_argument('--onlyerr', action='store_true',
                                 help=('Include only data about the failed predictions of the model in the generated report.'))
+        dataset_type = self.parser.add_mutually_exclusive_group(required=True)
+        dataset_type.add_argument('--simu', action='store_true', help=('dataset created from a multitude of source npy files with simulated data'))
+        dataset_type.add_argument('--synth', action='store_true', help=('dataset created using the data_generator script'))
+        dataset_type.add_argument('--flight', action='store_true', help=('dataset created from recorded flight data in CERN ROOT format'))
+
 
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
-        
-        common_args.check_input_type_dataset_args(args)
 
-        use_srcdir = (args.srcdir != None)
-        use_name = (args.name != None and use_srcdir)
+        common_args.check_input_type_dataset_args(args)
+        args.item_types = common_args.input_type_dataset_args_to_dict(args)
 
         # != is basically XOR in python
-        npy_input = use_name
         # acq_input = (args.acqfile != None)
 
         # valid inputs:
@@ -67,9 +65,9 @@ class cmd_interface():
         #     raise ValueError(('Input method not specified or vague, please use just one of the following:'
         #                      ' srcdir and name, acqfile [and triggerfile]'))
         # Check if input method is valid
-        if npy_input:
+        # if npy_input:
             ## name/srcdir combination
-            args.npy, args.acq = True, False
+            # args.npy, args.acq = True, False
         # else:
         #     ## single acqfile with optional triggerfile
         #     args.npy, args.acq = False, True

@@ -7,9 +7,9 @@ class cmd_interface():
 
     def __init__(self):
         self.parser = argparse.ArgumentParser(description="Visualize dataset items")
-        
+
         common_args.add_input_type_dataset_args(self.parser)
-        
+
         self.parser.add_argument('--name', required=True,
                                 help=('the name of the dataset'))
         self.parser.add_argument('--srcdir', required=True,
@@ -20,6 +20,10 @@ class cmd_interface():
                                       ' error will be thrown'))
         self.parser.add_argument('--num_items', type=int,
                                 help=('number of dataset items to visualize, default: all items'))
+        dataset_type = self.parser.add_mutually_exclusive_group(required=True)
+        dataset_type.add_argument('--simu', action='store_true', help=('dataset created from a multitude of source npy files with simulated data'))
+        dataset_type.add_argument('--synth', action='store_true', help=('dataset created using the data_generator script'))
+        dataset_type.add_argument('--flight', action='store_true', help=('dataset created from recorded flight data in CERN ROOT format'))
 
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
@@ -28,5 +32,5 @@ class cmd_interface():
         args.item_types = common_args.input_type_dataset_args_to_dict(args)
         if not os.path.exists(args.outdir):
             raise ValueError('Non-default output directory does not exist')
-        
+
         return args

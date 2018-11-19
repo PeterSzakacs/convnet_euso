@@ -1,41 +1,7 @@
 import os
 
-import matplotlib
-matplotlib.use('svg')
-import matplotlib.pyplot as plt
-
 import utils.dataset_utils as ds
-
-
-def visualize_frame(frame, frame_type, metadata, idx, outdir):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    im = ax.imshow(frame)
-    plt.colorbar(im)
-
-    if metadata['shower']:
-        start_x = metadata.get('start_x', None)
-        start_y = metadata.get('start_y', None)
-        start_gtu = metadata.get('start_gtu', None)
-        if key == 'yx':
-            plt.scatter([int(start_x)], [int(start_y)], color='red', s=40)
-        elif key == 'gtux':
-            plt.scatter([int(start_x)], [int(start_gtu)], color='red', s=40)
-        else:
-            plt.scatter([int(start_y)], [int(start_gtu)], color='red', s=40)
-
-        angle = metadata.get('yx_angle', None)
-        maximum = metadata.get('max', None)
-        duration = metadata.get('duration', None)
-        title = 'Shower (angle: {}, maximum: {}, duration: {})'.format(
-            angle, maximum, duration)
-    else:
-        title = 'Noise'
-
-    ax.set_title(title)
-    filename = '{}_{}'.format(frame_type, idx)
-    plt.savefig(os.path.join(outdir, filename))
-    plt.close()
+import visualization.event_visualization as eviz
 
 
 if __name__ == '__main__':
@@ -47,12 +13,33 @@ if __name__ == '__main__':
     args = ui.get_cmd_args(sys.argv[1:])
     print(args)
 
+    savedir = os.path.join(args.outdir, 'img')
+    if not os.path.exists(savedir):
+        os.mkdir(savedir)
+
+    if args.flight:
+        meta_adder = eviz.add_flight_metadata
+    elif args.simu:
+        meta_adder = eviz.add_simu_metadata
+    elif args.synth:
+        meta_adder = eviz.add_synth_metadata
+
+    frame_creators = {
+        'raw': lambda frame: None, 'yx': eviz.create_yx_proj,
+        'gtux': eviz.create_gtux_proj, 'gtuy': eviz.create_gtuy_proj
+    }
+
     dataset = ds.numpy_dataset.load_dataset(args.srcdir, args.name,
                                             item_types=args.item_types)
     data = dataset.get_data_as_dict(slice(args.num_items))
     targets = dataset.get_targets(slice(args.num_items))
     metadata = dataset.get_metadata(slice(args.num_items))
-    for idx in range(len(metadata)):
-        for key, data_items in data.items():
+    for item_type, data_items in data.items():
+        item_dir = os.path.join(savedir, item_type)
+        os.mkdir(item_dir)
+        frame_creator = frame_creators[item_type]
+        for idx in range(len(data_items)):
             frame = data_items[idx]
-            visualize_frame(frame, key, metadata[idx], idx, args.outdir)
+            fig, ax = frame_creator(frame)
+            meta_adder(fig, ax, item_type, metadata[idx])
+            eviz.save_figure(fig, os.path.join(item_dir, 'frame-{}'.format(idx)))

@@ -1,6 +1,6 @@
 import os
 import importlib
-from datetime import datetime as dt
+import datetime as dt
 
 import tflearn
 import numpy as np
@@ -13,7 +13,7 @@ DEFAULT_TRAINING_LOGDIR = '/run/user/{}/convnet_trainer'.format(os.getuid())
 
 
 def get_default_run_id(network_module_name):
-    current_time = dt.now().strftime('%Y-%m-%d_%H:%M:%S')
+    current_time = dt.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     return '{}_{}'.format(network_module_name, current_time)
 
 

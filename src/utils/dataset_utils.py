@@ -486,17 +486,18 @@ class numpy_dataset:
 
     # methods
 
-    def get_data_as_arraylike(self, data_slice):
-        return tuple(self._data[k][data_slice] for k in self._used_types)
+    def get_data_as_arraylike(self, data_slice_or_idx):
+        return tuple(self._data[k][data_slice_or_idx]
+                     for k in self._used_types)
 
-    def get_data_as_dict(self, data_slice):
-        return {k: self._data[k][data_slice] for k in self._used_types}
+    def get_data_as_dict(self, data_slice_or_idx):
+        return {k: self._data[k][data_slice_or_idx] for k in self._used_types}
 
-    def get_targets(self, targets_slice):
-        return self._targets[targets_slice]
+    def get_targets(self, targets_slice_or_idx):
+        return self._targets[targets_slice_or_idx]
 
-    def get_metadata(self, metadata_slice):
-        return self._metadata[metadata_slice]
+    def get_metadata(self, metadata_slice_or_idx):
+        return self._metadata[metadata_slice_or_idx]
 
     def add_data_item(self, packet, target, metadata={}):
         if self._capacity is not None and self._num_data == self._capacity:
