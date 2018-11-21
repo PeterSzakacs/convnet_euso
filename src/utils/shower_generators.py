@@ -7,7 +7,7 @@ class default_vals_generator():
         self.reset(maximum, duration)
 
     def reset(self, maximum, duration):
-        self.duration, self.max = duration, max
+        self.duration, self.max = duration, maximum
         self.iteration = 0
 
     def __iter__(self):
