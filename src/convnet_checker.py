@@ -61,7 +61,7 @@ if __name__ == '__main__':
     for network in args.networks:
         network_module_name, model_file = network[0], network[1]
         network_module_name = "net." + network_module_name
-        run_id = netutils.get_default_run_id(network_module_name);
+        run_id = netutils.get_default_run_id(network_module_name)
         tb_dir = os.path.join(logdir, run_id)
         os.mkdir(tb_dir)
         model, net, conv, fc = netutils.import_convnet(

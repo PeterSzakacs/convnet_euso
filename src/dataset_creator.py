@@ -29,6 +29,18 @@ def on_packet_extracted_simu(packet, packet_idx, srcfile):
         dataset.add_data_item(packet[0:20], [0, 1], metadata_dict)
         num_data_counter += 2
 
+def on_packet_extracted_mixed(packet, packet_idx, srcfile):
+    global dataset, num_data_counter
+    metadata_dict = {'source_file_acquisition_full': srcfile, 'packet_idx': packet_idx}
+    if srcfile.endswith(".root"):
+        dataset.add_data_item(packet[36:56], [0, 1], metadata_dict)
+        num_data_counter += 1
+    elif packet_idx == 1:
+        dataset.add_data_item(packet[27:47], [1, 0], metadata_dict)
+        dataset.add_data_item(packet[0:20], [0, 1], metadata_dict)
+        num_data_counter += 2
+
+
 # command line parsing
 
 cmd_int = cmd.cmd_interface()
@@ -53,10 +65,18 @@ if args.simu:
     data_extractor = lambda srcfile, triggerfile: extractor.extract_packets_from_npyfile_and_process(
                                                         srcfile, triggerfile=triggerfile,
                                                         on_packet_extracted=on_packet_extracted_simu)
-else:
+elif args.flight:
     data_extractor = lambda srcfile, triggerfile: extractor.extract_packets_from_rootfile_and_process(
                                                         srcfile, triggerfile=triggerfile,
                                                         on_packet_extracted=on_packet_extracted_flight)
+elif args.mixed:
+    data_extractor = lambda srcfile, triggerfile: (extractor.extract_packets_from_npyfile_and_process(
+                                                        srcfile, triggerfile=triggerfile,
+                                                        on_packet_extracted=on_packet_extracted_mixed) 
+                                                  if srcfile.endswith(".npy") else 
+                                                  extractor.extract_packets_from_rootfile_and_process(
+                                                        srcfile, triggerfile=triggerfile,
+                                                        on_packet_extracted=on_packet_extracted_mixed))
 
 input_tsv = args.filelist
 total_num_data = 0

@@ -17,6 +17,7 @@ class cmd_interface():
         input_type = self.parser.add_mutually_exclusive_group(required=True)
         input_type.add_argument('--simu', action='store_true', help=('specifies to use simulated air shower data in npy format'))
         input_type.add_argument('--flight', action='store_true', help=('specifies to use recorded flight data in CERN ROOT format'))
+        input_type.add_argument('--mixed', action='store_true', help=('specifies to use a mix of data items'))
 
         common_args.add_packet_args(self.parser)
         common_args.add_output_type_dataset_args(self.parser)
