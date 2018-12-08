@@ -105,7 +105,7 @@ class packet_template(cutils.CommonEqualityMixin):
 class simulated_shower_template(cutils.CommonEqualityMixin):
     """Template for storing parameters of generated showers"""
 
-    def __init__(self, p_template, shower_duration, shower_max,
+    def __init__(self, p_template, shower_duration, shower_max, track_len,
                  start_gtu=None, start_y=None, start_x=None,
                  values_generator=None):
         if not isinstance(p_template, packet_template):
@@ -114,6 +114,7 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
         self._template = p_template
         self.shower_duration = shower_duration
         self.shower_max = shower_max
+        self.track_length = track_len
         # Set default value ranges for start coordinates and value generator,
         # if not provided
         # Let start coordinates be at least a distance of 3/4 * duration from
@@ -215,8 +216,8 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
     @property
     def shower_duration(self):
         """
-            Tuple of 2 integers, MIN and MAX, representing the range of shower
-            duration values usable. Duration of the shower is expressed as the
+            Tuple of 2 integers, MIN and MAX, representing the range of track
+            length values usable. Duration of the shower is expressed as the
             number of consecutive frames (or GTUs) on which shower track pixels
             are located.
         """
@@ -232,6 +233,25 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
                                     lower_limit=limits[0],
                                     upper_limit=limits[1])
         self._duration = vals
+
+    @property
+    def track_length(self):
+        """
+            Tuple of 2 integers, MIN and MAX, representing the range of shower
+            duration values usable. Duration of the shower is expressed as the
+            number of consecutive frames (or GTUs) on which shower track pixels
+            are located.
+        """
+        return self._tlen
+
+    @track_length.setter
+    def track_length(self, value):
+        vals = cutils.check_and_convert_value_to_tuple(
+            value, 'track_length'
+        )
+        cutils.check_interval_tuple(vals, 'track_length',
+                                    lower_limit=6)
+        self._tlen = vals
 
     @property
     def values_generator(self):
@@ -256,6 +276,9 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
 
     def get_new_shower_duration(self):
         return rand.randint(*(self._duration))
+
+    def get_new_track_length(self):
+        return rand.randint(*(self._tlen))
 
 
 class synthetic_background_template(cutils.CommonEqualityMixin):

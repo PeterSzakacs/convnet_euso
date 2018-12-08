@@ -20,6 +20,10 @@ class cmd_interface():
                                 help=('Duration of shower tracks in number of GTU or frames containing shower pixels.'
                                     ' The actual duration of a shower for any data item is from MIN to MAX, inclusive.'
                                     ' If MIN == MAX, the duration is always the same.'))
+        self.parser.add_argument('--track_length', metavar=('MIN', 'MAX'), nargs=2, type=int, required=True,
+                                help=('Length of shower tracks as viewed in the yx projection of the packets.'
+                                    ' The actual length of a track for any data item is from MIN to MAX, inclusive.'
+                                    ' If MIN == MAX, the length is always the same.'))
         self.parser.add_argument('--start_gtu', metavar=('MIN', 'MAX'), nargs=2, type=int,
                                 help=('First GTU containing shower pixels. This is a range of GTUs from MIN to MAX, inclusive,'
                                     ' where a simulated shower line begins. If MIN == MAX, for all packets the shower line'
@@ -66,14 +70,14 @@ class cmd_interface():
         packet_str = common_args.packet_args_to_string(args)
 
         sx, sy, sgtu = args.start_x, args.start_y, args.start_gtu
-        smax, dur = args.shower_max, args.duration
+        smax, dur, length = args.shower_max, args.duration, args.track_length
         shower_templ = templates.simulated_shower_template(
-            packet_templ, dur, smax, start_gtu=sgtu, start_y=sy, start_x=sx
+            packet_templ, dur, smax, length, start_gtu=sgtu, start_y=sy, start_x=sx
         )
         args.shower_template = shower_templ
         sx, sy, sgtu = shower_templ.start_x, shower_templ.start_y, shower_templ.start_gtu
-        shower_str = 'shower_gtu_{}-{}_y_{}-{}_x_{}-{}_duration_{}-{}_bgdiff_{}-{}'.format(
-                        sgtu[0], sgtu[1], sy[0], sy[1], sx[0], sx[1], dur[0], dur[1], smax[0], smax[1])
+        shower_str = 'shower_gtu_{}-{}_y_{}-{}_x_{}-{}_duration_{}-{}_len_{}-{}_bgdiff_{}-{}'.format(
+                     sgtu[0], sgtu[1], sy[0], sy[1], sx[0], sx[1], dur[0], dur[1], length[0], length[1], smax[0], smax[1])
 
         n_data = args.num_data
         lam, bec = args.bg_lambda, args.bad_ECs
