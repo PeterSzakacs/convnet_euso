@@ -144,7 +144,7 @@ class simulated_data_generator():
 
 
 if __name__ == '__main__':
-    import cmdint.cmd_interface_datagen as cmd
+    import cmdint.cmd_interface_generator as cmd
 
     # command line parsing
     ui = cmd.cmd_interface()

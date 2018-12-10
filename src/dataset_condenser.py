@@ -3,7 +3,7 @@ import csv
 
 import utils.dataset_utils as ds
 import utils.io_utils as iout
-import cmdint.cmd_interface_creator as cmd
+import cmdint.cmd_interface_condenser as cmd
 
 
 
