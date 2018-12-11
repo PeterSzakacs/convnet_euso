@@ -348,12 +348,17 @@ class numpy_dataset:
     """
 
     @staticmethod
-    def load_dataset(srcdir, name, item_types=None):
+    def preload_dataset(srcdir, name):
         """
-            Load a dataset from secondary storage. This function assumes that
-            the relevant dataset files are located in the same directory
-            (srcdir) and they have the default names which can be constructed
-            from the dataset name.
+            Pre-load a dataset from secondary storage. 
+            
+            Essentially, this function creates a dictionary of all attributes
+            and values of an existing numpy_dataset object without loading all 
+            the data, targets and metadata into memory. 
+            
+            This function assumes that the relevant dataset files are located 
+            in the same directory (srcdir) and they have the default names 
+            which can be constructed from the dataset name.
 
             Parameters
             ----------
@@ -366,21 +371,41 @@ class numpy_dataset:
         if not os.path.exists(configfile):
             raise IOError('Config file {} does not exist'.format(configfile))
         config = configparser.ConfigParser()
+        attrs = {}
         config.read(configfile)
         general = config['general']
         cap = general['capacity']
-        capacity = None if cap == 'None' else int(cap)
-        num_data = int(general['num_data'])
+        attrs['capacity'] = None if cap == 'None' else int(cap)
+        attrs['num_data'] = int(general['num_data'])
         packet_shape = config['packet_shape']
         n_f = int(packet_shape['num_frames'])
         f_h = int(packet_shape['frame_height'])
         f_w = int(packet_shape['frame_width'])
-        packet_shape = (n_f, f_h, f_w)
-        # load only the data the user requested, else load whatever is present
-        # in the dataset
+        attrs['packet_shape'] = (n_f, f_h, f_w)
         item_types_sec = config['item_types']
-        if item_types is None:
-            item_types = {k: (v == 'True') for k, v in item_types_sec.items()}
+        item_types = {k: (v == 'True') for k, v in item_types_sec.items()}
+        attrs['item_types'] = item_types
+        return attrs
+
+
+    @staticmethod
+    def load_dataset(srcdir, name, item_types=None):
+        """
+            Load a dataset from secondary storage. 
+            
+            This function assumes that the relevant dataset files are located 
+            in the same directory (srcdir) and they have the default names 
+            which can be constructed from the dataset name.
+
+            Parameters
+            ----------
+            srcdir :    str
+                the directory containing all the dataset files
+            name :      str
+                the dataset name
+        """
+        attrs = numpy_dataset.preload_dataset(srcdir, name)
+        item_types = attrs['item_types'] if item_types == None else item_types
         data = dict()
         for item_type in ALL_ITEM_TYPES:
             if item_types[item_type] is True:
@@ -396,9 +421,9 @@ class numpy_dataset:
             reader = csv.DictReader(metafile, delimiter='\t')
             for row in reader:
                 metadata.append(row)
-        dataset = (data, targets, metadata, num_data)
-        return numpy_dataset(name, packet_shape, capacity=capacity,
-                             dataset=dataset)
+        dataset = (data, targets, metadata, attrs['num_data'])
+        return numpy_dataset(name, attrs['packet_shape'], 
+                             capacity=attrs['capacity'], dataset=dataset)
 
     def __init__(self, name, packet_shape, capacity=None, dataset=None,
                  item_types={'yx': False, 'gtux': False, 'gtuy': False,
@@ -449,6 +474,11 @@ class numpy_dataset:
     def name(self):
         """Name of the dataset."""
         return self._name
+
+    @name.setter
+    def name(self, value):
+        """Name of the dataset."""
+        self._name = value
 
     @property
     def capacity(self):
@@ -526,6 +556,38 @@ class numpy_dataset:
             np.random.shuffle(self._targets)
             np.random.set_state(rng_state)
             np.random.shuffle(self._metadata)
+
+    def merge_with(self, other_dataset):
+        """
+            Merge another dataset into the current dataset.
+
+            Parameters
+            ----------
+            :param other_dataset:   the dataset to merge into the current one.
+            :type other_dataset:    utils.dataset_utils.numpy_dataset
+        """
+        if other_dataset.item_types != self.item_types:
+            raise ValueError('Incompatible dataset to merge: {}', 
+                             other_dataset.name)
+        if other_dataset.item_shapes != self.item_shapes:
+            raise ValueError('Incompatible dataset to merge: {}', 
+                             other_dataset.name)
+        num_items = self.num_data + other_dataset.num_data
+        if self.capacity != None:
+            for key in self._used_types:
+                item_shape = self._item_shapes[key]
+                data = self._data[key]
+                self._data[key] = np.resize(data, (num_items, *item_shape))
+            self._targets = np.resize(self._targets, (num_items, 2))
+            self._capacity = num_items
+        for idx in range(other_dataset.num_data):
+            data_items = other_dataset.get_data_as_dict(idx)
+            target = other_dataset.get_targets(idx)
+            metadata = other_dataset.get_metadata(idx)
+            self._appender(data_items, target)
+            self._metadata.append(metadata)
+            self._metafields = self._metafields.union(metadata.keys())
+            self._num_data += 1
 
     def save(self, outdir):
         """
