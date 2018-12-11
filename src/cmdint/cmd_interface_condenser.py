@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import utils.common_utils as cutils
 import cmdint.common_args as common_args
 
 class cmd_interface():
@@ -15,9 +16,15 @@ class cmd_interface():
         self.parser.add_argument('-o', '--outdir', required=True, default=os.path.curdir,
                                 help=('directory to store output dataset files'))
         input_type = self.parser.add_mutually_exclusive_group(required=True)
-        input_type.add_argument('--simu', action='store_true', help=('specifies to use simulated air shower data in npy format'))
-        input_type.add_argument('--flight', action='store_true', help=('specifies to use recorded flight data in CERN ROOT format'))
-        input_type.add_argument('--mixed', action='store_true', help=('specifies to use a mix of data items'))
+        input_type.add_argument('--simu', action='store_true', 
+                                help=('apply simu transformer when creating dataset items'))
+        input_type.add_argument('--flight', action='store_true', 
+                                help=('apply flight transformer when creating dataset items'))
+        input_type.add_argument('--custom', metavar=['TARGET', 'START_GTU', 'END_GTU'], nargs='+',
+                                action=common_args.allowed_lengths(lengths=[1,3]),
+                                help=('apply custom transformer when creating dataset items. Accepts range of'
+                                      ' frames and static target (noise or shower) to apply when extracting all'
+                                      ' events in the passed filelist.'))
 
         common_args.add_packet_args(self.parser)
         common_args.add_output_type_dataset_args(self.parser)
@@ -34,6 +41,20 @@ class cmd_interface():
             raise ValueError("List of files to process {} does not exist".format(args.filelist))
 
         args.template = common_args.packet_args_to_packet_template(args)
+        if not (args.simu or args.flight):
+            args.target = args.custom[0]
+            if args.target.lower() == 'shower':
+                args.target = [0, 1]
+            else:
+                args.target = [1, 0]
+            gtus = args.custom[1:3] if len(args.custom) == 3 else [None, None]
+            if gtus != [None, None]:
+                try:
+                    args.start_gtu, args.end_gtu = int(gtus[0]), int(gtus[1])
+                except ValueError:
+                    raise TypeError('Not a valid frame range in custom transformer: {}'.format(args.custom[1:3]))
+            else:
+                args.start_gtu, args.end_gtu = gtus[0:2]
 
         common_args.check_output_type_dataset_args(args)
         args.item_types = common_args.output_type_dataset_args_to_dict(args)

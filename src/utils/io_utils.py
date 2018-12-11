@@ -35,49 +35,35 @@ class packet_extractor():
                               ' not match that of the template ({})').format(
                               frame_shape, srcfile, exp_frame_shape))
 
-    def extract_packets_from_rootfile_and_process(self, acqfile, triggerfile=None,
-                                                    on_packet_extracted=lambda packet, packet_idx, srcfile: None):
+    def extract_packets_from_rootfile(self, acqfile, triggerfile=None):
         reader = reading.AcqL1EventReader(acqfile, triggerfile)
         iterator = reader.iter_gtu_pdm_data()
         first_frame = next(iterator).photon_count_data
-        dtype = first_frame.dtype
         # NOTE: ROOT file iterator returns packet frames of shape
         # (1, 1, height, width)
-        first_frame_shape = first_frame.shape[2:4]
+        frame_shape = first_frame.shape[2:4]
         frames_total = reader.tevent_entries
 
-        self._check_packet_against_template(first_frame_shape, frames_total,
-                                            acqfile)
+        self._check_packet_against_template(frame_shape, frames_total, acqfile)
 
-        container_shape = (frames_total, *self._template.packet_shape[1:])
+        num_packets = frames_total/self._template.num_frames
+        container_shape = (num_packets, *self._template.packet_shape)
+        dtype = first_frame.dtype 
         packets = np.empty(container_shape, dtype=dtype)
         iterator = reader.iter_gtu_pdm_data()
-        frame_idx, num_frames = 0, self._template.num_frames
-        next_packet_idx, curr_packet_idx = 0, 0
+        frame_idx, packet_idx = 0, 0
         for frame in iterator:
-            packets[frame_idx] = frame.photon_count_data
+            packet_idx = frame_idx / self._template.num_frames
+            packets[packet_idx, frame_idx] = frame.photon_count_data
             frame_idx += 1
-            curr_packet_idx = next_packet_idx
-            next_packet_idx = int(frame_idx / num_frames)
-            if next_packet_idx != curr_packet_idx:
-                packet_start = curr_packet_idx*num_frames
-                packet_stop = next_packet_idx*num_frames
-                on_packet_extracted(packets[packet_start:packet_stop],
-                                    curr_packet_idx, acqfile)
+        return packets
 
-    def extract_packets_from_npyfile_and_process(self, npyfile, triggerfile = None,
-                                                    on_packet_extracted=lambda packet, packet_idx, srcfile: None):
+    def extract_packets_from_npyfile(self, npyfile, triggerfile=None):
         ndarray = np.load(npyfile)
-        frame_shape = ndarray.shape[1:]
-        total_num_frames = len(ndarray)
+        frame_shape  = ndarray.shape[1:]
+        frames_total = len(ndarray)
 
-        self._check_packet_against_template(frame_shape, total_num_frames,
-                                            npyfile)
+        self._check_packet_against_template(frame_shape, frames_total, npyfile)
 
-        num_frames = self._template.num_frames
-        total_num_packets = int(total_num_frames / num_frames)
-        for packet_idx in range(total_num_packets):
-            packet_start = packet_idx*num_frames
-            packet_stop = (packet_idx+1)*num_frames
-            packet = ndarray[packet_start:packet_stop]
-            on_packet_extracted(packet, packet_idx, npyfile)
+        num_packets = int(frames_total/self._template.num_frames)
+        return ndarray.reshape(num_packets, *self._template.packet_shape)
