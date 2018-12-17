@@ -60,8 +60,15 @@ class custom_transformer:
         srcfile_key = 'source_file_acquisition_full'
         idx = int(metadata['packet_id'])
         packet = packets[idx]
-        start_gtu = self._gtus[0] or int(metadata['gtu_in_packet']) - 4
-        end_gtu = self._gtus[1] or int(metadata['gtu_in_packet']) + 16
+        packet_gtu = int(metadata['gtu_in_packet'])
+        start_gtu = self._gtus[0] or packet_gtu - 4
+        end_gtu = self._gtus[1] or packet_gtu + 16
+        while start_gtu < 0:
+            start_gtu += 1
+            end_gtu += 1
+        while end_gtu > packet.shape[0]:
+            start_gtu -= 1
+            end_gtu -= 1
 
         subpacket = packet[start_gtu: end_gtu]
         metadata_dict = {srcfile_key: metadata[srcfile_key], 'packet_idx': idx, 
@@ -106,6 +113,8 @@ if __name__ == "__main__":
     dataset = ds.numpy_dataset(args.name, extracted_packet_shape, item_types=args.item_types)
     input_tsv = args.filelist
     total_num_data = 0
+    cache = {}
+
 
     # main loop
     with open(input_tsv, 'r') as infile:
@@ -113,16 +122,20 @@ if __name__ == "__main__":
         for row in reader:
             srcfile, triggerfile = row['source_file_acquisition_full'], None
             print("Processing file {}".format(srcfile))
-            if srcfile.endswith('.npy'):
-                packets = extractor.extract_packets_from_npyfile(
-                    srcfile, triggerfile=triggerfile
-                )
-            elif srcfile.endswith('.root'):
-                packets = extractor.extract_packets_from_rootfile(
-                    srcfile, triggerfile=triggerfile
-                )
-            else:
-                raise Exception('Unknown file type: {}'.format(srcfile))
+            packets = cache.get(srcfile, None)
+            if packets is None:
+                if srcfile.endswith('.npy'):
+                    packets = extractor.extract_packets_from_npyfile(
+                        srcfile, triggerfile=triggerfile
+                    )
+                    cache[srcfile] = packets
+                elif srcfile.endswith('.root'):
+                    packets = extractor.extract_packets_from_rootfile(
+                        srcfile, triggerfile=triggerfile
+                    )
+                    cache[srcfile] = packets
+                else:
+                    raise Exception('Unknown file type: {}'.format(srcfile))
             items = data_transformer(packets, row)
             num_items = len(items)
             print("Extracted: {} data items".format(num_items))
@@ -132,7 +145,8 @@ if __name__ == "__main__":
             print("Dataset current total data items count: {}".format(
                 total_num_data
             ))
-
+            if len(cache.items()) == args.max_cache_size:
+                cache.popitem()
 
     print('Creating dataset "{}" containing {} items'.format(args.name, total_num_data))
     dataset.save(args.outdir)

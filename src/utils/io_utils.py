@@ -46,15 +46,16 @@ class packet_extractor():
 
         self._check_packet_against_template(frame_shape, frames_total, acqfile)
 
-        num_packets = frames_total/self._template.num_frames
+        num_frames = self._template.num_frames
+        num_packets = int(frames_total / num_frames)
         container_shape = (num_packets, *self._template.packet_shape)
         dtype = first_frame.dtype 
         packets = np.empty(container_shape, dtype=dtype)
         iterator = reader.iter_gtu_pdm_data()
         frame_idx, packet_idx = 0, 0
         for frame in iterator:
-            packet_idx = frame_idx / self._template.num_frames
-            packets[packet_idx, frame_idx] = frame.photon_count_data
+            packet_idx = int(frame_idx / num_frames)
+            packets[packet_idx][frame_idx % num_frames] = frame.photon_count_data
             frame_idx += 1
         return packets
 
@@ -65,5 +66,5 @@ class packet_extractor():
 
         self._check_packet_against_template(frame_shape, frames_total, npyfile)
 
-        num_packets = int(frames_total/self._template.num_frames)
+        num_packets = int(frames_total / self._template.num_frames)
         return ndarray.reshape(num_packets, *self._template.packet_shape)

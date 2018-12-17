@@ -15,6 +15,8 @@ class cmd_interface():
                                 help=('name of the output dataset, used as part of the filename for all files'))
         self.parser.add_argument('-o', '--outdir', required=True, default=os.path.curdir,
                                 help=('directory to store output dataset files'))
+        self.parser.add_argument('--max_cache_size', default=40, type=int,
+                                help=('maximum size of parsed files cache to avoid parsing the same file (too often)'))
         input_type = self.parser.add_mutually_exclusive_group(required=True)
         input_type.add_argument('--simu', action='store_true', 
                                 help=('apply simu transformer when creating dataset items'))
@@ -55,6 +57,9 @@ class cmd_interface():
                     raise TypeError('Not a valid frame range in custom transformer: {}'.format(args.custom[1:3]))
             else:
                 args.start_gtu, args.end_gtu = gtus[0:2]
+
+        if args.max_cache_size < 1:
+            raise ValueError('Maximum cache size cannot be less than 1')
 
         common_args.check_output_type_dataset_args(args)
         args.item_types = common_args.output_type_dataset_args_to_dict(args)
