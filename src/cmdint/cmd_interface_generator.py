@@ -47,8 +47,6 @@ class cmd_interface():
                                 ' in any data item is from MIN to MAX, inclusive. If MIN == MAX, the number of bad ECs'
                                 ' is an exact number, barring cases where keeping this requirement would knock out ECs'
                                 ' containing shower pixels. Default value range: (0, 0).'))
-        self.parser.add_argument('--num_shuffles', type=int, default=1,
-                                help=('Number of times the generated data should be shuffled randomly after creation'))
         self.parser.add_argument('--num_data', required=True, type=int,
                             help=('Number of data items (both noise and shower), corresponds to number of packets'))
 
@@ -88,8 +86,6 @@ class cmd_interface():
             n_data, bec[0], bec[1], lam[0], lam[1]
         )
 
-        if args.num_shuffles < 0:
-            raise ValueError('Number of times the data is shuffled cannot be negative')
         if not os.path.exists(args.outdir):
             raise ValueError('The output directory {} does not exist'.format(args.outdir))
         if not os.path.isdir(args.outdir):

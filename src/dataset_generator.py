@@ -156,5 +156,4 @@ if __name__ == '__main__':
     )
     dataset = data_generator.create_dataset(args.name, args.num_data,
                                             args.item_types)
-    dataset.shuffle_dataset(args.num_shuffles)
     dataset.save(args.outdir)
