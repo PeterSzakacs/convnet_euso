@@ -36,7 +36,7 @@ def simu_metadata_to_text(metadata):
 
 def synth_metadata_to_text(metadata):
     bg_text = _get_synth_bg_text(metadata)
-    if metadata['shower']:
+    if metadata['shower'] == 'True':
         shower_text = _get_synth_shower_text(metadata)
         return ("Shower {} ({})".format(shower_text, bg_text))
     else:
@@ -84,7 +84,7 @@ def add_simu_metadata(fig, ax, proj_type, metadata):
 
 
 def add_synth_metadata(fig, ax, proj_type, metadata):
-    if metadata['shower']:
+    if metadata['shower'] == 'True':
         fig.suptitle("Shower")
         ax.set_title(_get_synth_shower_text(metadata) + "\n" +
                      "({})".format(_get_synth_bg_text(metadata)))
