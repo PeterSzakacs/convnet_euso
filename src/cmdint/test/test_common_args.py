@@ -302,5 +302,45 @@ class TestItemTypeArgs(unittest.TestCase):
             pass
 
 
+class TestModuleFunctions(unittest.TestCase):
+
+    # helper methods (custom assert)
+
+    def _assert_call_num_range(self, mock_parser, arg_name, s_alias=None,
+                               desc=None):
+        if s_alias is not None:
+            pos = ('-{}'.format(s_alias), '--{}'.format(arg_name))
+        else:
+            pos = ('--{}'.format(arg_name), )
+        if desc is not None:
+            help = ('{}. MIN == MAX implies a constant value.'
+                    .format(desc))
+        else:
+            help = ('Range of {} values. MIN == MAX implies a constant value.'
+                    .format(arg_name))
+        self.assertEqual(mock_parser.add_argument.call_count, 1)
+        self.assertEqual(mock_parser.add_argument.call_args[0], pos)
+        kw = mock_parser.add_argument.call_args[1]
+        self.assertEqual(kw['help'], help)
+
+    # test methods
+
+    def test_add_number_range_arg_default(self):
+        mock_parser = mock.MagicMock()
+        cargs.add_number_range_arg(mock_parser, 'foo')
+        self._assert_call_num_range(mock_parser, 'foo')
+
+    def test_add_number_range_arg_short_alias(self):
+        mock_parser = mock.MagicMock()
+        cargs.add_number_range_arg(mock_parser, 'foo', short_alias='f')
+        self._assert_call_num_range(mock_parser, 'foo', s_alias='f')
+
+    def test_add_number_range_arg_custom_desc(self):
+        mock_parser = mock.MagicMock()
+        desc = 'Some arguemnt'
+        cargs.add_number_range_arg(mock_parser, 'foo', arg_desc=desc)
+        self._assert_call_num_range(mock_parser, 'foo', desc=desc)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -284,3 +284,23 @@ class item_types_args:
             arg_name = '{}_{}'.format(prefix, k)
             result[k] = getattr(args, arg_name)
         return result
+
+
+# number range
+
+
+def add_number_range_arg(parser, arg_name, short_alias=None, arg_desc=None,
+                         arg_type=float, required=False, default=None,
+                         metavar=('MIN', 'MAX')):
+    aliases = []
+    if short_alias is not None:
+        aliases.append('-{}'.format(short_alias))
+    aliases.append('--{}'.format(arg_name))
+    if arg_desc is not None:
+        help_txt = '{}. '.format(arg_desc)
+    else:
+        help_txt = 'Range of {} values. '.format(arg_name)
+    help_txt += '{} == {} implies a constant value.'.format(*metavar)
+    parser.add_argument(*aliases, type=arg_type, nargs=2, metavar=metavar,
+                        required=required, default=default, help=help_txt)
+    return parser
