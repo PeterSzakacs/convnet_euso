@@ -25,7 +25,7 @@ def flight_transformer(packets, metadata):
     items   = []
     srcfile_key = 'source_file_acquisition_full'
     gtus    = [27, 47]
-    for idx in len(packets):
+    for idx in range(len(packets)):
         packet = packets[idx]
         metadata_dict = {srcfile_key: metadata[srcfile_key], 'packet_idx': idx, 
                          'start_gtu': gtus[0], 'end_gtu': gtus[1]}
