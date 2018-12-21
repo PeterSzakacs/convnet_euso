@@ -2,47 +2,52 @@ import os
 import argparse
 
 import utils.common_utils as cutils
-import cmdint.common_args as common_args
+import cmdint.common_args as cargs
+import cmdint.arparse_actions as actions
 
 class cmd_interface():
 
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="Use trained model to evaluate recorded flight data")
+        self.parser = argparse.ArgumentParser(
+            description="Create single dataset from a list of files")
+        self.packet_args = cargs.packet_args()
+        self.item_args = cargs.item_types_args()
+        self.dset_args = cargs.dataset_args(output_aliases={
+            'dataset name': 'name', 'dataset directory': 'outdir'})
+
         self.parser.add_argument('-f', '--filelist', required=True,
                                 help=('input files list in TSV format. Mutually exclusive with --acqfile,'
                                       ' either use this or that'))
-        self.parser.add_argument('-n', '--name', required=True,
-                                help=('name of the output dataset, used as part of the filename for all files'))
-        self.parser.add_argument('-o', '--outdir', required=True, default=os.path.curdir,
-                                help=('directory to store output dataset files'))
+        self.packet_args.add_packet_arg(self.parser)
+        self.dset_args.add_dataset_arg_double(self.parser,
+                                              cargs.arg_type.OUTPUT,
+                                              name_short_alias='n',
+                                              dir_short_alias='d',
+                                              dir_default=os.path.curdir)
+        self.item_args.add_item_type_args(self.parser, cargs.arg_type.OUTPUT)
         self.parser.add_argument('--max_cache_size', default=40, type=int,
-                                help=('maximum size of parsed files cache to avoid parsing the same file (too often)'))
+                                help=('maximum size of parsed files cache'))
         input_type = self.parser.add_mutually_exclusive_group(required=True)
-        input_type.add_argument('--simu', action='store_true', 
+        input_type.add_argument('--simu', action='store_true',
                                 help=('apply simu transformer when creating dataset items'))
-        input_type.add_argument('--flight', action='store_true', 
+        input_type.add_argument('--flight', action='store_true',
                                 help=('apply flight transformer when creating dataset items'))
         input_type.add_argument('--custom', metavar=['TARGET', 'START_GTU', 'END_GTU'], nargs='+',
-                                action=common_args.allowed_lengths(lengths=[1,3]),
+                                action=actions.allowed_lengths(lengths=[1,3]),
                                 help=('apply custom transformer when creating dataset items. Accepts range of'
                                       ' frames and static target (noise or shower) to apply when extracting all'
                                       ' events in the passed filelist.'))
-
-        common_args.add_packet_args(self.parser)
-        common_args.add_output_type_dataset_args(self.parser)
 
 
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        if not os.path.exists(args.outdir):
-            raise ValueError("Output directory {} does not exist".format(args.outdir))
+        if not os.path.isfile(args.filelist):
+            raise ValueError("Invalid filelist {}".format(args.filelist))
         if not os.path.isdir(args.outdir):
-            raise ValueError("Output directory {} is not a directory".format(args.outdir))
-        if not os.path.exists(args.filelist):
-            raise ValueError("List of files to process {} does not exist".format(args.filelist))
+            raise ValueError("Invalid output directory {}".format(args.outdir))
 
-        args.template = common_args.packet_args_to_packet_template(args)
+        args.template = self.packet_args.packet_arg_to_template(args)
         if not (args.simu or args.flight):
             args.target = args.custom[0]
             if args.target.lower() == 'shower':
@@ -61,7 +66,8 @@ class cmd_interface():
         if args.max_cache_size < 1:
             raise ValueError('Maximum cache size cannot be less than 1')
 
-        common_args.check_output_type_dataset_args(args)
-        args.item_types = common_args.output_type_dataset_args_to_dict(args)
+        atype = cargs.arg_type.OUTPUT
+        self.item_args.check_item_type_args(args, atype)
+        args.item_types = self.item_args.get_item_types(args, atype)
 
         return args

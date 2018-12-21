@@ -1,16 +1,27 @@
 import os
 import argparse
 
-import cmdint.common_args as common_args
+import cmdint.common_args as cargs
 import utils.data_templates as templates
 
 class cmd_interface():
 
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="Create simulated air shower data as numpy arrays")
+        self.parser = argparse.ArgumentParser(
+            description="Create simulated air shower data as numpy arrays")
+        out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
+        self.packet_args = cargs.packet_args()
+        self.dset_args = cargs.dataset_args(output_aliases=out_aliases)
+        self.item_args = cargs.item_types_args()
 
         # packet dimensions
-        common_args.add_packet_args(self.parser, required=True)
+        self.packet_args.add_packet_arg(self.parser, required=True)
+
+        # output dataset
+        atype = cargs.arg_type.OUTPUT
+        self.dset_args.add_dataset_arg_double(self.parser, atype)
+        self.item_args.add_item_type_args(self.parser, atype)
+
         # arguments qualifying shower property ranges
         self.parser.add_argument('--shower_max', metavar=('MIN', 'MAX'), nargs=2, type=int, required=True,
                                 help=('Relative difference between pixel values of shower track and background. This is'
@@ -50,48 +61,37 @@ class cmd_interface():
         self.parser.add_argument('--num_data', required=True, type=int,
                             help=('Number of data items (both noise and shower), corresponds to number of packets'))
 
-        # information about which output files to create
-        common_args.add_output_type_dataset_args(self.parser)
-
-        # output directory
-        self.parser.add_argument('--name',
-                                help=('The name of the dataset, overrides the default name created from the other parameters passed.'))
-        self.parser.add_argument('--outdir', default=os.path.curdir,
-                                help=('The directory in which to store output and target files, defaults to current'
-                                     ' working directory.'))
-
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        packet_templ = common_args.packet_args_to_packet_template(args)
+        packet_templ = self.packet_args.packet_arg_to_template(args)
+        packet_str = self.packet_args.packet_arg_to_string(args)
         args.packet_template = packet_templ
-        packet_str = common_args.packet_args_to_string(args)
 
         sx, sy, sgtu = args.start_x, args.start_y, args.start_gtu
         smax, dur, length = args.shower_max, args.duration, args.track_length
         shower_templ = templates.simulated_shower_template(
             packet_templ, dur, smax, length, start_gtu=sgtu, start_y=sy, start_x=sx
         )
-        args.shower_template = shower_templ
         sx, sy, sgtu = shower_templ.start_x, shower_templ.start_y, shower_templ.start_gtu
         shower_str = 'shower_gtu_{}-{}_y_{}-{}_x_{}-{}_duration_{}-{}_len_{}-{}_bgdiff_{}-{}'.format(
                      sgtu[0], sgtu[1], sy[0], sy[1], sx[0], sx[1], dur[0], dur[1], length[0], length[1], smax[0], smax[1])
+        args.shower_template = shower_templ
 
-        n_data = args.num_data
-        lam, bec = args.bg_lambda, args.bad_ECs
-        args.bg_template = templates.synthetic_background_template(
-            packet_templ, bg_lambda=lam, bad_ECs_range=bec
-        )
+        n_data, lam, bec = args.num_data, args.bg_lambda, args.bad_ECs
         dataset_str = 'num_{}_bad_ecs_{}-{}_lam_{}-{}'.format(
             n_data, bec[0], bec[1], lam[0], lam[1]
         )
+        args.bg_template = templates.synthetic_background_template(
+            packet_templ, bg_lambda=lam, bad_ECs_range=bec
+        )
 
-        if not os.path.exists(args.outdir):
-            raise ValueError('The output directory {} does not exist'.format(args.outdir))
         if not os.path.isdir(args.outdir):
-            raise ValueError("Output directory {} is not a directory".format(args.outdir))
+            raise ValueError("Invalid output directory {}".format(args.outdir))
 
-        args.item_types = common_args.output_type_dataset_args_to_dict(args)
+        atype = cargs.arg_type.OUTPUT
+        self.item_args.check_item_type_args(args, atype)
+        args.item_types = self.item_args.get_item_types(args, atype)
 
         # TODO: Might want to use a better way to create dataset files (maybe keep metadata
         # such as shower and packet properties in an sqlite database and only distinguish files

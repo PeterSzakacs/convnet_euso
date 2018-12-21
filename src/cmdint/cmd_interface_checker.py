@@ -1,24 +1,27 @@
 import os
 import argparse
 
-import cmdint.common_args as common_args
+import cmdint.common_args as cargs
 
 class cmd_interface():
 
     def __init__(self):
         self.default_logdir = os.path.join('/run/user/', str(os.getuid()), 'convnet_checker/')
-        self.parser = argparse.ArgumentParser(description="Evaluate trained network(s) with data")
-        common_args.add_input_type_dataset_args(self.parser)
+        self.parser = argparse.ArgumentParser(
+            description="Evaluate trained network model(s) with given dataset")
+        in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
+        self.dset_args = cargs.dataset_args(input_aliases=in_aliases)
+        self.item_args = cargs.item_types_args()
 
-        # neural network and trained model parameters
+        # dataset input
+        atype = cargs.arg_type.INPUT
+        self.dset_args.add_dataset_arg_double(self.parser, atype)
+        self.item_args.add_item_type_args(self.parser, atype)
+
+        # trained neural network model(s)
         self.parser.add_argument('-n', '--networks', required=True, nargs=2, action='append', metavar=('NETWORK_NAME', 'MODEL_FILE'),
                                 help='names of network modules to use and a respective model file containing a trained model.')
         # different input specification methods
-        ## dataset files identified by name, also all located in the same directory
-        self.parser.add_argument('--name', required=True,
-                                help=('name of the dataset, input, targets and meta file names are constructed from these.'))
-        self.parser.add_argument('--srcdir', required=True,
-                                help=('directory containing input data and target files.'))
         ## single acquisition file in CERN ROOT format with optional L1 trigger file
         # self.parser.add_argument('--acqfile',
         #                          help=('the acquisition ROOT file storing air shower data. Can be specified alongside --triggerfile.'))
@@ -51,8 +54,9 @@ class cmd_interface():
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        common_args.check_input_type_dataset_args(args)
-        args.item_types = common_args.input_type_dataset_args_to_dict(args)
+        atype = cargs.arg_type.INPUT
+        self.item_args.check_item_type_args(args, atype)
+        args.item_types = self.item_args.get_item_types(args, atype)
 
         # != is basically XOR in python
         # acq_input = (args.acqfile != None)
@@ -83,7 +87,8 @@ class cmd_interface():
                 raise ValueError('Model file {} for network {} does not exist: '.format(model_file, network_name))
 
         # Check logdir exists if not using default
-        if args.logdir != self.default_logdir and not os.path.exists(args.logdir):
-            raise ValueError('Non-default logging output directory {} does not exist'.format(args.logdir))
+        if args.logdir != self.default_logdir and not os.path.isdir(args.logdir):
+            raise ValueError(('Invalid non-default logging directory {}'
+                              .format(args.logdir)))
 
         return args

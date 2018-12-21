@@ -1,88 +1,284 @@
-import argparse
+import enum
 
 import utils.data_templates as templates
 import utils.dataset_utils as ds
 
-# custom argparse actions
 
-def allowed_lengths(lengths=[]):
-    class AllowedLengths(argparse.Action):
-        def __call__(self, parser, args, values, option_string=None):
-            if len(values) not in lengths:
-                msg='argument "{f}" accepts {num} numbers of arguments left to right, got {l}'.format(
-                    f=self.dest,num=lengths, l=len(values))
-                raise argparse.ArgumentTypeError(msg)
-            setattr(args, self.dest, values)
-    return AllowedLengths
+class arg_type(enum.Enum):
+    INPUT = 'input'
+    OUTPUT = 'output'
 
-def required_length(nmin,nmax):
-    class RequiredLength(argparse.Action):
-        def __call__(self, parser, args, values, option_string=None):
-            if not nmin<=len(values)<=nmax:
-                msg='argument "{f}" requires between {nmin} and {nmax} arguments'.format(
-                    f=self.dest,nmin=nmin,nmax=nmax)
-                raise argparse.ArgumentTypeError(msg)
-            setattr(args, self.dest, values)
-    return RequiredLength
 
 # packet dimensions (directly required to create a packet template)
 
-def add_packet_args(parser, required=True):
-    parser.add_argument('--packet_dims', required=required, type=int, nargs=5, metavar=('NUM_GTU', 'HEIGHT', 'WIDTH', 'EC_HEIGHT', 'EC_WIDTH'),
-                        help=('Dimensions of packets from which individual data items are created. Width and height'
-                            ' of individual frames in a packet must be evenly divisible by EC width or height respectively'))
 
-def packet_args_to_packet_template(args):
-    n_gtu, f_h, f_w, ec_h, ec_w = args.packet_dims[0:5]
-    return templates.packet_template(ec_w, ec_h, f_w, f_h, n_gtu)
+class packet_args:
 
-def packet_args_to_string(args):
-    n_gtu, f_h, f_w, ec_h, ec_w = args.packet_dims[0:5]
-    return 'pack_{}_{}_{}_{}_{}'.format(n_gtu, f_h, f_w, ec_h, ec_w)
+    def __init__(self, long_alias='packet_dims'):
+        self.long_alias = long_alias
+        self.metavar = ('NUM_GTU', 'HEIGHT', 'WIDTH', 'EC_HEIGHT', 'EC_WIDTH')
+        self.helpstr = ('Dimensions of packet data. Width and height must be'
+                        ' evenly divisible by EC width or height respectively')
 
-# type of packet data input to load from or output to store to files (since a neural network can use
-# either only one packet projection type or multiple projections or even raw packets)
+    def add_packet_arg(self, parser, short_alias=None, required=True):
+        """
+            Add argument for packet dimensions to the given parser
 
-def add_input_type_dataset_args(parser, raw_required=False, yx_required=False, gtux_required=False, gtuy_required=False):
-    parser.add_argument('--input_raw_packets', action='store_true', required=raw_required,
-                            help=('Load dataset file containing raw packets'))
-    parser.add_argument('--input_yx_proj', action='store_true', required=yx_required,
-                            help=('Load dataset file containing YX projections of packets'))
-    parser.add_argument('--input_gtux_proj', action='store_true', required=gtux_required,
-                            help=('Load dataset file containing GTUX projections of packets'))
-    parser.add_argument('--input_gtuy_proj', action='store_true', required=gtuy_required,
-                            help=('Load dataset file containing GTUY projections of packets'))
+            Parameters
+            ----------
+            :param parser:  the argparse parser to add this argument to
+            :type parser:   argparse.ArgumentParser
+        """
+        aliases = []
+        if short_alias is not None:
+            aliases.append('-{}'.format(short_alias))
+        aliases.append('--{}'.format(self.long_alias))
+        parser.add_argument(*aliases, metavar=self.metavar, type=int, nargs=5,
+                            required=required, help=self.helpstr)
+        return parser
 
-def add_output_type_dataset_args(parser, raw_required=False, yx_required=False, gtux_required=False, gtuy_required=False):
-    parser.add_argument('--create_raw_packets', action='store_true', required=raw_required,
-                            help=('Create output file containing raw packets'))
-    parser.add_argument('--create_yx_proj', action='store_true', required=yx_required,
-                            help=('Create output file containing YX projections of packets'))
-    parser.add_argument('--create_gtux_proj', action='store_true', required=gtux_required,
-                            help=('Create output file containing GTUX projections of packets'))
-    parser.add_argument('--create_gtuy_proj', action='store_true', required=gtuy_required,
-                            help=('Create output file containing GTUY projections of packets'))
+    def packet_arg_to_template(self, args):
+        n_gtu, f_h, f_w, ec_h, ec_w = getattr(args, self.long_alias, None)[0:5]
+        return templates.packet_template(ec_w, ec_h, f_w, f_h, n_gtu)
 
-def check_input_type_dataset_args(args):
-    raw, yx = args.input_raw_packets, args.input_yx_proj
-    gtux, gtuy = args.input_gtux_proj, args.input_gtuy_proj
-    no_input = not (raw or yx or gtux or gtuy)
-    if (no_input):
-        raise Exception('Please select at least one input type to load dataset packet data from (raw, yx, gtux, gtuy)')
+    def packet_arg_to_string(self, args):
+        n_gtu, f_h, f_w, ec_h, ec_w = getattr(args, self.long_alias, None)[0:5]
+        return 'pack_{}_{}_{}_{}_{}'.format(n_gtu, f_h, f_w, ec_h, ec_w)
 
-def check_output_type_dataset_args(args):
-    raw, yx = args.create_raw_packets, args.create_yx_proj
-    gtux, gtuy = args.create_gtux_proj, args.create_gtuy_proj
-    no_output = not (raw or yx or gtux or gtuy)
-    if (no_output):
-        raise Exception('Please select at least one output type to store dataset packet data (raw, yx, gtux, gtuy)')
 
-def input_type_dataset_args_to_dict(args):
-    raw, yx = args.input_raw_packets, args.input_yx_proj
-    gtux, gtuy = args.input_gtux_proj, args.input_gtuy_proj
-    return {'raw': raw, 'yx': yx, 'gtux': gtux, 'gtuy': gtuy}
+# loading or storing of datasets
 
-def output_type_dataset_args_to_dict(args):
-    raw, yx = args.create_raw_packets, args.create_yx_proj
-    gtux, gtuy = args.create_gtux_proj, args.create_gtuy_proj
-    return {'raw': raw, 'yx': yx, 'gtux': gtux, 'gtuy': gtuy}
+
+class dataset_args:
+
+    input_arg_aliases = {
+        'dataset name': 'input_name', 'dataset directory': 'srcdir',
+        'dataset': 'input_dset'
+    }
+    output_arg_aliases = {
+        'dataset name': 'output_name', 'dataset directory': 'outdir',
+        'dataset': 'output_dset'
+    }
+
+    def __init__(self, input_aliases={}, output_aliases={}):
+        self._in_alss, self._out_alss = {}, {}
+        for arg_name, input in self.input_arg_aliases.items():
+            output = self.output_arg_aliases[arg_name]
+            # use user provided or default value as the arguments long form
+            in_alias = input_aliases.get(arg_name, input)
+            out_alias = output_aliases.get(arg_name, output)
+            if in_alias == out_alias:
+                raise Exception(("Error: the name of the input {} argument can"
+                                 " not be the same as that of the equivalent"
+                                 " output argument").format(arg_name))
+            self._in_alss[arg_name] = in_alias
+            self._out_alss[arg_name] = out_alias
+
+    def add_dataset_arg_double(self, parser, atype, required=True,
+                               name_short_alias=None, dir_short_alias=None,
+                               name_default=None, dir_default=None):
+        """
+            Add dataset identification arguments to the given parser as a set
+            of 2 arguments.
+
+            This argument combination specifies which dataset to load from or
+            store to secondary storage. Their use for either task is specified
+            by the 'inputs' flag and if a command-line tool needs to do both
+            dataset input and output, the long-form names of the corresponding
+            pairs of arguments.
+
+            Parameters
+            ----------
+            :param parser:              the parser to add the arguments to
+            :type parser:               argparse.ArgumentParser
+            :param atype:               flag specifying if these arguments are
+                                        to be used for loading or saving a
+                                        dataset.
+            :type atype:                cmdint.common_args.arg_type
+            :param required:            flag specifying if these arguments are
+                                        mandatory.
+            :type required:             bool
+            :param name_short_alias:    optional short-form name of the dataset
+                                        name argument
+            :type name_short_alias:     str
+            :param dir_short_alias:     optional short-form name of the dataset
+                                        directory argument
+            :type dir_short_alias:      str
+            :param name_default:        optional default value for the dataset
+                                        name argument
+            :type name_default:         str
+            :param dir_default:         optional default value for the dataset
+                                        directory argument
+            :type dir_default:          str
+        """
+        n_alss, d_alss = [], []
+        if name_short_alias is not None:
+            n_alss.append('-{}'.format(name_short_alias))
+        if dir_short_alias is not None:
+            d_alss.append('-{}'.format(dir_short_alias))
+        if atype is arg_type.INPUT:
+            n_alss.append('--{}'.format(self._in_alss['dataset name']))
+            d_alss.append('--{}'.format(self._in_alss['dataset directory']))
+        else:
+            n_alss.append('--{}'.format(self._out_alss['dataset name']))
+            d_alss.append('--{}'.format(self._out_alss['dataset directory']))
+        parser.add_argument(*n_alss, required=required, default=name_default,
+                            help='{} dataset name'.format(atype.value))
+        parser.add_argument(*d_alss, required=required, default=dir_default,
+                            help='{} dataset directory'.format(atype.value))
+        return parser
+
+    def add_dataset_arg_single(self, parser, atype, required=True,
+                               multiple=False, short_alias=None,
+                               input_metavars=('NAME', 'SRCDIR'),
+                               output_metavars=('NAME', 'OUTDIR')):
+        """
+            Add dataset identification argument to the given parser as a single
+            argument taking 2 values.
+
+            This argument specifies which dataset to load from or store to
+            secondary storage. Its use for either task is specified by the
+            'inputs' flag and if both dataset input and output are required,
+            the long-form name of this argument. This particular form of the
+            argument is useful for example when working with multiple input
+            and/or output datasets.
+
+            The argument values are: the name of the dataset and the directory
+            for all its files.
+
+            Parameters
+            ----------
+            :param parser:          the argparse parser to add the argument to
+            :type parser:           argparse.ArgumentParser
+            :param atype:           flag specifying if this argument is used
+                                    for loading or saving a dataset.
+            :type atype:            cmdint.common_args.arg_type
+            :param required:        flag specifying if this arguments is
+                                    mandatory.
+            :type required:         bool
+            :param multiple:        flag specifying if this argument can be
+                                    used multiple times on the command line
+                                    (argparse append action)
+            :type multiple:         bool
+            :param short_alias:     optional short-form name of the argument
+            :type short_alias:      str
+            :param input_metavars:  optional tuple of metavars for the input
+                                    form of this argument
+            :type input_metavars:   (str, str)
+            :param output_metavars: optional tuple of metavars for the output
+                                    form of this argument
+            :type output_metavars:  (str, str)
+        """
+        aliases = []
+        if short_alias is not None:
+            aliases.append('-{}'.format(short_alias))
+        if atype is arg_type.INPUT:
+            aliases.append('--{}'.format(self._in_alss['dataset']))
+            metavars = input_metavars
+        else:
+            aliases.append('--{}'.format(self._out_alss['dataset']))
+            metavars = output_metavars
+        help_text = '{} dataset'.format(atype.value)
+        if multiple:
+            action = 'append'
+            help_text += '(s)'
+        else:
+            action = 'store'
+        parser.add_argument(*aliases, required=required, action=action,
+                            nargs=2, metavar=metavars, help=help_text)
+        return parser
+
+    def get_dataset_single(self, args, atype):
+        if atype is arg_type.INPUT:
+            arg_name = self._in_alss['dataset']
+        else:
+            arg_name = self._out_alss['dataset']
+        return getattr(args, arg_name)
+
+    def get_dataset_double(self, args, atype):
+        if atype is arg_type.INPUT:
+            arg_n_name = self._in_alss['dataset name']
+            arg_d_name = self._in_alss['dataset directory']
+        else:
+            arg_n_name = self._out_alss['dataset name']
+            arg_d_name = self._out_alss['dataset directory']
+        return getattr(args, arg_n_name), getattr(args, arg_d_name)
+
+
+# loading or storing of dataset items
+
+
+class item_types_args:
+
+    def __init__(self, in_item_prefix='load', out_item_prefix='store'):
+        if in_item_prefix == out_item_prefix:
+            raise Exception(("Error: the common prefix of the input dataset"
+                             " 'item types' argument can not be the same as"
+                             " that of the output argument"))
+        if in_item_prefix is None:
+            raise Exception('Error: input dataset item type prefix is unset')
+        if out_item_prefix is None:
+            raise Exception('Error: output dataset item type prefix is unset')
+        self.input_prefix = in_item_prefix
+        self.output_prefix = out_item_prefix
+        self._item_desc = {'raw': 'raw packets'}
+        for k in ds.ALL_ITEM_TYPES[1:]:
+            self._item_desc[k] = '{} packet projections'.format(k)
+
+    def add_item_type_args(self, parser, atype, required_types={
+                                k: False for k in ds.ALL_ITEM_TYPES}):
+        """
+            Add dataset item type arguments to the given parser.
+
+            This method adds as many arguments as there are item types listed
+            in utils.dataset_utils. These arguments specify which dataset items
+            to load from or store to secondary storage. Their use for either
+            task is specified by the 'inputs' flag and their prefix.
+
+            Parameters
+            ----------
+            :param parser:          the argparse parser to add the arguments to
+            :type parser:           argparse.ArgumentParser
+            :param atype:           flag specifying if these arguments are used
+                                    for loading or storing dataset items.
+            :type atype:            cmdint.common_args.arg_type
+            :param required_types:  dict of flags specifying which dataset item
+                                    types are mandatory.
+            :type required_types:   {str:bool}
+        """
+        if atype is arg_type.INPUT:
+            prefix = self.input_prefix
+            h_text = 'load {}'
+        else:
+            prefix = self.output_prefix
+            h_text = 'store {}'
+        for k in ds.ALL_ITEM_TYPES:
+            desc = self._item_desc[k]
+            required = required_types.get(k, False)
+            parser.add_argument('--{}_{}'.format(prefix, k), required=required,
+                                action='store_true', help=h_text.format(desc))
+        return parser
+
+    def check_item_type_args(self, args, atype):
+        if atype is arg_type.INPUT:
+            prefix = self.input_prefix
+        else:
+            prefix = self.output_prefix
+        types_selected = False
+        for k in ds.ALL_ITEM_TYPES:
+            arg_name = '{}_{}'.format(prefix, k)
+            types_selected = types_selected or getattr(args, arg_name)
+        if not types_selected:
+            raise Exception('Please select at least one item type: {}'.format(
+                ds.ALL_ITEM_TYPES))
+
+    def get_item_types(self, args, atype):
+        if atype is arg_type.INPUT:
+            prefix = self.input_prefix
+        else:
+            prefix = self.output_prefix
+        result = {}
+        for k in ds.ALL_ITEM_TYPES:
+            arg_name = '{}_{}'.format(prefix, k)
+            result[k] = getattr(args, arg_name)
+        return result

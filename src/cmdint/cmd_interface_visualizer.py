@@ -1,19 +1,23 @@
 import os
 import argparse
 
-import cmdint.common_args as common_args
+import cmdint.common_args as cargs
 
 class cmd_interface():
 
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="Visualize dataset items")
+        self.parser = argparse.ArgumentParser(
+            description="Visualize dataset items")
 
-        common_args.add_input_type_dataset_args(self.parser)
+        in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
+        self.dset_args = cargs.dataset_args(input_aliases=in_aliases)
+        self.item_args = cargs.item_types_args()
+        self.dset_args.add_dataset_arg_double(self.parser,
+                                              cargs.arg_type.INPUT,
+                                              required=True,
+                                              dir_default=os.path.curdir)
+        self.item_args.add_item_type_args(self.parser, cargs.arg_type.INPUT)
 
-        self.parser.add_argument('--name', required=True,
-                                help=('the name of the dataset'))
-        self.parser.add_argument('--srcdir', required=True,
-                                help=('directory containing dataset files'))
         self.parser.add_argument('--outdir', default=os.path.curdir,
                                 help=('directory to store output logs, default: current directory. If a non-default'
                                       ' directory is used, it must exist prior to calling this script, otherwise an'
@@ -28,9 +32,11 @@ class cmd_interface():
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        common_args.check_input_type_dataset_args(args)
-        args.item_types = common_args.input_type_dataset_args_to_dict(args)
-        if not os.path.exists(args.outdir):
-            raise ValueError('Non-default output directory does not exist')
+        if not os.path.isdir(args.outdir):
+            raise ValueError("Invalid output directory {}".format(args.outdir))
+
+        atype = cargs.arg_type.INPUT
+        self.item_args.check_item_type_args(args, atype)
+        args.item_types = self.item_args.get_item_types(args, atype)
 
         return args

@@ -1,159 +1,306 @@
-import argparse
+import collections as coll
 import unittest
+import unittest.mock as mock
 
-import cmdint.common_args as common_args
+import utils.dataset_utils as ds
+import cmdint.common_args as cargs
 
-class TestCommonArgs(unittest.TestCase):
 
-    # helper methods
-
-    def _format_input_string_packet(self, base_str, gtu, h, w, ec_h, ec_w):
-        return '{} --packet_dims {} {} {} {} {}'.format(base_str, gtu, h, w,
-                                                        ec_h, ec_w)
-
-    def _format_input_string_input(self, base_str, in_raw, in_yx, in_gtux,
-                                   in_gtuy):
-        in_raw = ' --input_raw_packets' if in_raw == True else ''
-        in_yx = ' --input_yx_proj' if in_yx == True else ''
-        in_gtux = ' --input_gtux_proj' if in_gtux == True else ''
-        in_gtuy = ' --input_gtuy_proj' if in_gtuy == True else ''
-        return '{}{}{}{}{}'.format(base_str, in_raw, in_yx, in_gtux, in_gtuy)
-
-    def _format_input_string_output(self, base_str, out_raw, out_yx, out_gtux,
-                                    out_gtuy):
-        out_raw = ' --create_raw_packets' if out_raw == True else ''
-        out_yx = ' --create_yx_proj' if out_yx == True else ''
-        out_gtux = ' --create_gtux_proj' if out_gtux == True else ''
-        out_gtuy = ' --create_gtuy_proj' if out_gtuy == True else ''
-        return '{}{}{}{}{}'.format(base_str, out_raw, out_yx,
-                                   out_gtux, out_gtuy)
+class TestPacketArgs(unittest.TestCase):
 
     # test setup
 
     def setUp(self):
-        self._format_types = ('raw', 'yx', 'gtux', 'gtuy')
-        self._format_args_parser = argparse.ArgumentParser(description='formats test')
-        common_args.add_input_type_dataset_args(self._format_args_parser)
-        common_args.add_output_type_dataset_args(self._format_args_parser)
+        self.long_alias = 'packet'
+        self.packet_args = cargs.packet_args(long_alias=self.long_alias)
 
-    # common test
+    # test methods
 
-    def test_add_cmd_args(self):
+    def test_add_packet_arg_no_alias(self):
+        mock_parser = mock.MagicMock()
+        expected_aliases = ('--{}'.format(self.long_alias), )
+        self.packet_args.add_packet_arg(mock_parser)
+        self.assertEqual(mock_parser.add_argument.call_count, 1)
+        self.assertTupleEqual(mock_parser.add_argument.call_args[0],
+                              expected_aliases)
+
+    def test_add_packet_arg_with_alias(self):
+        mock_parser = mock.MagicMock()
+        expected_aliases = ('-p', '--{}'.format(self.long_alias))
+        self.packet_args.add_packet_arg(mock_parser, short_alias='p')
+        self.assertEqual(mock_parser.add_argument.call_count, 1)
+        self.assertTupleEqual(mock_parser.add_argument.call_args[0],
+                              expected_aliases)
+
+    def test_packet_arg_to_string(self):
         gtu, w, h = 128, 64, 48
         ec_w, ec_h = 32, 16
-        i_raw, i_yx, i_gtux, i_gtuy = True, False, True, False
-        o_raw, o_yx, o_gtux, o_gtuy = False, True, False, True
+        args = coll.namedtuple('args', self.long_alias)(
+            [gtu, h, w, ec_h, ec_w])
+        packet_str = self.packet_args.packet_arg_to_string(args)
+        expected_str = 'pack_{}_{}_{}_{}_{}'.format(gtu, h, w, ec_h, ec_w)
+        self.assertEqual(packet_str, expected_str)
 
-        input_str = self._format_input_string_packet('', gtu, h, w, ec_h, ec_w)
-        input_str = self._format_input_string_input(input_str, i_raw, i_yx,
-                                                    i_gtux, i_gtuy)
-        input_str = self._format_input_string_output(input_str, o_raw, o_yx,
-                                                    o_gtux, o_gtuy)
-
-        # this code also indiractly tests that the keywords for all arguments
-        # do not conflict with each other
-        parser = argparse.ArgumentParser(description='test')
-        common_args.add_packet_args(parser)
-        common_args.add_input_type_dataset_args(parser)
-        common_args.add_output_type_dataset_args(parser)
-
-        args = parser.parse_args(input_str.split())
-        self.assertListEqual(args.packet_dims, [gtu, h, w, ec_h, ec_w])
-        self.assertEqual(args.input_raw_packets, i_raw)
-        self.assertEqual(args.input_yx_proj, i_yx)
-        self.assertEqual(args.input_gtux_proj, i_gtux)
-        self.assertEqual(args.input_gtuy_proj, i_gtuy)
-        self.assertEqual(args.create_raw_packets, o_raw)
-        self.assertEqual(args.create_yx_proj, o_yx)
-        self.assertEqual(args.create_gtux_proj, o_gtux)
-        self.assertEqual(args.create_gtuy_proj, o_gtuy)
-
-    # packet arguments test
-
-    def test_packet_args_to_packet_template(self):
+    def test_packet_arg_to_template(self):
         gtu, w, h = 128, 64, 48
         ec_w, ec_h = 32, 16
-        str1 = self._format_input_string_packet('', gtu, h, w, ec_h, ec_w)
-
-        parser = argparse.ArgumentParser(description='test')
-        common_args.add_packet_args(parser)
-
-        args = parser.parse_args(str1.split())
-        template = common_args.packet_args_to_packet_template(args)
+        args = coll.namedtuple('args', self.long_alias)(
+            [gtu, h, w, ec_h, ec_w])
+        template = self.packet_args.packet_arg_to_template(args)
         self.assertEqual(template.EC_height, ec_h)
         self.assertEqual(template.EC_width, ec_w)
-        self.assertEqual(template.frame_height, h)
-        self.assertEqual(template.frame_width, w)
-        self.assertEqual(template.num_frames, gtu)
+        self.assertTupleEqual(template.packet_shape, (gtu, h, w))
 
-    # input/output data format arguments tests
 
-    def test_format_args_to_dict(self):
-        i_raw, i_yx, i_gtux, i_gtuy = True, False, True, False
-        input_str = self._format_input_string_input('', i_raw, i_yx,
-                                                    i_gtux, i_gtuy)
-        o_raw, o_yx, o_gtux, o_gtuy = False, True, False, True
-        input_str = self._format_input_string_output(input_str, o_raw, o_yx,
-                                                    o_gtux, o_gtuy)
+class TestDatasetArgs(unittest.TestCase):
 
-        args = self._format_args_parser.parse_args(input_str.split())
-        input_dict = common_args.input_type_dataset_args_to_dict(args)
-        output_dict = common_args.output_type_dataset_args_to_dict(args)
-        self.assertEqual(input_dict['raw'], i_raw)
-        self.assertEqual(input_dict['yx'], i_yx)
-        self.assertEqual(input_dict['gtux'], i_gtux)
-        self.assertEqual(input_dict['gtuy'], i_gtuy)
-        self.assertEqual(output_dict['raw'], o_raw)
-        self.assertEqual(output_dict['yx'], o_yx)
-        self.assertEqual(output_dict['gtux'], o_gtux)
-        self.assertEqual(output_dict['gtuy'], o_gtuy)
+    # helper methods (custom assert)
 
-    def test_format_args_check(self):
-        def test_args_checking(formatter, checker):
-            formats_list = [False]*len(self._format_types)
-            input_str = formatter('', *formats_list)
-            args = self._format_args_parser.parse_args(input_str.split())
-            self.assertRaises(Exception, checker, args)
+    def _assert_call_single(self, mock_parser, exp_pos, action, atype,
+                            multiple=False):
+        self.assertEqual(mock_parser.add_argument.call_count, 1)
+        self.assertEqual(mock_parser.add_argument.call_args[0], exp_pos)
+        kw = mock_parser.add_argument.call_args[1]
+        metavar = self.i_meta if atype == cargs.arg_type.INPUT else self.o_meta
+        help = '{} dataset'.format(atype.value)
+        if multiple:
+            help += '(s)'
+        self.assertEqual(kw['metavar'], metavar)
+        self.assertEqual(kw['action'], action)
+        self.assertEqual(kw['help'], help)
 
-            for idx in range(len(formats_list)):
-                formats_list[idx] = True
-                input_str = formatter('', *formats_list)
-                args = self._format_args_parser.parse_args(input_str.split())
-                try:
-                    checker(args)
-                except Exception:
-                    self.fail(msg='Exception raised for valid arguments string {}'.format(input_str))
-                formats_list[idx] = False
+    def _assert_call_double(self, mock_parser, exp_name_pos, exp_dir_pos,
+                            atype):
+        self.assertEqual(mock_parser.add_argument.call_count, 2)
+        name_pos, name_kw = mock_parser.add_argument.call_args_list[0][:]
+        dir_pos, dir_kw = mock_parser.add_argument.call_args_list[1][:]
+        self.assertEqual(name_pos, exp_name_pos)
+        self.assertEqual(dir_pos, exp_dir_pos)
+        dir_pos, dir_kw = mock_parser.add_argument.call_args_list[1][:]
+        v = atype.value
+        self.assertEqual(name_kw['help'], '{} dataset name'.format(v))
+        self.assertEqual(dir_kw['help'], '{} dataset directory'.format(v))
 
-        test_args_checking(self._format_input_string_input,
-                           common_args.check_input_type_dataset_args)
-        test_args_checking(self._format_input_string_output,
-                           common_args.check_output_type_dataset_args)
+    # test setup
 
-    # def test_format_args_to_filenames(self):
-    #     ds_name = 'test'
-    #     outfiles_ref = tuple('{}_{}.npy'.format(ds_name, _format) for _format in self._format_types)
-    #     targetfile_ref = '{}_targets.npy'.format(ds_name)
-    #     def test_args_to_filenames(formatter, converter):
-    #         formats_list = [True]*len(self._format_types)
-    #         input_str = formatter('', *formats_list)
-    #         args = self._format_args_parser.parse_args(input_str.split())
-    #         outfiles, targetfile = converter(args, ds_name)
+    def setUp(self):
+        self.i_meta = ('NAME', 'INPUT_DIR')
+        self.o_meta = ('NAME', 'OUTPUT_DIR')
+        self.in_alss = {
+            'dataset name': 'in_name', 'dataset directory': 'src_dir',
+            'dataset': 'in_dset'
+        }
+        self.out_alss = {
+            'dataset name': 'out_name', 'dataset directory': 'out_dir',
+            'dataset': 'out_dset'
+        }
+        self.dset_args = cargs.dataset_args(input_aliases=self.in_alss,
+                                            output_aliases=self.out_alss)
 
-    #         self.assertTupleEqual(outfiles_ref, outfiles)
-    #         self.assertEqual(targetfile_ref, targetfile)
+    # test methods
 
-    #         for idx in range(len(self._format_types)):
-    #             formats_list[idx] = False
-    #             input_str = formatter('', *formats_list)
-    #             args = self._format_args_parser.parse_args(input_str.split())
-    #             outfiles, targetfile = converter(args, ds_name)
-    #             self.assertTupleEqual(outfiles_ref[idx+1:], outfiles)
-    #             self.assertEqual(targetfile_ref, targetfile)
-    #     test_args_to_filenames(self._format_input_string_input,
-    #                            common_args.input_type_dataset_args_to_filenames)
-    #     test_args_to_filenames(self._format_input_string_output,
-    #                            common_args.output_type_dataset_args_to_filenames)
+    def test_add_dataset_arg_single_output(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.OUTPUT
+        exp_pos = ('--{}'.format(self.out_alss['dataset']), )
+        self.dset_args.add_dataset_arg_single(mock_parser, atype,
+                                              input_metavars=self.i_meta,
+                                              output_metavars=self.o_meta)
+        self._assert_call_single(mock_parser, exp_pos, 'store', atype, False)
+
+    def test_add_dataset_arg_single_short_alias(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.OUTPUT
+        exp_pos = ('-d', '--{}'.format(self.out_alss['dataset']))
+        self.dset_args.add_dataset_arg_single(mock_parser, atype,
+                                              short_alias='d',
+                                              input_metavars=self.i_meta,
+                                              output_metavars=self.o_meta)
+        self._assert_call_single(mock_parser, exp_pos, 'store', atype, False)
+
+    def test_add_dataset_arg_single_input(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.INPUT
+        exp_pos = ('--{}'.format(self.in_alss['dataset']), )
+        self.dset_args.add_dataset_arg_single(mock_parser, atype,
+                                              input_metavars=self.i_meta,
+                                              output_metavars=self.o_meta)
+        self._assert_call_single(mock_parser, exp_pos, 'store', atype, False)
+
+    def test_add_dataset_arg_single_multiple(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.OUTPUT
+        exp_pos = ('--{}'.format(self.out_alss['dataset']), )
+        self.dset_args.add_dataset_arg_single(mock_parser, atype,
+                                              input_metavars=self.i_meta,
+                                              output_metavars=self.o_meta,
+                                              multiple=True)
+        self._assert_call_single(mock_parser, exp_pos, 'append', atype, True)
+
+    def test_add_dataset_arg_double_output(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.OUTPUT
+        exp_name_pos = ('--{}'.format(self.out_alss['dataset name']), )
+        exp_dir_pos = ('--{}'.format(self.out_alss['dataset directory']), )
+        self.dset_args.add_dataset_arg_double(mock_parser, atype)
+        self._assert_call_double(mock_parser, exp_name_pos, exp_dir_pos, atype)
+
+    def test_add_dataset_arg_double_name_alias(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.OUTPUT
+        exp_name_pos = ('-n', '--{}'.format(self.out_alss['dataset name']))
+        exp_dir_pos = ('--{}'.format(self.out_alss['dataset directory']), )
+        self.dset_args.add_dataset_arg_double(mock_parser, atype,
+                                              name_short_alias='n')
+        self._assert_call_double(mock_parser, exp_name_pos, exp_dir_pos, atype)
+
+    def test_add_dataset_arg_double_dir_alias(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.OUTPUT
+        exp_name_pos = ('--{}'.format(self.out_alss['dataset name']), )
+        exp_dir_pos = ('-d', '--{}'.format(self.out_alss['dataset directory']))
+        self.dset_args.add_dataset_arg_double(mock_parser, atype,
+                                              dir_short_alias='d')
+        self._assert_call_double(mock_parser, exp_name_pos, exp_dir_pos, atype)
+
+    def test_add_dataset_arg_double_input(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.INPUT
+        exp_name_pos = ('--{}'.format(self.in_alss['dataset name']), )
+        exp_dir_pos = ('--{}'.format(self.in_alss['dataset directory']), )
+        self.dset_args.add_dataset_arg_double(mock_parser, atype)
+        self._assert_call_double(mock_parser, exp_name_pos, exp_dir_pos, atype)
+
+    def test_get_dataset_double_input(self):
+        attrs = [self.in_alss['dataset name'],
+                 self.in_alss['dataset directory']]
+        args = coll.namedtuple('args', attrs)('name', '/whatever')
+        name, direc = self.dset_args.get_dataset_double(
+            args, cargs.arg_type.INPUT)
+        self.assertEqual(name, 'name')
+        self.assertEqual(direc, '/whatever')
+
+    def test_get_dataset_double_output(self):
+        attrs = [self.out_alss['dataset name'],
+                 self.out_alss['dataset directory']]
+        args = coll.namedtuple('args', attrs)('name', '/whatever')
+        name, direc = self.dset_args.get_dataset_double(
+            args, cargs.arg_type.OUTPUT)
+        self.assertEqual(name, 'name')
+        self.assertEqual(direc, '/whatever')
+
+    def test_get_dataset_single_input(self):
+        args = coll.namedtuple('args', self.in_alss['dataset'])(
+            ['name', '/whatever'])
+        dset = self.dset_args.get_dataset_single(args, cargs.arg_type.INPUT)
+        self.assertListEqual(dset, ['name', '/whatever'])
+
+    def test_get_dataset_single_output(self):
+        args = coll.namedtuple('args', self.out_alss['dataset'])(
+            ['name', '/whatever'])
+        dset = self.dset_args.get_dataset_single(args, cargs.arg_type.OUTPUT)
+        self.assertListEqual(dset, ['name', '/whatever'])
+
+
+class TestItemTypeArgs(unittest.TestCase):
+
+    # test setup
+
+    def setUp(self):
+        self.in_prefix = 'in'
+        self.out_prefix = 'out'
+        all_types = ds.ALL_ITEM_TYPES
+        self.required = {all_types[idx]: (True if idx % 2 == 0 else False)
+                         for idx in range(len(all_types))}
+        self.item_args = cargs.item_types_args(in_item_prefix=self.in_prefix,
+                                               out_item_prefix=self.out_prefix)
+
+    # test methods
+
+    def test_add_item_type_args_input(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.INPUT
+        self.item_args.add_item_type_args(mock_parser, atype, self.required)
+        self.assertEqual(mock_parser.add_argument.call_count,
+                         len(ds.ALL_ITEM_TYPES))
+        for idx in range(len(ds.ALL_ITEM_TYPES)):
+            item_type = ds.ALL_ITEM_TYPES[idx]
+            exp_pos = ('--{}_{}'.format(self.in_prefix, item_type), )
+            act_pos = mock_parser.add_argument.call_args_list[idx][0]
+            self.assertEqual(exp_pos, act_pos)
+            kw = mock_parser.add_argument.call_args_list[idx][1]
+            self.assertEqual(kw['required'], self.required[item_type])
+
+    def test_add_item_type_args_output(self):
+        mock_parser = mock.MagicMock()
+        atype = cargs.arg_type.OUTPUT
+        self.item_args.add_item_type_args(mock_parser, atype, self.required)
+        self.assertEqual(mock_parser.add_argument.call_count,
+                         len(ds.ALL_ITEM_TYPES))
+        for idx in range(len(ds.ALL_ITEM_TYPES)):
+            item_type = ds.ALL_ITEM_TYPES[idx]
+            exp_pos = ('--{}_{}'.format(self.out_prefix, item_type), )
+            act_pos = mock_parser.add_argument.call_args_list[idx][0]
+            self.assertEqual(exp_pos, act_pos)
+            kw = mock_parser.add_argument.call_args_list[idx][1]
+            self.assertEqual(kw['required'], self.required[item_type])
+
+    def test_get_item_type_args_input(self):
+        attr_names = ['{}_{}'.format(self.in_prefix, item_type)
+                      for item_type in ds.ALL_ITEM_TYPES]
+        attr_vals = [True if idx % 3 == 0 else False
+                     for idx in range(len(ds.ALL_ITEM_TYPES))]
+        args = coll.namedtuple('args', attr_names)(*attr_vals)
+        vals = self.item_args.get_item_types(args, cargs.arg_type.INPUT)
+        self.assertDictEqual(dict(zip(ds.ALL_ITEM_TYPES, attr_vals)), vals)
+
+    def test_get_item_type_args_output(self):
+        attr_names = ['{}_{}'.format(self.out_prefix, item_type)
+                      for item_type in ds.ALL_ITEM_TYPES]
+        attr_vals = [True if idx % 3 == 0 else False
+                     for idx in range(len(ds.ALL_ITEM_TYPES))]
+        args = coll.namedtuple('args', attr_names)(*attr_vals)
+        vals = self.item_args.get_item_types(args, cargs.arg_type.OUTPUT)
+        self.assertDictEqual(dict(zip(ds.ALL_ITEM_TYPES, attr_vals)), vals)
+
+    def test_check_item_type_args_input_no_exception(self):
+        attr_names = ['{}_{}'.format(self.in_prefix, item_type)
+                      for item_type in ds.ALL_ITEM_TYPES]
+        attr_vals = [True if idx % 3 == 0 else False
+                     for idx in range(len(ds.ALL_ITEM_TYPES))]
+        args = coll.namedtuple('args', attr_names)(*attr_vals)
+        self.item_args.check_item_type_args(args, cargs.arg_type.INPUT)
+
+    def test_check_item_type_args_output_no_exception(self):
+        attr_names = ['{}_{}'.format(self.out_prefix, item_type)
+                      for item_type in ds.ALL_ITEM_TYPES]
+        attr_vals = [True if idx % 3 == 0 else False
+                     for idx in range(len(ds.ALL_ITEM_TYPES))]
+        args = coll.namedtuple('args', attr_names)(*attr_vals)
+        self.item_args.check_item_type_args(args, cargs.arg_type.OUTPUT)
+
+    def test_check_item_type_args_input_exception(self):
+        attr_names = ['{}_{}'.format(self.in_prefix, item_type)
+                      for item_type in ds.ALL_ITEM_TYPES]
+        attr_vals = [False] * len(ds.ALL_ITEM_TYPES)
+        args = coll.namedtuple('args', attr_names)(*attr_vals)
+        try:
+            self.item_args.check_item_type_args(args, cargs.arg_type.INPUT)
+            self.fail('Item type checking did not throw an error')
+        except Exception:
+            pass
+
+    def test_check_item_type_args_output_exception(self):
+        attr_names = ['{}_{}'.format(self.out_prefix, item_type)
+                      for item_type in ds.ALL_ITEM_TYPES]
+        attr_vals = [False] * len(ds.ALL_ITEM_TYPES)
+        args = coll.namedtuple('args', attr_names)(*attr_vals)
+        try:
+            self.item_args.check_item_type_args(args, cargs.arg_type.OUTPUT)
+            self.fail('Item type checking did not throw an error')
+        except Exception:
+            pass
+
 
 if __name__ == '__main__':
     unittest.main()

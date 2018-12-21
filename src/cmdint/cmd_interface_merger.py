@@ -1,17 +1,27 @@
 import os
 import argparse
 
+import cmdint.common_args as cargs
+
 class cmd_interface():
 
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description=('Merge multiple datasets into a single dataset'
-                                                           ' by concatenating them in the order they are passed'))
-        self.parser.add_argument('-d', '--datasets', required=True, nargs=2, action='append', metavar=('NAME', 'SRCDIR'),
-                                help='input datasets to merge together specified via name and source directory')
-        self.parser.add_argument('-n', '--name', required=True,
-                                help='name for the new dataset')
-        self.parser.add_argument('-o', '--outdir', required=True, default=os.path.curdir,
-                                help='directory to store output dataset files, default: current directory')
+        self.parser = argparse.ArgumentParser(
+            description=('Merge multiple datasets into a single dataset by '
+                         'concatenating them in the order they are passed'))
+        in_aliases = {'dataset': 'datasets'}
+        out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
+        self.dset_args = cargs.dataset_args(input_aliases=in_aliases,
+                                              output_aliases=out_aliases)
+        self.dset_args.add_dataset_arg_single(self.parser,
+                                              cargs.arg_type.INPUT,
+                                              short_alias='d',
+                                              multiple=True)
+        self.dset_args.add_dataset_arg_double(self.parser,
+                                              cargs.arg_type.OUTPUT,
+                                              name_short_alias='n',
+                                              dir_short_alias='o',
+                                              dir_default='.')
         self.parser.add_argument('--delete_original', action='store_true',
                                 help='delete the original input datasets')
 
@@ -19,9 +29,12 @@ class cmd_interface():
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        if not os.path.isdir(args.outdir):
-            raise ValueError("Invalid output directory {}".format(args.outdir))
-        if len(args.datasets) < 2:
+        datasets = self.dset_helper.get_dataset(args, inputs=False)
+        if len(datasets) < 2:
             raise ValueError("At least 2 datasets must be passed")
+
+        name, outdir = self.dset_helper.get_dataset_double(args, inputs=True)
+        if not os.path.isdir(outdir):
+            raise ValueError("Invalid output directory {}".format(args.outdir))
 
         return args
