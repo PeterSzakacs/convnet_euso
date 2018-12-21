@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
 
 class cmd_interface():
@@ -23,7 +24,8 @@ class cmd_interface():
                                 help='names of network modules to use')
 
         # training configuration parameters (nunmber of epochs, learning rate etc.)
-        self.parser.add_argument('-e', '--epochs', type=int, default=11,
+        self.parser.add_argument('-e', '--epochs', default=11,
+                                type=atypes.int_range(1),
                                 help='number of training epochs per network')
         self.parser.add_argument('--learning_rate', type=float,
 			                    help='learning rate for all the tested networks')

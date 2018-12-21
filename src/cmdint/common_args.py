@@ -1,5 +1,6 @@
 import enum
 
+import cmdint.argparse_types as atypes
 import utils.data_templates as templates
 import utils.dataset_utils as ds
 
@@ -33,8 +34,9 @@ class packet_args:
         if short_alias is not None:
             aliases.append('-{}'.format(short_alias))
         aliases.append('--{}'.format(self.long_alias))
-        parser.add_argument(*aliases, metavar=self.metavar, type=int, nargs=5,
-                            required=required, help=self.helpstr)
+        parser.add_argument(*aliases, metavar=self.metavar, nargs=5,
+                            type=atypes.int_range(1), required=required,
+                            help=self.helpstr)
         return parser
 
     def packet_arg_to_template(self, args):

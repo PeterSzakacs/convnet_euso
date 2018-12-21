@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
 
 class cmd_interface():
@@ -29,7 +30,7 @@ class cmd_interface():
         #                          help=('the L1 triggers file for the given acquisition file (--acqfile).'))
 
         # How many frames (at most) to use:
-        self.parser.add_argument('--eval_numframes', type=int,
+        self.parser.add_argument('--eval_numframes', type=atypes.int_range(1),
                                 help=('number of frames out of the passed dataset to use for evaluation (Selects first n frames).'))
 
         # misc
@@ -37,7 +38,7 @@ class cmd_interface():
                                 help=('Directory to store output logs, default: "/run/user/$USERID/convnet_checker/".'
                                       ' If a non-default directory is used, it must exist prior to calling this script,'
                                       ' otherwise an error will be thrown.'))
-        self.parser.add_argument('--tablesize', type=int,
+        self.parser.add_argument('--tablesize', type=atypes.int_range(1),
                                 help=('Maximum number of table rows for every html report file.'))
         self.parser.add_argument('--usecpu', action='store_true',
                                 help=('Use the CPU of the running machine instead of the CUDA device.'

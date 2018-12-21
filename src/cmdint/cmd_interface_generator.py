@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
 import utils.data_templates as templates
 
@@ -22,44 +23,46 @@ class cmd_interface():
         self.dset_args.add_dataset_arg_double(self.parser, atype)
         self.item_args.add_item_type_args(self.parser, atype)
 
+        self.parser.add_argument('--num_data', required=True, type=atypes.int_range(1),
+                            help=('Number of data items (both noise and shower), corresponds to number of packets'))
+
+
         # arguments qualifying shower property ranges
-        self.parser.add_argument('--shower_max', metavar=('MIN', 'MAX'), nargs=2, type=int, required=True,
+        self.parser.add_argument('--shower_max', metavar=('MIN', 'MAX'), nargs=2, type=atypes.int_range(1), required=True,
                                 help=('Relative difference between pixel values of shower track and background. This is'
                                     ' a range of values from MIN to MAX, inclusive. If MIN == MAX, for all packets'
                                     ' the shower line has the same peak potential intensity.'))
-        self.parser.add_argument('--duration', metavar=('MIN', 'MAX'), nargs=2, type=int, required=True,
+        self.parser.add_argument('--duration', metavar=('MIN', 'MAX'), nargs=2, type=atypes.int_range(1), required=True,
                                 help=('Duration of shower tracks in number of GTU or frames containing shower pixels.'
                                     ' The actual duration of a shower for any data item is from MIN to MAX, inclusive.'
                                     ' If MIN == MAX, the duration is always the same.'))
-        self.parser.add_argument('--track_length', metavar=('MIN', 'MAX'), nargs=2, type=int, required=True,
+        self.parser.add_argument('--track_length', metavar=('MIN', 'MAX'), nargs=2, type=atypes.int_range(1), required=True,
                                 help=('Length of shower tracks as viewed in the yx projection of the packets.'
                                     ' The actual length of a track for any data item is from MIN to MAX, inclusive.'
                                     ' If MIN == MAX, the length is always the same.'))
-        self.parser.add_argument('--start_gtu', metavar=('MIN', 'MAX'), nargs=2, type=int,
+        self.parser.add_argument('--start_gtu', metavar=('MIN', 'MAX'), nargs=2, type=atypes.int_range(0),
                                 help=('First GTU containing shower pixels. This is a range of GTUs from MIN to MAX, inclusive,'
                                     ' where a simulated shower line begins. If MIN == MAX, for all packets the shower line'
                                     ' starts at the same GTU in a packet.'))
-        self.parser.add_argument('--start_y', metavar=('MIN', 'MAX'), nargs=2, type=int,
+        self.parser.add_argument('--start_y', metavar=('MIN', 'MAX'), nargs=2, type=atypes.int_range(0),
                                 help=('The y coordinate of a packet frame at which a shower line begins. This is a range'
                                     ' of y coordinate values from MIN to MAX, inclusive, where a shower line can begin.'
                                     ' If MIN == MAX, all packets have shower lines starting at the same y coordinate.'))
-        self.parser.add_argument('--start_x', metavar=('MIN', 'MAX'), nargs=2, type=int,
+        self.parser.add_argument('--start_x', metavar=('MIN', 'MAX'), nargs=2, type=atypes.int_range(0),
                                 help=('The x coordinate of a packet frame at which a shower line begins. This is a range'
                                     ' of x coordinate values from MIN to MAX, inclusive, where a shower line can begin.'
                                     ' If MIN == MAX, all packets have shower lines starting at the same x coordinate.'))
 
-        # additional arguments applying to generated dataset
-        self.parser.add_argument('--bg_lambda', metavar=('MIN', 'MAX'), nargs=2, type=float, required=True,
+        # additional arguments applying to packet background
+        self.parser.add_argument('--bg_lambda', metavar=('MIN', 'MAX'), nargs=2, type=atypes.float_range(0), required=True,
                             help=('Average of background pixel values (lambda in Poisson distributions). The actual'
                                 ' background mean in any data item is from MIN to MAX, inclusive. If MIN == MAX, the'
                                 ' background mean is constant and the same in all packets from which itmes are created.'))
-        self.parser.add_argument('--bad_ECs', metavar=('MIN', 'MAX'), nargs=2, type=int, default=(0, 0),
+        self.parser.add_argument('--bad_ECs', metavar=('MIN', 'MAX'), nargs=2, type=atypes.int_range(-1), default=(0, 0),
                             help=('Number of malfunctioned EC modules in the data. The actual number of such ECs'
                                 ' in any data item is from MIN to MAX, inclusive. If MIN == MAX, the number of bad ECs'
                                 ' is an exact number, barring cases where keeping this requirement would knock out ECs'
                                 ' containing shower pixels. Default value range: (0, 0).'))
-        self.parser.add_argument('--num_data', required=True, type=int,
-                            help=('Number of data items (both noise and shower), corresponds to number of packets'))
 
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)

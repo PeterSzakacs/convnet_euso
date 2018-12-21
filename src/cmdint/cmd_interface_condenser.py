@@ -2,6 +2,7 @@ import os
 import argparse
 
 import utils.common_utils as cutils
+import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
 import cmdint.arparse_actions as actions
 
@@ -25,7 +26,8 @@ class cmd_interface():
                                               dir_short_alias='d',
                                               dir_default=os.path.curdir)
         self.item_args.add_item_type_args(self.parser, cargs.arg_type.OUTPUT)
-        self.parser.add_argument('--max_cache_size', default=40, type=int,
+        self.parser.add_argument('--max_cache_size', default=40, 
+                                type=atypes.int_range(1),
                                 help=('maximum size of parsed files cache'))
         input_type = self.parser.add_mutually_exclusive_group(required=True)
         input_type.add_argument('--simu', action='store_true',
@@ -62,9 +64,6 @@ class cmd_interface():
                     raise TypeError('Not a valid frame range in custom transformer: {}'.format(args.custom[1:3]))
             else:
                 args.start_gtu, args.end_gtu = gtus[0:2]
-
-        if args.max_cache_size < 1:
-            raise ValueError('Maximum cache size cannot be less than 1')
 
         atype = cargs.arg_type.OUTPUT
         self.item_args.check_item_type_args(args, atype)
