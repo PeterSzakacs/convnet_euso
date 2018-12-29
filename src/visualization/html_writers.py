@@ -23,10 +23,17 @@ class file_writer:
             outfile.write(_buffer.getvalue())
         _buffer.close()
 
+    def add_raw_html(self, contents):
+        global _buffer
+        _buffer.write(contents)
+
     def add_div(self, contents, styleclass=None):
         global _buffer
+        _buffer.write(self.get_div(contents, styleclass))
+
+    def get_div(self, contents, styleclass=None):
         c = '' if styleclass == None else ' class="{}" '.format(styleclass)
-        _buffer.write('<div {}>{}</div>'.format(c, contents))
+        return '<div {}>{}</div>'.format(c, contents)
 
 
 class table_writer:
@@ -47,10 +54,10 @@ class table_writer:
            _buffer.write("<td>{}</td>".format(content))
         _buffer.write("</tr>\n")
 
-
     def end_table(self):
         global _buffer
         _buffer.write("</tbody>\n</table>")
+
 
 class image_writer:
     
@@ -66,35 +73,59 @@ class image_writer:
         c = '' if styleclass == None else ' class="{}" '.format(styleclass)
         return '<img src="{}"{}{}{}{}/>'.format(src, a, c, w, h)
 
+
 class text_writer:
+
+    # <h1>-<h6>
 
     def add_heading(self, text, level=1, styleclass=None):
         global _buffer
+        _buffer.write(self.get_heading(text, level, styleclass))
+
+    def get_heading(self, text, level=1, styleclass=None):
         c = '' if styleclass == None else ' class="{}" '.format(styleclass)
         if level < 1 or level > 6:
             raise ValueError("Invalid heading level {}".format(level))
-        _buffer.write('<h{}{}>{}</h{}>'.format(level, c, text, level))
+        return '<h{}{}>{}</h{}>'.format(level, c, text, level)
+
+    # <p></p>
 
     def add_paragraph(self, text, styleclass=None):
         global _buffer
-        c = '' if styleclass == None else ' class="{}" '.format(styleclass)
-        _buffer.write('<p{}>{}</p>'.format(c, text))
+        _buffer.write(self.get_paragraph(text, styleclass))
 
-    def begin_list(self, ordered=False, styleclass=None):
+    def get_paragraph(self, text, styleclass=None):
+        c = '' if styleclass == None else ' class="{}" '.format(styleclass)
+        return '<p{}>{}</p>'.format(c, text)
+
+    # <ul>/<ol>
+
+    def add_list_start(self, ordered=False, styleclass=None):
         global _buffer
+        _buffer.write(self.get_list_start(ordered, styleclass))
+
+    def get_list_start(self, ordered=False, styleclass=None):
         o = 'o' if ordered == True else 'u'
         c = '' if styleclass == None else ' class="{}" '.format(styleclass)
-        _buffer.write('<{}l{}>'.format(o, c))
+        return'<{}l{}>'.format(o, c)
 
     def add_list_item(self, itemtext, styleclass=None):
         global _buffer
-        c = '' if styleclass == None else ' class="{}" '.format(styleclass)
-        _buffer.write('<li{}>{}</li>'.format(c, itemtext))
+        _buffer.write(self.get_list_item(itemtext, styleclass))
 
-    def end_list(self, ordered=False):
+    def get_list_item(self, itemtext, styleclass=None):
+        c = '' if styleclass == None else ' class="{}" '.format(styleclass)
+        return '<li{}>{}</li>'.format(c, itemtext)
+
+    def add_list_end(self, ordered=False):
         global _buffer
+        _buffer.write(self.get_list_end(ordered))
+
+    def get_list_end(self, ordered=False):
         o = 'o' if ordered == True else 'u'
-        _buffer.write('</{}l>'.format(o))
+        return '</{}l>'.format(o)
+
+    # <a>
 
     def add_link(self, href="#", link_contents=None, styleclass=None):
         global _buffer

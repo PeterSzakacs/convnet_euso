@@ -6,6 +6,7 @@ import tflearn
 import numpy as np
 
 import utils.dataset_utils as ds
+import utils.metadata_utils as meta
 
 
 DEFAULT_CHECKING_LOGDIR = '/run/user/{}/convnet_checker'.format(os.getuid())
@@ -80,19 +81,13 @@ def train_model(model, train_dataset, run_id, num_epochs=11, eval_dataset=None,
               show_metric=metric)
 
 
-def evaluate_classification_model(model, dataset, items_slice, batch_size=128,
-                                  onlyerr=False):
+def evaluate_classification_model(model, dataset, items_slice, batch_size=128):
     data = dataset.get_data_as_arraylike(items_slice)
     targets = dataset.get_targets(items_slice)
+    metadata = dataset.get_metadata(items_slice)
     num_data = len(data[0])
     data, item_getter = reshape_data_for_convnet(data, create_getter=True)
-    log_data, classes_count, hits = [], [0, 0], 0
-
-    miss_handler = lambda log_data, item: log_data.append(item)
-    if onlyerr:
-        hit_handler = lambda log_data, item: None
-    else:
-        hit_handler = lambda log_data, item: log_data.append(item)
+    log_data = []
 
     for idx in range(0, batch_size, num_data):
         items_slice = slice(idx, idx + batch_size)
@@ -100,18 +95,13 @@ def evaluate_classification_model(model, dataset, items_slice, batch_size=128,
         predictions = model.predict(data_batch)
         for pred_idx in range(len(predictions)):
             prediction = predictions[pred_idx]
-            rounded_prediction = np.round(prediction).astype(np.uint8)
-            classes_count[0] += rounded_prediction[0]
-            classes_count[1] += rounded_prediction[1]
             abs_idx = idx + pred_idx
-            if np.array_equal(rounded_prediction, targets[abs_idx]):
-                print("correct prediction at item {}".format(abs_idx))
-                hit_handler(log_data, (abs_idx, prediction))
-                hits += 1
-            else:
-                print("prediction error at item {}".format(abs_idx))
-                miss_handler(log_data, (abs_idx, prediction))
-    return log_data, hits, classes_count
+            log_item = meta.classification_metadata_handler(
+                prediction, targets[abs_idx], abs_idx,
+                old_dict=metadata[abs_idx].copy())
+            log_data.append(log_item)
+    return log_data
+
 
 def save_model(model, save_pathname):
-    model.save(save_pathname);
+    model.save(save_pathname)

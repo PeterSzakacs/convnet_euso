@@ -63,15 +63,15 @@ def create_yx_proj(frame):
 
 def create_gtux_proj(frame):
     fig, ax = _create_projection_figure(frame)
-    ax.set_xlabel('time [GTU]')
-    ax.set_ylabel('x [pix]')
+    ax.set_xlabel('x [pix]')
+    ax.set_ylabel('time [GTU]')
     return fig, ax
 
 
 def create_gtuy_proj(frame):
     fig, ax = _create_projection_figure(frame)
-    ax.set_xlabel('time [GTU]')
-    ax.set_ylabel('y [pix]')
+    ax.set_xlabel('y [pix]')
+    ax.set_ylabel('time [GTU]')
     return fig, ax
 
 
