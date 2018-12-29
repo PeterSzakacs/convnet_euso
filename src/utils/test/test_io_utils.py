@@ -12,7 +12,8 @@ class npyIterator():
     # mock class for utils.event_reading.GtuPdmDataObject
     class frame():
 
-        def __init__(self, photon_count_data):
+        def __init__(self, gtu, photon_count_data):
+            self.gtu = gtu
             self.photon_count_data = photon_count_data
 
     def __init__(self, packets_list):
@@ -25,124 +26,67 @@ class npyIterator():
     def iter_gtu_pdm_data(self):
         self.index = -1
         return self
-    
+
     def __iter__(self):
         self.index = -1
         return self
-    
+
     def __next__(self):
         self.index += 1
         if self.index < self.tevent_entries:
-            return npyIterator.frame(self.packets[self.index].reshape(self.new_shape))
+            return npyIterator.frame(self.index, self.packets[self.index]
+                                     .reshape(self.new_shape))
         else:
             raise StopIteration()
 
-
 class testPacketExtraction(unittest.TestCase):
-
-    # helper methods
-
-    # function to be called every time a packet is extracted
-    def _append(self, packet, packet_idx, srcfile):
-        self.packets.append(packet)
-        self.packet_idxs.append(packet_idx)
-        self.srcfiles.append(srcfile)
-
-    # function to reset the lists modified by _append to initial state
-    def _reset_lists(self):
-        self.packets = []
-        self.packet_idxs = []
-        self.srcfiles = []
-
-    # assert that the data in the lists is as expected
-    def _assertPacketDataAreCorrect(self):
-        self.assertEqual(len(self.packets), self.num_packets)
-        self.assertEqual(len(self.packet_idxs), self.num_packets)
-        self.assertEqual(self.srcfiles, [self.srcfile] * self.num_packets)
-        n, w, h = self.template.num_frames, self.template.frame_width, self.template.frame_height
-        reference_packet = np.empty((n, h, w))
-        for idx in range(self.num_packets):
-            self.assertEqual(idx, self.packet_idxs[idx])
-            reference_packet.fill(idx)
-            self.assertTrue(np.array_equal(self.packets[idx], reference_packet), msg="Packets at index {} are not equal".format(idx))
 
     # test setup
 
     def setUp(self):
         # mock filenames
         self.srcfile, self.triggerfile = "srcfile", None
-
-        # the data structures that change when executing the tested functions
-        self.packets, self.packet_idxs, self.srcfiles = [], [], []
-
         # packet template for the functions
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20
-        self.template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
-        self.num_packets = 4
-        self.extractor = io_utils.packet_extractor(packet_template=self.template)
+        self.template = templates.packet_template(EC_width, EC_height,
+                                                  width, height, num_frames)
+        # the packets as used in the functions
+        n_packets = 2
+        self.packets = np.ones((n_packets * num_frames, height, width),
+                               dtype=np.uint8)
+        self.packets[0, 0, 0] = 10
+        self.packets[num_frames, 0, 0] = 2
+        self.expected_packets_shape = (n_packets, num_frames, height, width)
+        # the extractor object
+        self.extractor = io_utils.packet_extractor(
+            packet_template=self.template)
 
-        # the list of packets normally loaded from an npy file as a simple numpy array or loaded frame by frame from a ROOT file
-        self.bad_packets_num = np.empty((self.num_packets*num_frames + 1, height, width))
-        self.bad_packets_height = np.empty((self.num_packets*num_frames, height + 1, width))
-        self.bad_packets_width = np.empty((self.num_packets*num_frames, height, width + 1))
-        # fill every packet with the value of its index in the list
-        self.good_packets_list = np.empty((self.num_packets*num_frames, height, width))
-        for idx in range(0, num_frames*self.num_packets, num_frames):
-            val = int(idx/num_frames)
-            self.good_packets_list[idx:(idx+num_frames)].fill(val)
-
-    # the tests
+    # test methods
 
     @mock.patch('utils.io_utils.np')
-    def testNpyfilePacketExtraction(self, mock_np):
-        self._reset_lists()
-        
-        # first test that if the packets within the source are of a different shape from the template, an exception is raised
-        mock_np.load.return_value = self.bad_packets_num
-        with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect number of frames"):
-            self.extractor.extract_packets_from_npyfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        mock_np.load.return_value = self.bad_packets_height
-        with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect frame width"):
-            self.extractor.extract_packets_from_npyfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        mock_np.load.return_value = self.bad_packets_width
-        with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect frame width"):
-            self.extractor.extract_packets_from_npyfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        # the function self._append should never be called if the packet template is not valid
-        self.assertEqual(len(self.packets), 0)
-        self.assertEqual(len(self.packet_idxs), 0)
-        self.assertEqual(len(self.srcfiles), 0)
-
-        # now test with a source of packets conforming to the template
-        mock_np.load.return_value = self.good_packets_list
-        self.extractor.extract_packets_from_npyfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
+    def test_extract_from_npyfile(self, mock_np):
+        mock_np.load.return_value = self.packets
+        extracted_packets = self.extractor.extract_packets_from_npyfile(
+            self.srcfile, self.triggerfile)
         mock_np.load.assert_called_with(self.srcfile)
-        self._assertPacketDataAreCorrect()
+        self.assertTrue(np.array_equal(
+            self.packets.reshape(self.expected_packets_shape),
+            extracted_packets))
 
     @mock.patch('utils.io_utils.reading')
-    def testRootfilePacketExtraction(self, mock_reading):
-        self._reset_lists()
-
-        # first test that if the packets within the source are of a different shape from the template, an exception is raised
-        mock_reading.AcqL1EventReader.return_value = npyIterator(self.bad_packets_num)
-        with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect number of frames"):
-            self.extractor.extract_packets_from_rootfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        mock_reading.AcqL1EventReader.return_value = npyIterator(self.bad_packets_height)
-        with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect frame width"):
-            self.extractor.extract_packets_from_rootfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        mock_reading.AcqL1EventReader.return_value = npyIterator(self.bad_packets_width)
-        with self.assertRaises(ValueError, msg="Error raising exception for packets source with incorrect frame width"):
-            self.extractor.extract_packets_from_rootfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        # the function self._append should never be called if the packet template is not valid
-        self.assertEqual(len(self.packets), 0)
-        self.assertEqual(len(self.packet_idxs), 0)
-        self.assertEqual(len(self.srcfiles), 0)
-
-        # now test with a source of packets conforming to the template
-        mock_reading.AcqL1EventReader.return_value = npyIterator(self.good_packets_list)
-        self.extractor.extract_packets_from_rootfile_and_process(self.srcfile, triggerfile=self.triggerfile, on_packet_extracted=self._append)
-        mock_reading.AcqL1EventReader.assert_called_with(self.srcfile, self.triggerfile)
-        self._assertPacketDataAreCorrect()
+    def test_extract_from_rootfile(self, mock_reading):
+        # after careful consideration, mocking np within this method makes no
+        # sense
+        it = npyIterator(self.packets)
+        mock_reading.AcqL1EventReader.return_value = it
+        extracted_packets = self.extractor.extract_packets_from_rootfile(
+            self.srcfile, self.triggerfile)
+        mock_reading.AcqL1EventReader.assert_called_with(self.srcfile,
+                                                         self.triggerfile)
+        self.assertTrue(np.array_equal(
+            self.packets.reshape(self.expected_packets_shape),
+            extracted_packets))
 
 
 if __name__ == '__main__':

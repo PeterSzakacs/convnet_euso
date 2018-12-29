@@ -26,7 +26,7 @@ class packet_extractor():
         frames_per_packet = self._template.num_frames
         if total_num_frames % frames_per_packet != 0:
             raise ValueError(('The total number of frames ({}) in {} is not'
-                              ' evenly divisible intopackets of size {} frames'
+                              ' evenly divisible to packets of size {} frames'
                               ).format(total_num_frames, srcfile,
                                        frames_per_packet))
         exp_frame_shape = self._template.packet_shape[1:]
@@ -49,14 +49,15 @@ class packet_extractor():
         num_frames = self._template.num_frames
         num_packets = int(frames_total / num_frames)
         container_shape = (num_packets, *self._template.packet_shape)
-        dtype = first_frame.dtype 
+        dtype = first_frame.dtype
         packets = np.empty(container_shape, dtype=dtype)
+        # reset iterator to start of packets list
         iterator = reader.iter_gtu_pdm_data()
-        frame_idx, packet_idx = 0, 0
         for frame in iterator:
-            packet_idx = int(frame_idx / num_frames)
-            packets[packet_idx][frame_idx % num_frames] = frame.photon_count_data
-            frame_idx += 1
+            global_gtu = frame.gtu
+            packet_idx = int(global_gtu / num_frames)
+            packet_gtu = global_gtu % num_frames
+            packets[packet_idx][packet_gtu] = frame.photon_count_data
         return packets
 
     def extract_packets_from_npyfile(self, npyfile, triggerfile=None):
