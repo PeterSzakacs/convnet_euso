@@ -29,12 +29,14 @@ class cmd_interface():
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        datasets = self.dset_helper.get_dataset(args, inputs=False)
+        datasets = self.dset_args.get_dataset_single(args, 
+                                                     cargs.arg_type.INPUT)
         if len(datasets) < 2:
             raise ValueError("At least 2 datasets must be passed")
 
-        name, outdir = self.dset_helper.get_dataset_double(args, inputs=True)
-        if not os.path.isdir(outdir):
+        name, outdir = self.dset_args.get_dataset_double(args, 
+                                                         cargs.arg_type.OUTPUT)
+            if not os.path.isdir(outdir):
             raise ValueError("Invalid output directory {}".format(args.outdir))
 
         return args
