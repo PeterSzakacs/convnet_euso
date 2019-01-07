@@ -5,6 +5,7 @@ import os
 import csv
 
 import utils.dataset_utils as ds
+import utils.io_utils as io_utils
 import utils.metadata_utils as meta
 import utils.network_utils as netutils
 
@@ -18,6 +19,9 @@ if __name__ == '__main__':
     cmd_int = cmd.cmd_interface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
 
+    name, srcdir = args.name, args.srcdir
+    item_types = args.item_types
+
     logdir = args.logdir or netutils.DEFAULT_CHECKING_LOGDIR
     if not os.path.exists(logdir):
         os.mkdir(logdir)
@@ -28,8 +32,8 @@ if __name__ == '__main__':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     # load input data, targets and metadata
-    dataset = ds.numpy_dataset.load_dataset(args.srcdir, args.name,
-                                            item_types=args.item_types)
+    input_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+    dataset = input_handler.load_dataset(name, item_types)
 
     # deprecated feature, as this was never really used.
     # else:

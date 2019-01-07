@@ -4,6 +4,7 @@ import sys
 import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
 import utils.dataset_utils as ds
+import utils.io_utils as io_utils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -17,7 +18,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args(sys.argv[1:])
     name, srcdir = dset_args.get_dataset_double(args,cargs.arg_type.INPUT)
-
-    dataset = ds.numpy_dataset.load_dataset(srcdir, name)
+    io_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir, 
+                                                         save_dir=srcdir)
+    dataset = io_handler.load_dataset(name)
     dataset.shuffle_dataset(args.num_shuffles)
-    dataset.save(srcdir)
+    io_handler.save_dataset(dataset)

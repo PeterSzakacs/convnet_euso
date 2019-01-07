@@ -1,5 +1,6 @@
 import os
 
+import utils.io_utils as io_utils
 import utils.dataset_utils as ds
 import visualization.event_visualization as eviz
 
@@ -13,9 +14,12 @@ if __name__ == '__main__':
     args = ui.get_cmd_args(sys.argv[1:])
     print(args)
 
-    savedir = os.path.join(args.outdir, 'img')
-    if not os.path.exists(savedir):
-        os.mkdir(savedir)
+    name, srcdir = args.name, args.srcdir
+    item_types = args.item_types
+    outdir = args.outdir
+
+    savedir = os.path.join(outdir, 'img')
+    os.makedirs(savedir, exist_ok=True)
 
     if args.flight:
         meta_adder = eviz.add_flight_metadata
@@ -29,8 +33,8 @@ if __name__ == '__main__':
         'gtux': eviz.create_gtux_proj, 'gtuy': eviz.create_gtuy_proj
     }
 
-    dataset = ds.numpy_dataset.load_dataset(args.srcdir, args.name,
-                                            item_types=args.item_types)
+    handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+    dataset = handler.load_dataset(name, item_types)
     data = dataset.get_data_as_dict(slice(args.num_items))
     targets = dataset.get_targets(slice(args.num_items))
     metadata = dataset.get_metadata(slice(args.num_items))

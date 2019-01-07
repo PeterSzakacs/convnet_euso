@@ -6,6 +6,7 @@ import os
 import tensorflow as tf
 
 import utils.dataset_utils as ds
+import utils.io_utils as io_utils
 import utils.network_utils as netutils
 #import visualization.network.filters_visualizer as filtersViz
 #import visualization.network.conv_layer_visualizer as convViz
@@ -20,9 +21,12 @@ if __name__ == '__main__':
     cmd_int = cmd.cmd_interface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
+    
+    name, srcdir = args.name, args.srcdir
+    item_types = args.item_types
 
-    dataset = ds.numpy_dataset.load_dataset(args.srcdir, args.name,
-                                            item_types=args.item_types)
+    input_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+    dataset = input_handler.load_dataset(name, item_types)
     for network_name in args.networks:
         network_module_name = 'net.' + network_name
         tb_dir = os.path.join(netutils.DEFAULT_TRAINING_LOGDIR,

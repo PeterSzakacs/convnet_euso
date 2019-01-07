@@ -9,7 +9,7 @@ def trim_to_packet_template(line, packet_template):
         ----------
         :param line:            The points on a line reprresented as lists
                                 of GTU, Y and X coordinates, respectively.
-        :type line:             ((int), (int), (int))
+        :type line:             ((int, ), (int, ), (int, ))
         :param packet_template: The points on a line reprresented as lists
                                 of GTU, Y and X coordinates, respectively
         :type packet_template:  utils.data_templates.packet_template

@@ -1,3 +1,4 @@
+import utils.io_utils as io_utils
 import utils.dataset_utils as ds
 
 def check_dataset_compatibility(attrs1, attrs2):
@@ -13,32 +14,30 @@ if __name__ == "__main__":
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 
-    dataset_dicts = []
-    name, srcdir = args.datasets[0][:]
-    dataset_dicts.append(ds.numpy_dataset.preload_dataset(srcdir, name))
-    capacity = num_data = dataset_dicts[0]['num_data']
-    for dataset in args.datasets[1:]:
-        name, srcdir = dataset[:]
-        attrs = ds.numpy_dataset.preload_dataset(srcdir, name)
-        if check_dataset_compatibility(dataset_dicts[0], attrs):
-            dataset_dicts.append(attrs)
-            capacity += attrs['num_data']
-            num_data += attrs['num_data']
-        else: 
+    # first pass: ensure all datasets are compatible with each other before 
+    # loading their contents into memory or merging them
+    in_dsets = args.dataset
+    persistency_handlers = {}
+    name, srcdir = in_dsets[0][:] 
+    handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+    first_dataset = handler.load_empty_dataset(name)
+    persistency_handlers[name] = handler
+    for dset in in_dsets[1:]:
+        name, srcdir = dset[:]
+        handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+        dataset = handler.load_empty_dataset(name)
+        if first_dataset.is_compatible_with(dataset):
+            persistency_handlers[name] = handler
+        else:
             raise ValueError('Incompatible datasets:\n {} (attrs: {})\n'
-                             ' and {} (attrs: {}):'.format(args.datasets[0][0], 
-                             dataset_dicts[0], name, attrs))
-
-    dataset = args.datasets[0]
-    name, srcdir = dataset[:]
-    new_dataset = ds.numpy_dataset.load_dataset(srcdir, name)
-    for idx in range(len(args.datasets[1:])):
-        dataset = args.datasets[idx]
-        name, srcdir = dataset[:]
-        dataset = ds.numpy_dataset.load_dataset(srcdir, name)
-        new_dataset.merge_with(dataset)
-
-    new_dataset.name = args.name
-    new_dataset.save(args.outdir)
-
-
+                             ' and {} (attrs: {}):'.format(first_dataset, 
+                             dataset))
+    # second pass: iteratively merge items from all datasets into the first
+    # one and then save in the new directory
+    outname, outdir = args.name, args.outdir
+    first_dataset.name = outname
+    output_handler = io_utils.dataset_fs_persistency_handler(save_dir=outdir)
+    for name, handler in persistency_handlers.items():
+        dataset = handler.load_dataset(name)
+        first_dataset.merge_with(dataset)
+    output_handler.save_dataset(first_dataset)

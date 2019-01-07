@@ -4,6 +4,8 @@ import operator
 import numpy as np
 
 import utils.dataset_utils as ds
+import utils.io_utils as io_utils
+import utils.metadata_utils as meta
 import utils.synth_data_utils as sdutils
 
 
@@ -109,8 +111,7 @@ class simulated_data_generator():
         """
         # create output data holders as needed
         template_shape = self._bg_template.packet_template.packet_shape
-        dataset = ds.numpy_dataset(name, template_shape, capacity=num_data,
-                                   item_types=item_types)
+        dataset = ds.numpy_dataset(name, template_shape, item_types=item_types)
 
         # output and target generation
         ec_gen = self._bg_template.get_new_bad_ECs
@@ -154,6 +155,7 @@ if __name__ == '__main__':
     data_generator = simulated_data_generator(
         args.shower_template, args.bg_template
     )
+    handler = io_utils.dataset_fs_persistency_handler(save_dir=args.outdir)
     dataset = data_generator.create_dataset(args.name, args.num_data,
                                             args.item_types)
-    dataset.save(args.outdir)
+    handler.save_dataset(dataset, metafields_order=meta.SYNTH_METADATA)

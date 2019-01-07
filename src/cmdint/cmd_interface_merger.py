@@ -9,7 +9,7 @@ class cmd_interface():
         self.parser = argparse.ArgumentParser(
             description=('Merge multiple datasets into a single dataset by '
                          'concatenating them in the order they are passed'))
-        in_aliases = {'dataset': 'datasets'}
+        in_aliases = {'dataset': 'dataset'}
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
         self.dset_args = cargs.dataset_args(input_aliases=in_aliases,
                                               output_aliases=out_aliases)
@@ -36,7 +36,7 @@ class cmd_interface():
 
         name, outdir = self.dset_args.get_dataset_double(args, 
                                                          cargs.arg_type.OUTPUT)
-            if not os.path.isdir(outdir):
+        if not os.path.isdir(outdir):
             raise ValueError("Invalid output directory {}".format(args.outdir))
 
         return args

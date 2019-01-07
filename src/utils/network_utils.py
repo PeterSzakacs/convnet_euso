@@ -24,8 +24,9 @@ def get_default_run_id(network_module_name):
 def reshape_data_for_convnet(data, num_channels=1, create_getter=False):
     data_reshaped = []
     for item in data:
-        item_shape = item[0].shape
-        data_reshaped.append(item.reshape(-1, *item_shape, num_channels))
+        item_np = np.array(item)
+        item_shape = item_np[0].shape
+        data_reshaped.append(item_np.reshape(-1, *item_shape, num_channels))
     item_getter = lambda data, i_slice: tuple(d[i_slice] for d in data)
     # tflearn does not seem to like single element sequences,
     # (the single element within is the actual input data).
