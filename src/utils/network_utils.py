@@ -82,7 +82,9 @@ def train_model(model, train_dataset, run_id, num_epochs=11, eval_dataset=None,
               show_metric=metric)
 
 
-def evaluate_classification_model(model, dataset, items_slice, batch_size=128):
+def evaluate_classification_model(model, dataset, items_slice=None,
+                                  batch_size=128):
+    items_slice = items_slice or slice(None)
     data = dataset.get_data_as_arraylike(items_slice)
     targets = dataset.get_targets(items_slice)
     metadata = dataset.get_metadata(items_slice)
@@ -90,7 +92,7 @@ def evaluate_classification_model(model, dataset, items_slice, batch_size=128):
     data, item_getter = reshape_data_for_convnet(data, create_getter=True)
     log_data = []
 
-    for idx in range(0, batch_size, num_data):
+    for idx in range(0, num_data, batch_size):
         items_slice = slice(idx, idx + batch_size)
         data_batch = item_getter(data, items_slice)
         predictions = model.predict(data_batch)

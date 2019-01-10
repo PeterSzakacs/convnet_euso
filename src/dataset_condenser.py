@@ -102,9 +102,9 @@ if __name__ == "__main__":
         num_frames = 20
         meta_order = meta.FLIGHT_METADATA
     else:
+        GTUs_range = (args.start_gtu, args.end_gtu)
         transformer = custom_transformer(args.target, gtus=GTUs_range)
         data_transformer = transformer.process_event
-        GTUs_range = (args.start_gtu, args.end_gtu)
         if args.start_gtu == None and args.end_gtu == None:
             num_frames = 20
         else:

@@ -533,10 +533,12 @@ class numpy_dataset:
             raise ValueError('Incompatible dataset to merge: {}',
                              other_dataset.name)
         s = self._get_items_slice(items_slice_or_idx)
+        data = other_dataset.get_data_as_dict(s)
         for k in self._used_types:
-            self._data[k].extend(other_dataset._data[k][s])
-        self._targets.extend(other_dataset._targets[s])
-        metadata = other_dataset._metadata[s]
+            (self._data[k]).extend(data[k])
+        targets = other_dataset.get_targets(s)
+        self._targets.extend(targets)
+        metadata = other_dataset.get_metadata(s)
         self._metadata.extend(metadata)
         if s == slice(None):
             metafields = other_dataset._metafields

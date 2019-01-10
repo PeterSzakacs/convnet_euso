@@ -12,7 +12,8 @@ import utils.metadata_utils as meta
 import libs.event_reading as reading
 
 
-def load_TSV(filename, selected_columns=None, output_list=[]):
+def load_TSV(filename, selected_columns=None, output_list=None):
+    output_list = output_list or []
     if selected_columns is not None:
         process_row = lambda row, cols: {col:row[col] for col in cols}
     else:
@@ -175,7 +176,8 @@ class dataset_metadata_fs_persistency_handler(fs_persistency_handler):
             meta_fields = set(metafields)
         filename = os.path.join(self.loaddir, '{}{}.tsv'.format(
             name, self._meta))
-        return load_TSV(filename, selected_columns=meta_fields)
+        meta = load_TSV(filename, selected_columns=meta_fields)
+        return meta
 
     def save_metadata(self, name, metadata, metafields=None,
                               metafields_order=None):
@@ -291,10 +293,10 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
                 k, self.DEFAULT_DATA_FILES_SUFFIXES[k])
         self._target_handler = (targets_handler or
                                 dataset_targets_fs_persistency_handler(
-                                    load_dir, save_dir))
+                                    load_dir=load_dir, save_dir=save_dir))
         self._meta_handler   = (metadata_handler or
                                 dataset_metadata_fs_persistency_handler(
-                                    load_dir, save_dir))
+                                    load_dir=load_dir, save_dir=save_dir))
 
     # properties
 
@@ -490,4 +492,4 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
             config['item_types'][k] = str(item_types[k])
         with open(filename, 'w', encoding='UTF-8') as configfile:
             config.write(configfile)
-    
+
