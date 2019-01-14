@@ -158,9 +158,9 @@ class TestDatasetMetadataFsPersistencyManager(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.name, cls.loaddir, cls.savedir = 'test', '/dsets', '/test'
-        meta_dict = {k: None for k in meta.CLASS_METADATA}
+        meta_dict = {k: None for k in meta.FLIGHT_METADATA}
         cls.m_meta = [meta_dict] * 2
-        cls.meta_fields = set(meta.CLASS_METADATA)
+        cls.meta_fields = set(meta.FLIGHT_METADATA)
         file_suffix = '_meta_test'
         cls.metafile = '{}{}.tsv'.format(cls.name, file_suffix)
         with mock.patch('os.path.isdir', return_value=True),\
@@ -253,7 +253,7 @@ class TestDatasetFsPersistencyManager(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        metafields = set(meta.CLASS_METADATA)
+        metafields = set(meta.FLIGHT_METADATA)
         cls.meta_order = list(metafields)
         cls.meta_order.sort()
 

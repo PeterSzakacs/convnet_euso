@@ -222,7 +222,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         super(TestNumpyDataset, cls).setUpClass()
         cls.name = 'test'
         cls.mock_targets = np.zeros((cls.n_packets, 2))
-        meta_dict = {k: None for k in meta.CLASS_METADATA}
+        meta_dict = {k: None for k in meta.FLIGHT_METADATA}
         cls.mock_meta = [meta_dict] * cls.n_packets
 
     # test dataset item addition
@@ -318,7 +318,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
                      'gtuy': [self.items['gtuy'][0], self.items['gtuy'][0]] }
         exp_targets = [self.mock_targets[0], self.mock_targets[0]]
         exp_metadata = [self.mock_meta[0], self.mock_meta[0]]
-        exp_metafields = set(meta.CLASS_METADATA)
+        exp_metafields = set(meta.FLIGHT_METADATA)
         dset1.merge_with(dset2)
         self._assertDatasetItems(dset1, exp_data, exp_targets, exp_metadata,
                                  exp_metafields, num_data + dset2.num_data,
@@ -330,7 +330,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         packet = self.items['raw'][0]
         meta2 = self.mock_meta[0].copy()
         meta2['test'] = 'value'
-        exp_metafields = set(meta.CLASS_METADATA).union(meta2.keys())
+        exp_metafields = set(meta.FLIGHT_METADATA).union(meta2.keys())
         dset1.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
         dset2.add_data_item(packet, self.mock_targets[0], meta2)
         dset1.merge_with(dset2)
@@ -344,7 +344,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         meta2['test'] = 'value'
         meta3 = self.mock_meta[0].copy()
         meta3['test2'] = 'value'
-        exp_metafields = set(meta.CLASS_METADATA).union(meta2.keys())
+        exp_metafields = set(meta.FLIGHT_METADATA).union(meta2.keys())
         dset1.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
         dset2.add_data_item(packet, self.mock_targets[0], meta2)
         dset2.add_data_item(packet, self.mock_targets[0], meta2)
@@ -352,7 +352,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         # add items 0 and 1 from dset2 to dset1
         dset1.merge_with(dset2, slice(2))
         # metadata fields from item 2 of dset2 should not be added
-        exp_metafields = set(meta.CLASS_METADATA).union(meta2.keys())
+        exp_metafields = set(meta.FLIGHT_METADATA).union(meta2.keys())
         self.assertEqual(dset1.num_data, 3)
         self.assertSetEqual(dset1.metadata_fields, exp_metafields)
 
