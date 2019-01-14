@@ -20,17 +20,16 @@ def trim_to_packet_template(line, packet_template):
     width = packet_template.frame_width
 
     # remove those coordinates that are outside the edges of a packet
-    for idx in range(len(GTUs) - 1, -1, -1):
+    new_line = ([], [], [])
+    line_length = len(GTUs)
+    for idx in range(line_length):
         gtu, y, x = GTUs[idx], Ys[idx], Xs[idx]
-        if (gtu >= num_frames):
-            break
-        if x < 0 or x >= width:
-            del Xs[idx]
-        if y < 0 or y >= height:
-            del Ys[idx]
-    minimum = min([len(GTUs), len(Ys), len(Xs)])
-    GTUs, Ys, Xs = GTUs[:minimum], Ys[:minimum], Xs[:minimum]
-    return (GTUs, Ys, Xs)
+        if (gtu >= 0 and gtu < num_frames and x >= 0 and x < width 
+            and y >= 0 and y < height):
+            new_line[0].append(gtu)
+            new_line[1].append(y)
+            new_line[2].append(x)
+    return new_line
 
 
 def get_line_end(start, yx_angle, length, duration):

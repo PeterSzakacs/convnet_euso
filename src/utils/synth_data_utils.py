@@ -83,7 +83,7 @@ def create_simu_shower_line(yx_angle, start_coordinate, packet_template,
 
 
 def create_simu_shower_line_from_template(shower_template, yx_angle,
-                                              return_metadata=False):
+                                          return_metadata=False):
     start = shower_template.get_new_start_coordinate()
     shower_max = shower_template.get_new_shower_max()
     duration = shower_template.get_new_shower_duration()
@@ -110,7 +110,7 @@ def create_simu_shower_line_from_template(shower_template, yx_angle,
 
 
 def create_simu_shower_line_from_template_old(shower_template, yx_angle,
-                                          return_metadata=False):
+                                              return_metadata=False):
     start = shower_template.get_new_start_coordinate()
     shower_max = shower_template.get_new_shower_max()
     duration = shower_template.get_new_shower_duration()
