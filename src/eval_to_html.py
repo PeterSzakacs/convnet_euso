@@ -28,13 +28,7 @@ if __name__ == "__main__":
     logdir = args.logdir or tb_dir
     os.makedirs(logdir, exist_ok=True)
 
-    if args.flight:
-        meta_fields = meta.FLIGHT_METADATA
-    elif args.simu:
-        meta_fields = meta.SIMU_METADATA
-    elif args.synth:
-        meta_fields = meta.SYNTH_METADATA
-    headers = meta_fields + meta.CLASS_METADATA
+    headers = args.meta_order + netutils.CLASSIFICATION_FIELDS
 
     in_reader = csv.DictReader(args.infile, fieldnames=headers, delimiter='\t')
     log_data = []
@@ -48,5 +42,5 @@ if __name__ == "__main__":
                'dataset': args.name, 'item_types': args.item_types}
 
     writer = cwriter.report_writer(logdir, table_size=args.tablesize,
-                                   extra_fields=meta_fields)
+                                   extra_fields=args.meta_order)
     writer.write_reports(log_data, context)

@@ -14,6 +14,7 @@ class cmd_interface():
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
         self.dset_args = cargs.dataset_args(input_aliases=in_aliases)
         self.item_args = cargs.item_types_args()
+        self.meta_args = cargs.metafield_order_arg()
 
         # input tsv
         self.parser.add_argument('infile', nargs='?',
@@ -25,11 +26,11 @@ class cmd_interface():
         # trained neural network model
         self.parser.add_argument('-n', '--network', required=True, nargs=2,
                                  metavar=('NETWORK_NAME', 'MODEL_FILE'),
-                                 help=('name of network module to use and a '
+                                 help=('name of network module used and '
                                        'corresponding trained model file.'))
         self.parser.add_argument('--tablesize', type=atypes.int_range(1),
-                        help=('Maximum number of table rows for every report '
-                              'file.'))
+                                 help=('Maximum number of table rows per html '
+                                        'report file.'))
         self.parser.add_argument('--logdir',
                                 help=('Directory to store output logs. If a '
                                       'non-default directory is used, it must '
@@ -42,24 +43,19 @@ class cmd_interface():
                                               required=False)
         self.item_args.add_item_type_args(self.parser, atype)
 
-        # metadata present in the input TSV records
-        dataset_type = self.parser.add_mutually_exclusive_group(required=True)
-        dataset_type.add_argument('--simu', action='store_true',
-                                  help=('dataset created from multiple source '
-                                        'npy files with simulated data'))
-        dataset_type.add_argument('--synth', action='store_true',
-                                  help=('dataset created using data_generator '
-                                        'script'))
-        dataset_type.add_argument('--flight', action='store_true',
-                                  help=('dataset created from recorded flight '
-                                        'data in CERN ROOT format'))
+        # order of metadata columns in the report
+        # dataset_type = self.parser.add_mutually_exclusive_group(required=True)
+        self.meta_args.add_metafields_order_arg(
+            self.parser, group_title='Metadata column order of report files')
 
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
         atype = cargs.arg_type.INPUT
-        args.name, args.srcdir = self.dset_args.get_dataset_double(args, atype)
         self.item_args.check_item_type_args(args, atype)
+
+        args.meta_order = self.meta_args.get_metafields_order(args)
+        args.name, args.srcdir = self.dset_args.get_dataset_double(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
 
         return args

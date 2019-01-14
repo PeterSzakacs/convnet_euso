@@ -1,8 +1,10 @@
+import argparse
 import collections as coll
 import unittest
 import unittest.mock as mock
 
 import utils.dataset_utils as ds
+import utils.metadata_utils as meta
 import cmdint.common_args as cargs
 
 
@@ -300,6 +302,49 @@ class TestItemTypeArgs(unittest.TestCase):
             self.fail('Item type checking did not throw an error')
         except Exception:
             pass
+
+
+class TestMetafieldsOrderArgs(unittest.TestCase):
+
+    def setUp(self):
+        self.aliases = {
+            'simu': 'simu_test',
+            'flight': 'flight_test',
+            'synth': 'synth_test'
+        }
+        self.meta_order_args = cargs.metafield_order_arg(
+            order_arg_aliases=self.aliases)
+        self.parser = argparse.ArgumentParser()
+        self.meta_order_args.add_metafields_order_arg(self.parser)
+
+    def test_add_arguments(self):
+        cmdline = '--simu_test'.split()
+        args = self.parser.parse_args(cmdline)
+        exp_args = argparse.Namespace(
+            flight_test=None,
+            synth_test=None,
+            simu_test='simu')
+        self.assertEqual(args, exp_args)
+
+    def test_get_metafields_arg(self):
+        cmdline = '--simu_test'.split()
+        args = self.parser.parse_args(cmdline)
+        meta_order = self.meta_order_args.get_metafields_order(args)
+        exp_order = meta.METADATA_TYPES['simu']['field order']
+        self.assertListEqual(meta_order, exp_order)
+
+    def test_get_metafields_arg_multiple(self):
+        cmdline = '--simu_test --flight_test'.split()
+        args = self.parser.parse_args(cmdline)
+        self.assertRaises(Exception, self.meta_order_args.get_metafields_order,
+                          args)
+
+    def test_get_metafields_arg_none_selected(self):
+        cmdline = []
+        args = self.parser.parse_args(cmdline)
+        meta_order = self.meta_order_args.get_metafields_order(
+            args, none_selected_ok=True)
+        self.assertIsNone(meta_order)
 
 
 class TestModuleFunctions(unittest.TestCase):

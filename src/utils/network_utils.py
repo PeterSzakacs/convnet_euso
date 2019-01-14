@@ -8,6 +8,23 @@ import numpy as np
 import utils.dataset_utils as ds
 import utils.metadata_utils as meta
 
+CLASSIFICATION_FIELDS   = ['item_idx', 'output', 'target', 'shower_prob',
+                           'noise_prob']
+
+def _classification_fields_handler(raw_output, target, item_idx,
+                                   old_dict=None):
+    if old_dict == None:
+        old_dict = {}
+    rnd_output = np.round(raw_output).astype(np.uint8)
+    old_dict['shower_prob'] = round(raw_output[0], 6)
+    old_dict['noise_prob']  = round(raw_output[1], 6)
+    old_dict['output'] = ('shower' if np.array_equal(rnd_output, [1, 0])
+                          else 'noise')
+    old_dict['target'] = ('shower' if np.array_equal(target, [1, 0])
+                          else 'noise')
+    old_dict['item_idx'] = item_idx
+    return old_dict
+
 
 DEFAULT_CHECKING_LOGDIR = '/run/user/{}/convnet_checker'.format(os.getuid())
 DEFAULT_TRAINING_LOGDIR = '/run/user/{}/convnet_trainer'.format(os.getuid())
@@ -99,7 +116,7 @@ def evaluate_classification_model(model, dataset, items_slice=None,
         for pred_idx in range(len(predictions)):
             prediction = predictions[pred_idx]
             abs_idx = idx + pred_idx
-            log_item = meta.classification_metadata_handler(
+            log_item = _classification_fields_handler(
                 prediction, targets[abs_idx], abs_idx,
                 old_dict=metadata[abs_idx].copy())
             log_data.append(log_item)

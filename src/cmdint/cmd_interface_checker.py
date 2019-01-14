@@ -13,6 +13,7 @@ class cmd_interface():
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
         self.dset_args = cargs.dataset_args(input_aliases=in_aliases)
         self.item_args = cargs.item_types_args()
+        self.meta_args = cargs.metafield_order_arg()
 
         self.parser.add_argument('outfile', nargs='?',
                                  type=argparse.FileType('w'),
@@ -52,10 +53,11 @@ class cmd_interface():
                                       ' of tensorflow installed, this flag has no effect.'))
         self.parser.add_argument('--onlyerr', action='store_true',
                                 help=('Include only failed predictions in the output'))
-        dataset_type = self.parser.add_mutually_exclusive_group(required=True)
-        dataset_type.add_argument('--simu', action='store_true', help=('dataset created from a multitude of source npy files with simulated data'))
-        dataset_type.add_argument('--synth', action='store_true', help=('dataset created using the data_generator script'))
-        dataset_type.add_argument('--flight', action='store_true', help=('dataset created from recorded flight data in CERN ROOT format'))
+
+        # metafields order of the generated TSV
+        self.meta_args.add_metafields_order_arg(
+            self.parser,
+            group_title="Order of metadata fields in the generated TSV")
 
 
     def get_cmd_args(self, argsToParse):
@@ -64,6 +66,7 @@ class cmd_interface():
         atype = cargs.arg_type.INPUT
         self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
+        args.meta_order = self.meta_args.get_metafields_order(args)
 
         # != is basically XOR in python
         # acq_input = (args.acqfile != None)

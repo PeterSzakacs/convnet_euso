@@ -49,13 +49,6 @@ if __name__ == '__main__':
         # X_all = np.array(X_all, dtype=np.uint8)
         # Y_all = np.array([[0, 1] for idx in range(len(X_all))], dtype=np.uint8)
 
-    if args.flight:
-        headers = meta.FLIGHT_METADATA + meta.CLASS_METADATA
-    elif args.simu:
-        headers = meta.SIMU_METADATA + meta.CLASS_METADATA
-    elif args.synth:
-        headers = meta.SYNTH_METADATA + meta.CLASS_METADATA
-
     # main code
     network_module_name, model_file = args.network[0:2]
     network_module_name = "net." + network_module_name
@@ -71,6 +64,7 @@ if __name__ == '__main__':
     )
 
     # output results
+    headers = args.meta_order + netutils.CLASSIFICATION_FIELDS
     writer = csv.DictWriter(args.outfile, headers, delimiter='\t')
     writer.writeheader()
     writer.writerows(log_data)
