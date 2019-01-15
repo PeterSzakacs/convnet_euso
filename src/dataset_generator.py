@@ -1,6 +1,7 @@
 import sys
 import operator
 
+import skimage.filters as filters
 import numpy as np
 
 import utils.dataset_utils as ds
@@ -30,26 +31,48 @@ class simulated_data_generator():
         """Template for background parameters"""
         return self._bg_template
 
+    def _apply_antialias(self, line, vals, sigma=0.7):
+        packet_template = self._bg_template.packet_template
+        packet_shape = packet_template.packet_shape
+        packet = np.zeros(packet_shape, dtype=np.uint8)
+        GTU, Y, X = line[:]
+        # draw the actual line values into the packet
+        packet[GTU, Y, X] = vals
+        # blur the line using a gaussian filter
+        packet = filters.gaussian(packet, sigma=sigma, mode='constant', cval=0)
+        # remove the center of the line
+        packet[GTU, Y, X] = 0
+        # make all antialiased values "around" the line have at least
+        # 1 positive decimal place
+        packet *= 1000
+        # restore the center of the line
+        packet[GTU, Y, X] = vals
+        return packet
+
     # methods
 
     # TODO: might want to break up these methods and possibly move them
     # to different modules as well
-    def create_shower_packet(self, yx_angle, max_EC_malfunctions=0):
+    def create_shower_packet(self, yx_angle, max_EC_malfunctions=0,
+                             dtype=np.uint8):
         # create the actual packet
         packet_template = self._bg_template.packet_template
+        packet_shape = packet_template.packet_shape
         lam = self._bg_template.get_new_bg_lambda()
-        packet = np.random.poisson(lam=lam, size=packet_template.packet_shape)
         GTU, Y, X, vals, meta = sdutils.create_simu_shower_line_from_template(
             self._shower_template, yx_angle, return_metadata=True
         )
-        packet[GTU, Y, X] += vals
+        pure_shower_packet = self._apply_antialias((GTU, Y, X), vals)
+        final_packet = np.random.poisson(lam=lam, size=packet_shape)
+        final_packet = final_packet.astype(dtype)
+        final_packet += pure_shower_packet.astype(dtype)
 
         # get the sum of shower pixel values in all EC modules
         ECs_used = [packet_template.xy_to_ec_idx(x, y) for (x, y) in zip(X, Y)]
         ECs_dict = dict(zip(ECs_used, [0] * len(ECs_used)))
         for idx in range(len(ECs_used)):
             EC = ECs_used[idx]
-            ECs_dict[EC] += packet[GTU[idx], Y[idx], X[idx]]
+            ECs_dict[EC] += final_packet[GTU[idx], Y[idx], X[idx]]
         # get the EC containing the maximum sum of pixel values
         maxval_EC = max(ECs_dict.items(), key=operator.itemgetter(1))[0]
         # zero-out pixels to simulate random EC failures
@@ -61,8 +84,8 @@ class simulated_data_generator():
         meta['shower'] = True
         meta['num_bad_ECs'] = num_bad_ECs
         for idx in range(num_bad_ECs):
-            packet[:, Y[idx], X[idx]] = 0
-        return packet, meta
+            final_packet[:, Y[idx], X[idx]] = 0
+        return final_packet, meta
 
     def create_noise_packet(self, max_EC_malfunctions=0):
         packet_template = self._bg_template.packet_template
@@ -71,7 +94,7 @@ class simulated_data_generator():
         X, Y, indices = sdutils.select_random_ECs(packet_template,
                                                   max_EC_malfunctions)
         num_bad_ECs = len(indices)
-        meta = dict()
+        meta = {}
         meta['bg_lambda'] = lam
         meta['shower'] = False
         meta['num_bad_ECs'] = num_bad_ECs
@@ -111,7 +134,8 @@ class simulated_data_generator():
         """
         # create output data holders as needed
         template_shape = self._bg_template.packet_template.packet_shape
-        dataset = ds.numpy_dataset(name, template_shape, item_types=item_types)
+        dataset = ds.numpy_dataset(name, template_shape, item_types=item_types,
+                                   dtype=np.float32)
 
         # output and target generation
         ec_gen = self._bg_template.get_new_bad_ECs

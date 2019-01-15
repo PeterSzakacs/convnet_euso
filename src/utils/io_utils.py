@@ -427,7 +427,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
 
     # dataset save/persist
 
-    def save_data(self, name, data_items_dict):
+    def save_data(self, name, data_items_dict, dtype=np.uint8):
         """
             Persist the dataset data into secondary storage as a set of npy
             files with a common prefix (the dataset name) stored in outdir.
@@ -439,6 +439,8 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
             :param data_items_dict: data items to save/persist.
             :type data_items_dict:  typing.Mapping[
                                         str, typing.Sequence[numpy.ndarray]]
+            :param dtype:           data type of all items.
+            :type data_items_dict:  str or numpy.dtype
         """
         self._check_before_write()
         savefiles = {}
@@ -447,11 +449,12 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         for k in keys:
             filename = os.path.join(self.savedir, '{}{}.npy'.format(
                 name, self._data[k]))
-            np.save(filename, data_items_dict[k])
+            data = np.array(data_items_dict[k], dtype=dtype)
+            np.save(filename, data)
             savefiles[k] = filename
         return savefiles
 
-    def save_dataset(self, dataset, metafields_order=None):
+    def save_dataset(self, dataset, metafields_order=None, dtype=np.uint8):
         """
             Persist the dataset into secondary storage, with all files stored
             in the same directory (outdir).
@@ -472,7 +475,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         targets = dataset.get_targets()
         self._target_handler.save_targets(name, targets)
         data = dataset.get_data_as_dict()
-        self.save_data(name, data)
+        self.save_data(name, data, dtype=dtype)
 
         # save configuration file
         filename = os.path.join(self.savedir, '{}{}.ini'.format(
@@ -484,7 +487,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         n_f, f_h, f_w = dataset.accepted_packet_shape
         config['packet_shape'] = {}
         config['packet_shape']['num_frames'] = str(n_f)
-        config['packet_shape']['frame_height'] = str(f_h) 
+        config['packet_shape']['frame_height'] = str(f_h)
         config['packet_shape']['frame_width'] = str(f_w)
         item_types = dataset.item_types
         config['item_types'] = {}

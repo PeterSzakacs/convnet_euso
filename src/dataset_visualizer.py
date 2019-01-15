@@ -34,13 +34,13 @@ if __name__ == '__main__':
     }
 
     handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
-    dataset = handler.load_dataset(name, item_types)
+    dataset = handler.load_dataset(name, item_types=item_types)
     data = dataset.get_data_as_dict(slice(args.num_items))
     targets = dataset.get_targets(slice(args.num_items))
     metadata = dataset.get_metadata(slice(args.num_items))
     for item_type, data_items in data.items():
         item_dir = os.path.join(savedir, item_type)
-        os.mkdir(item_dir)
+        os.makedirs(item_dir, exist_ok=True)
         frame_creator = frame_creators[item_type]
         for idx in range(len(data_items)):
             frame = data_items[idx]

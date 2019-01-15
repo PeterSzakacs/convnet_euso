@@ -342,14 +342,15 @@ class numpy_dataset:
     """
 
     def __init__(self, name, packet_shape, item_types={'raw': True,
-                 'yx': False, 'gtux': False, 'gtuy': False}):
+                 'yx': False, 'gtux': False, 'gtuy': False}, dtype=np.uint8):
         check_item_types(item_types)
         self._item_types = item_types
         self._used_types = tuple(k for k in ALL_ITEM_TYPES
                                  if self._item_types[k] is True)
         self._item_shapes = get_data_item_shapes(packet_shape, item_types)
         self._packet_shape = tuple(packet_shape)
-        self._data = create_data_holders(packet_shape, item_types=item_types)
+        self._data = create_data_holders(packet_shape, item_types=item_types,
+                                         dtype=dtype)
         self._targets = []
         self._metadata = []
         self._metafields = set()
@@ -359,7 +360,7 @@ class numpy_dataset:
 
     def __str__(self):
         attrs_dict = {
-            'name': self.name, 
+            'name': self.name,
             'packet_shape': self.accepted_packet_shape,
             'item_types': self.item_types}
         return str(attrs_dict)
