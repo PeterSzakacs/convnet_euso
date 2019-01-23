@@ -39,8 +39,12 @@ class cmd_interface():
         #                          help=('the L1 triggers file for the given acquisition file (--acqfile).'))
 
         # How many frames (at most) to use:
-        self.parser.add_argument('--eval_numframes', type=atypes.int_range(1),
-                                help=('number of frames out of the passed dataset to use for evaluation (Selects first n frames).'))
+        self.parser.add_argument('--start_item', default=0, type=int,
+                                help=('index of first dataset item to use '
+                                      'for evaluation.'))
+        self.parser.add_argument('--stop_item', default=None, type=int,
+                                help=('index of the dataset item after the '
+                                      'last item to use for evaluation.'))
 
         # misc
         self.parser.add_argument('--logdir',

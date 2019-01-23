@@ -23,8 +23,11 @@ class cmd_interface():
                                 help=('directory to store output logs, default: current directory. If a non-default'
                                       ' directory is used, it must exist prior to calling this script, otherwise an'
                                       ' error will be thrown'))
-        self.parser.add_argument('--num_items', type=atypes.int_range(1),
-                                help=('number of dataset items to visualize, default: all items'))
+        self.parser.add_argument('--start_item', default=0, type=int,
+                                help=('index of first item to visualize.'))
+        self.parser.add_argument('--stop_item', default=None, type=int,
+                                help=('index of the item after the last item '
+                                      'to visualize.'))
         dataset_type = self.parser.add_mutually_exclusive_group(required=True)
         dataset_type.add_argument('--simu', action='store_true', help=('dataset created from a multitude of source npy files with simulated data'))
         dataset_type.add_argument('--synth', action='store_true', help=('dataset created using the data_generator script'))

@@ -101,23 +101,25 @@ def train_model(model, train_dataset, run_id, num_epochs=11, eval_dataset=None,
 
 def evaluate_classification_model(model, dataset, items_slice=None,
                                   batch_size=128):
-    items_slice = items_slice or slice(None)
+    items_slice = items_slice or slice(0, None)
     data = dataset.get_data_as_arraylike(items_slice)
     targets = dataset.get_targets(items_slice)
     metadata = dataset.get_metadata(items_slice)
-    num_data = len(data[0])
     data, item_getter = reshape_data_for_convnet(data, create_getter=True)
     log_data = []
 
-    for idx in range(0, num_data, batch_size):
-        items_slice = slice(idx, idx + batch_size)
+    # TODO: might want to simplify these indexes or at least give better names
+    start, stop = items_slice.start, items_slice.stop
+    for idx in range(start, stop, batch_size):
+        rel_idx = idx - start
+        items_slice = slice(rel_idx, rel_idx + batch_size)
         data_batch = item_getter(data, items_slice)
         predictions = model.predict(data_batch)
         for pred_idx in range(len(predictions)):
             prediction = predictions[pred_idx]
-            abs_idx = idx + pred_idx
+            abs_idx = rel_idx + pred_idx
             log_item = _classification_fields_handler(
-                prediction, targets[abs_idx], abs_idx,
+                prediction, targets[abs_idx], idx + pred_idx,
                 old_dict=metadata[abs_idx].copy())
             log_data.append(log_item)
     return log_data

@@ -60,7 +60,7 @@ if __name__ == '__main__':
         model_file=model_file
     )
     log_data = netutils.evaluate_classification_model(
-        model, dataset, items_slice=slice(args.eval_numframes)
+        model, dataset, items_slice=slice(args.start_item, args.stop_item)
     )
 
     # output results

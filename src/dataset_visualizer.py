@@ -35,15 +35,19 @@ if __name__ == '__main__':
 
     handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
     dataset = handler.load_dataset(name, item_types=item_types)
-    data = dataset.get_data_as_dict(slice(args.num_items))
-    targets = dataset.get_targets(slice(args.num_items))
-    metadata = dataset.get_metadata(slice(args.num_items))
+
+    start, stop = args.start_item, args.stop_item
+    items_slice = slice(start, stop)
+    data = dataset.get_data_as_dict(items_slice)
+    targets = dataset.get_targets(items_slice)
+    metadata = dataset.get_metadata(items_slice)
     for item_type, data_items in data.items():
         item_dir = os.path.join(savedir, item_type)
         os.makedirs(item_dir, exist_ok=True)
         frame_creator = frame_creators[item_type]
-        for idx in range(len(data_items)):
-            frame = data_items[idx]
+        for idx in range(start, stop):
+            rel_idx = idx - start
+            frame = data_items[rel_idx]
             fig, ax = frame_creator(frame)
-            meta_adder(fig, ax, item_type, metadata[idx])
+            meta_adder(fig, ax, item_type, metadata[rel_idx])
             eviz.save_figure(fig, os.path.join(item_dir, 'frame-{}'.format(idx)))
