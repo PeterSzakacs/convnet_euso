@@ -223,7 +223,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         cls.name = 'test'
         cls.mock_targets = np.zeros((cls.n_packets, 2))
         meta_dict = {k: None for k in meta.FLIGHT_METADATA}
-        cls.mock_meta = [meta_dict] * cls.n_packets
+        cls.mock_meta = [meta_dict.copy() for idx in range(cls.n_packets)]
 
     # test dataset item addition
 
@@ -391,6 +391,27 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         dset1 = ds.numpy_dataset(self.name, self.packet_shape, bad_item_types)
         dset2 = ds.numpy_dataset(self.name, self.packet_shape, self.item_types)
         self.assertFalse(dset1.is_compatible_with(dset2))
+
+    # test adding new metafield with default value
+
+    def test_add_metafield(self):
+        dset = ds.numpy_dataset(self.name, self.packet_shape)
+        packet = self.items['raw'][0]
+        exp_meta = self.mock_meta.copy()
+        exp_meta[0] = exp_meta[0].copy()
+        exp_meta[1] = exp_meta[1].copy()
+        dset.add_data_item(packet, self.mock_targets[0], exp_meta[0])
+        dset.add_data_item(packet, self.mock_targets[1], exp_meta[1])
+        exp_meta = exp_meta.copy()
+        exp_meta[0] = exp_meta[0].copy()
+        exp_meta[1] = exp_meta[1].copy()
+        exp_meta[0]['random_metafield'] = 'default'
+        exp_meta[1]['random_metafield'] = 'default'
+        exp_metafields = set(meta.FLIGHT_METADATA).union(['random_metafield'])
+
+        dset.add_metafield('random_metafield', default_value='default')
+        self.assertListEqual(dset.get_metadata(), exp_meta)
+        self.assertSetEqual(dset.metadata_fields, exp_metafields)
 
     # TODO: Possibly think of a way to test ds.shuffle_dataset,
     # though it has low priority

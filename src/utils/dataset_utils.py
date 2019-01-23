@@ -547,3 +547,18 @@ class numpy_dataset:
             metafields = meta.extract_metafields(metadata)
         self._metafields = self._metafields.union(metafields)
         self._num_data += len(metadata)
+
+    def add_metafield(self, name, default_value=None):
+        """
+            Add a new metafield to the dataset.
+
+            Parameters
+            ----------
+            :param name:   name of the field
+            :type name:    str
+            :param default_value:  default value for the new metafield
+            :type default_value:   any
+        """
+        self._metafields = self._metafields.union([name])
+        for metadata in self._metadata:
+            metadata[name] = default_value

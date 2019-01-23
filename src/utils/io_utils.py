@@ -495,4 +495,3 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
             config['item_types'][k] = str(item_types[k])
         with open(filename, 'w', encoding='UTF-8') as configfile:
             config.write(configfile)
-
