@@ -110,6 +110,7 @@ def evaluate_classification_model(model, dataset, items_slice=None,
 
     # TODO: might want to simplify these indexes or at least give better names
     start, stop = items_slice.start, items_slice.stop
+    stop = stop or dataset.num_data
     for idx in range(start, stop, batch_size):
         rel_idx = idx - start
         items_slice = slice(rel_idx, rel_idx + batch_size)
