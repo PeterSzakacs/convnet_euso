@@ -7,31 +7,48 @@ import cmdint.common_args as cargs
 class cmd_interface():
 
     def __init__(self):
-        self.parser = argparse.ArgumentParser(
-            description="Visualize dataset items")
+        parser = argparse.ArgumentParser(description="Visualize dataset items")
 
+        # input dataset settings
+        group = parser.add_argument_group(title="Input dataset")
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-        self.dset_args = cargs.dataset_args(input_aliases=in_aliases)
-        self.item_args = cargs.item_types_args()
-        self.dset_args.add_dataset_arg_double(self.parser,
-                                              cargs.arg_type.INPUT,
-                                              required=True,
-                                              dir_default=os.path.curdir)
-        self.item_args.add_item_type_args(self.parser, cargs.arg_type.INPUT)
+        dset_args = cargs.dataset_args(input_aliases=in_aliases)
+        dset_args.add_dataset_arg_double(group, cargs.arg_type.INPUT,
+                                         required=True,
+                                         dir_default=os.path.curdir)
+        item_args = cargs.item_types_args()
+        item_args.add_item_type_args(group, cargs.arg_type.INPUT)
+        group.add_argument('--start_item', default=0, type=int,
+                           help=('index of first item to visualize.'))
+        group.add_argument('--stop_item', default=None, type=int,
+                           help=('index of the item after the last item to '
+                                 'visualize.'))
 
-        self.parser.add_argument('--outdir', default=os.path.curdir,
-                                help=('directory to store output logs, default: current directory. If a non-default'
-                                      ' directory is used, it must exist prior to calling this script, otherwise an'
-                                      ' error will be thrown'))
-        self.parser.add_argument('--start_item', default=0, type=int,
-                                help=('index of first item to visualize.'))
-        self.parser.add_argument('--stop_item', default=None, type=int,
-                                help=('index of the item after the last item '
-                                      'to visualize.'))
-        dataset_type = self.parser.add_mutually_exclusive_group(required=True)
-        dataset_type.add_argument('--simu', action='store_true', help=('dataset created from a multitude of source npy files with simulated data'))
-        dataset_type.add_argument('--synth', action='store_true', help=('dataset created using the data_generator script'))
-        dataset_type.add_argument('--flight', action='store_true', help=('dataset created from recorded flight data in CERN ROOT format'))
+        # output settings
+        group = parser.add_argument_group(title="Output settings")
+        group.add_argument('--outdir', default=os.path.curdir,
+                           help=('directory to store output images. If a '
+                                 'non-default directory is used, it must '
+                                 'exist prior to calling this script. '
+                                 'Default: current directory. Images '
+                                 'are stored under outdir/img/<item_type>'))
+        group.add_argument('-f', '--force_overwrite', action='store_true',
+                           help=('overwrite any existing items under outdir '
+                                 'having the same name as generated items'))
+
+        # metadat to text converter
+        group = parser.add_argument_group(title="Metadata to text converter")
+        m_conv = group.add_mutually_exclusive_group(required=True)
+        m_conv.add_argument('--simu', action='store_const', const='simu',
+                            help=('Simu metadata converter'))
+        m_conv.add_argument('--synth', action='store_const', const='synth',
+                            help=('Synth metadata converter'))
+        m_conv.add_argument('--flight', action='store_const', const='flight',
+                            help=('Flight metadata converter'))
+
+        self.parser = parser
+        self.dset_args = dset_args
+        self.item_args = item_args
 
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
@@ -42,5 +59,7 @@ class cmd_interface():
         atype = cargs.arg_type.INPUT
         self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
+
+        args.meta_to_text_conv = args.simu or args.flight or args.synth
 
         return args

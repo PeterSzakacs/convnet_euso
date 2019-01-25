@@ -4,6 +4,18 @@ import utils.io_utils as io_utils
 import utils.dataset_utils as ds
 import visualization.event_visualization as eviz
 
+frame_creators = {
+    'raw': lambda frame: None,
+    'yx': eviz.create_yx_proj,
+    'gtux': eviz.create_gtux_proj,
+    'gtuy': eviz.create_gtuy_proj
+}
+
+meta_to_text = {
+    'simu': eviz.add_simu_metadata,
+    'flight': eviz.add_flight_metadata,
+    'synth': eviz.add_synth_metadata
+}
 
 if __name__ == '__main__':
     import sys
@@ -19,19 +31,9 @@ if __name__ == '__main__':
     outdir = args.outdir
 
     savedir = os.path.join(outdir, 'img')
-    os.makedirs(savedir, exist_ok=True)
+    os.makedirs(savedir, exist_ok=args.force_overwrite)
 
-    if args.flight:
-        meta_adder = eviz.add_flight_metadata
-    elif args.simu:
-        meta_adder = eviz.add_simu_metadata
-    elif args.synth:
-        meta_adder = eviz.add_synth_metadata
-
-    frame_creators = {
-        'raw': lambda frame: None, 'yx': eviz.create_yx_proj,
-        'gtux': eviz.create_gtux_proj, 'gtuy': eviz.create_gtuy_proj
-    }
+    meta_adder = meta_to_text[args.meta_to_text_conv]
 
     handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
     dataset = handler.load_dataset(name, item_types=item_types)
