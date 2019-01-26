@@ -224,12 +224,11 @@ class item_types_args:
             raise Exception('Error: output dataset item type prefix is unset')
         self.input_prefix = in_item_prefix
         self.output_prefix = out_item_prefix
-        self._item_desc = {'raw': 'raw packets'}
+        self.item_descriptions = {'raw': 'raw packets'}
         for k in ds.ALL_ITEM_TYPES[1:]:
-            self._item_desc[k] = '{} packet projections'.format(k)
+            self.item_descriptions[k] = '{} packet projections'.format(k)
 
-    def add_item_type_args(self, parser, atype, required_types={
-                                k: False for k in ds.ALL_ITEM_TYPES}):
+    def add_item_type_args(self, parser, atype, required_types={}, help={}):
         """
             Add dataset item type arguments to the given parser.
 
@@ -240,26 +239,30 @@ class item_types_args:
 
             Parameters
             ----------
-            :param parser:          the argparse parser to add the arguments to
-            :type parser:           argparse.ArgumentParser
-            :param atype:           flag specifying if these arguments are used
-                                    for loading or storing dataset items.
-            :type atype:            cmdint.common_args.arg_type
-            :param required_types:  dict of flags specifying which dataset item
-                                    types are mandatory.
-            :type required_types:   {str:bool}
+            :param parser:      the argparse parser to add the arguments to
+            :type parser:       argparse.ArgumentParser
+            :param atype:       flag specifying if these arguments are used
+                                for loading or storing dataset items.
+            :type atype:        cmdint.common_args.arg_type
+            :param req_types:   (optional) dict of flags specifying which
+                                dataset item types are mandatory.
+            :type req_types:    typing.Mapping[str, bool]
+            :param help:        (optional) dict of help descriptions per each
+                                item type argument.
+            :type help:         typing.Mapping[str, str]
         """
         if atype is arg_type.INPUT:
             prefix = self.input_prefix
-            h_text = 'load {}'
+            default_help = 'load {}'
         else:
             prefix = self.output_prefix
-            h_text = 'store {}'
+            default_help = 'store {}'
+        desc = self.item_descriptions
         for k in ds.ALL_ITEM_TYPES:
-            desc = self._item_desc[k]
             required = required_types.get(k, False)
+            help_text = help.get(k, None) or default_help.format(desc[k])
             parser.add_argument('--{}_{}'.format(prefix, k), required=required,
-                                action='store_true', help=h_text.format(desc))
+                                action='store_true', help=help_text)
         return parser
 
     def check_item_type_args(self, args, atype):

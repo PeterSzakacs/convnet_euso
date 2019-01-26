@@ -9,53 +9,61 @@ import cmdint.common_args as cargs
 class cmd_interface():
 
     def __init__(self):
-        self.parser = argparse.ArgumentParser(
-            description=('Randomly shuffle dataset a given number of times'))
-        in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-        self.dset_args = cargs.dataset_args(input_aliases=in_aliases)
-        self.item_args = cargs.item_types_args()
-        self.meta_args = cargs.metafield_order_arg()
+        parser = argparse.ArgumentParser(
+            description=('Create classification report in HTML format from '
+                         'provided evaluation results in TSV format'))
 
         # input tsv
-        self.parser.add_argument('infile', nargs='?',
-                                 type=argparse.FileType('r'),
-                                 default=sys.stdin,
-                                 help=('name of input TSV to read from. If '
-                                       'not provided, read from stdin.'))
+        parser.add_argument('infile', nargs='?', type=argparse.FileType('r'),
+                            default=sys.stdin,
+                            help=('name of input TSV to read from. If not '
+                                  'provided, read from stdin.'))
 
-        # trained neural network model
-        self.parser.add_argument('-n', '--network', required=True, nargs=2,
-                                 metavar=('NETWORK_NAME', 'MODEL_FILE'),
-                                 help=('name of network module used and '
-                                       'corresponding trained model file.'))
-        self.parser.add_argument('--tablesize', type=atypes.int_range(1),
-                                 help=('Maximum number of table rows per html '
-                                        'report file.'))
-        self.parser.add_argument('--logdir',
-                                help=('Directory to store output logs. If a '
-                                      'non-default directory is used, it must '
-                                      'exist prior to calling this script.'))
+        # output settings
+        group = parser.add_argument_group(title="Output settings")
+        group.add_argument('--tablesize', type=atypes.int_range(1),
+                           help=('Maximum number of table rows per html '
+                                 'report file.'))
+        group.add_argument('--logdir',
+                           help=('Directory to store output logs. If a '
+                                 'non-default directory is used, it must '
+                                 'exist prior to calling this script.'))
+        item_args = cargs.item_types_args(out_item_prefix='add')
+        help = {k: 'add image placeholder for {}'.format(desc)
+                for k, desc in item_args.item_descriptions.items()}
+        item_args.add_item_type_args(group, cargs.arg_type.OUTPUT, help=help)
 
-        # evaluation dataset name and directory, optional information in report
-        # headers
-        atype = cargs.arg_type.INPUT
-        self.dset_args.add_dataset_arg_double(self.parser, atype,
-                                              required=False)
-        self.item_args.add_item_type_args(self.parser, atype)
+        # meta-information to include in report headers
+        g_title = "Meta-information to include in report headers"
+        group = parser.add_argument_group(title=g_title)
+        group.add_argument('-n', '--network', required=True, nargs=2,
+                           metavar=('NETWORK_NAME', 'MODEL_FILE'),
+                           help=('name of network module used and '
+                                 'corresponding trained model file.'))
+        in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
+        dset_args = cargs.dataset_args(input_aliases=in_aliases)
+        dset_args.add_dataset_arg_double(group, cargs.arg_type.INPUT,
+                                         required=False)
 
         # order of metadata columns in the report
-        # dataset_type = self.parser.add_mutually_exclusive_group(required=True)
-        self.meta_args.add_metafields_order_arg(
-            self.parser, group_title='Metadata column order of report files')
+        g_title = 'Metadata column order of report files'
+        meta_args = cargs.metafield_order_arg()
+        meta_args.add_metafields_order_arg(parser, group_title=g_title)
+        self.parser = parser
+        self.dset_args = dset_args
+        self.item_args = item_args
+        self.meta_args = meta_args
 
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        atype = cargs.arg_type.INPUT
+        atype = cargs.arg_type.OUTPUT
         self.item_args.check_item_type_args(args, atype)
+        args.item_types = self.item_args.get_item_types(args, atype)
+
+        atype = cargs.arg_type.INPUT
+        args.name, args.srcdir = self.dset_args.get_dataset_double(args, atype)
 
         args.meta_order = self.meta_args.get_metafields_order(args)
-        args.name, args.srcdir = self.dset_args.get_dataset_double(args, atype)
-        args.item_types = self.item_args.get_item_types(args, atype)
 
         return args
