@@ -7,75 +7,92 @@ import utils.metadata_utils as meta
 import cmdint.cmd_interface_condenser as cmd
 
 SRCFILE_KEY = 'source_file_acquisition_full'
-REQUIRED_FILELIST_COLUMNS = [SRCFILE_KEY, 'packet_id', 'gtu_in_packet']
+REQUIRED_FILELIST_COLUMNS = [SRCFILE_KEY, 'packet_id', 'gtu_in_packet',
+                             'event_id']
 
+# for processing simu data:
+# - frames 0-20 can be used as examples of bg noise
+# - frames 27-47 typically contain the shower
+# for processing raw flight data:
+# - frames 27-47 are the rule of thumb
 
-def simu_transformer(packets, metadata):
-    items   = []
-    packet  = packets[1]
-    gtus    = [27, 47]
-    metadata_dict = {SRCFILE_KEY: metadata[SRCFILE_KEY], 'packet_id': 1, 
-                     'start_gtu': gtus[0], 'end_gtu': gtus[1]}
-    items.append((packet[gtus[0]:gtus[1]], [1, 0], metadata_dict))
-    gtus = [0, 20]
-    metadata_dict = {SRCFILE_KEY: metadata[SRCFILE_KEY], 'packet_id': 1, 
-                     'start_gtu': gtus[0], 'end_gtu': gtus[1]}
-    items.append((packet[gtus[0]:gtus[1]], [0, 1], metadata_dict))
-    return items
+class default_event_transformer:
 
-
-def flight_transformer(packets, metadata):
-    items   = []
-    gtus    = [27, 47]
-    for idx in range(len(packets)):
-        packet = packets[idx]
-        metadata_dict = {SRCFILE_KEY: metadata[SRCFILE_KEY], 'packet_id': idx, 
-                         'start_gtu': gtus[0], 'end_gtu': gtus[1]}
-        items.append((packet[gtus[0]:gtus[1]], [0, 1], metadata_dict))
-    return items
-
-
-class custom_transformer:
-
-    def __init__(self, target, gtus=(None, None)):
-        self.target = target
-        self.gtus_range = gtus
+    def __init__(self, target, packet_id, start_gtu, stop_gtu):
+        self._target = target
+        self._packet_id = packet_id
+        self._start_gtu = start_gtu
+        self._stop_gtu = stop_gtu
 
     @property
-    def target(self):
-        return self._target
+    def num_frames(self):
+        return self._stop_gtu - self._start_gtu
 
-    @target.setter
-    def target(self, value):
-        self._target = value
+    def event_to_dataset_items(self, packets, metadata):
+        idx = self._packet_id
+        start, stop = self._start_gtu, self._stop_gtu
+        meta_dict = {SRCFILE_KEY: metadata[SRCFILE_KEY], 'packet_id': idx,
+                     'start_gtu': start, 'end_gtu': stop}
+        return [(packets[idx][start:stop], self._target, meta_dict), ]
+
+
+class all_packets_event_transformer():
+
+    def __init__(self, target, start_gtu, stop_gtu):
+        self._target = target
+        self._start_gtu = start_gtu
+        self._stop_gtu = stop_gtu
 
     @property
-    def gtus_range(self):
-        return self._gtus
+    def num_frames(self):
+        return self._stop_gtu - self._start_gtu
 
-    @gtus_range.setter
-    def gtus_range(self, value):
-        self._gtus = value
-
-    def process_event(self, packets, metadata):
+    def event_to_dataset_items(self, packets, metadata):
         items   = []
+        start, stop = self._start_gtu, self._stop_gtu
+        target = self._target
+        for idx in range(len(packets)):
+            packet = packets[idx]
+            meta_dict = {SRCFILE_KEY: metadata[SRCFILE_KEY], 'packet_id': idx,
+                         'start_gtu': start, 'end_gtu': stop}
+            items.append((packet[start:stop], target, meta_dict))
+        return items
+
+
+class gtu_in_packet_event_transformer:
+
+    def __init__(self, target, num_gtu_before=None, num_gtu_after=None,
+                 adjust_if_out_of_bounds=True):
+        self._target = target
+        self._gtu_before = num_gtu_before or 4
+        self._gtu_after = num_gtu_after or 15
+        self._gtu_after = self._gtu_after + 1
+        self._adjust = adjust_if_out_of_bounds
+
+    @property
+    def num_frames(self):
+        return self._gtu_after + self._gtu_before
+
+    def event_to_dataset_items(self, packets, metadata):
         idx = int(metadata['packet_id'])
         packet = packets[idx]
         packet_gtu = int(metadata['gtu_in_packet'])
-        start_gtu = self._gtus[0] or packet_gtu - 4
-        end_gtu = self._gtus[1] or packet_gtu + 16
-        while start_gtu < 0:
-            start_gtu += 1
-            end_gtu += 1
-        while end_gtu > packet.shape[0]:
-            start_gtu -= 1
-            end_gtu -= 1
-
-        subpacket = packet[start_gtu: end_gtu]
-        metadata_dict = {SRCFILE_KEY: metadata[SRCFILE_KEY], 'packet_id': idx, 
-                         'start_gtu': start_gtu, 'end_gtu': end_gtu}
-        items.append((subpacket, self._target, metadata_dict))
-        return items
+        start = packet_gtu - self._gtu_before
+        stop = packet_gtu + self._gtu_after
+        if (start < 0 or stop > packet.shape[0]) and not self._adjust:
+            idx = metadata['event_id']
+            raise Exception('Frame range for event id {} ({}:{}) is out of '
+                            'packet bounds'.format(idx, start, stop))
+        else:
+            while start < 0:
+                start += 1
+                stop += 1
+            while stop > packet.shape[0]:
+                start -= 1
+                stop -= 1
+        meta_dict = {SRCFILE_KEY: metadata[SRCFILE_KEY], 'packet_id': idx,
+                     'start_gtu': start, 'end_gtu': stop}
+        return [(packet[start:stop], self._target, meta_dict), ]
 
 
 # script to coallesce (simulated or real) data from several files
@@ -93,29 +110,25 @@ if __name__ == "__main__":
     packet_template = args.template
     extractor = iout.packet_extractor(packet_template=packet_template)
 
-    if args.simu:
-        data_transformer = simu_transformer
-        num_frames = 20
-        meta_order = meta.SIMU_METADATA
-    elif args.flight:
-        data_transformer = flight_transformer
-        num_frames = 20
-        meta_order = meta.FLIGHT_METADATA
+    target = [0, 1] if args.target == 'noise' else [1, 0]
+    if args.converter == 'gtupack':
+        before, after = args.num_gtu_around[0:2]
+        data_transformer = gtu_in_packet_event_transformer(
+            target, num_gtu_before=before, num_gtu_after=after,
+            adjust_if_out_of_bounds=(not args.no_bounds_adjust))
+    elif args.converter == 'allpack':
+        start, stop = args.gtu_range[0:2]
+        data_transformer = all_packets_event_transformer(target, start, stop)
     else:
-        GTUs_range = (args.start_gtu, args.end_gtu)
-        transformer = custom_transformer(args.target, gtus=GTUs_range)
-        data_transformer = transformer.process_event
-        if args.start_gtu == None and args.end_gtu == None:
-            num_frames = 20
-        else:
-            num_frames = args.end_gtu - args.start_gtu
-        meta_order = meta.COMMON_METADATA
+        start, stop = args.gtu_range[0:2]
+        data_transformer = default_event_transformer(target, args.packet_idx,
+                                                     start, stop)
 
     extracted_packet_shape = list(packet_template.packet_shape)
-    extracted_packet_shape[0] = num_frames
+    extracted_packet_shape[0] = data_transformer.num_frames
 
     output_handler = iout.dataset_fs_persistency_handler(save_dir=args.outdir)
-    dataset = ds.numpy_dataset(args.name, extracted_packet_shape, 
+    dataset = ds.numpy_dataset(args.name, extracted_packet_shape,
                                item_types=args.item_types)
     input_tsv = args.filelist
     total_num_data = 0
@@ -125,7 +138,7 @@ if __name__ == "__main__":
     # main loop
     rows = iout.load_TSV(input_tsv, selected_columns=REQUIRED_FILELIST_COLUMNS)
     for row in rows:
-        srcfile, triggerfile = row['source_file_acquisition_full'], None
+        srcfile, triggerfile = row[SRCFILE_KEY], None
         print("Processing file {}".format(srcfile))
         packets = cache.get(srcfile, None)
         if packets is None:
@@ -139,7 +152,7 @@ if __name__ == "__main__":
                 cache[srcfile] = packets
             else:
                 raise Exception('Unknown file type: {}'.format(srcfile))
-        items = data_transformer(packets, row)
+        items = data_transformer.event_to_dataset_items(packets, row)
         num_items = len(items)
         print("Extracted: {} data items".format(num_items))
         for item in items:
@@ -153,4 +166,4 @@ if __name__ == "__main__":
 
     print('Creating dataset "{}" containing {} items'.format(
         args.name, total_num_data))
-    output_handler.save_dataset(dataset, metafields_order=meta_order)
+    output_handler.save_dataset(dataset, dtype=args.dtype)
