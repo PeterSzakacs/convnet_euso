@@ -21,12 +21,12 @@ if __name__ == '__main__':
     cmd_int = cmd.cmd_interface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
-    
+
     name, srcdir = args.name, args.srcdir
     item_types = args.item_types
 
     input_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
-    dataset = input_handler.load_dataset(name, item_types)
+    dataset = input_handler.load_dataset(name, item_types=item_types)
     for network_name in args.networks:
         network_module_name = 'net.' + network_name
         tb_dir = os.path.join(netutils.DEFAULT_TRAINING_LOGDIR,

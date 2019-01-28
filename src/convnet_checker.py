@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     # load input dataset
     input_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
-    dataset = input_handler.load_dataset(name, item_types)
+    dataset = input_handler.load_dataset(name, item_types=item_types)
 
     #load trained network model
     logdir = netutils.DEFAULT_CHECKING_LOGDIR

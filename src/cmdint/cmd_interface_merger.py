@@ -22,6 +22,10 @@ class cmd_interface():
         dset_args.add_dataset_arg_double(group, cargs.arg_type.OUTPUT,
                                          dir_short_alias='o', dir_default='.',
                                          name_short_alias='n')
+        group.add_argument('--dtype',
+                           help=('data type of items of the new dataset. If '
+                                 'not set, uses the dtype of the first input '
+                                 'dataset'))
         # group.add_argument('--delete_original', action='store_true',
         #                    help='delete the original input datasets')
         self.parser = parser

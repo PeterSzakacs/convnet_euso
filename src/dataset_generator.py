@@ -53,8 +53,7 @@ class simulated_data_generator():
 
     # TODO: might want to break up these methods and possibly move them
     # to different modules as well
-    def create_shower_packet(self, yx_angle, max_EC_malfunctions=0,
-                             dtype=np.uint8):
+    def create_shower_packet(self, yx_angle, max_EC_malfunctions=0):
         # create the actual packet
         packet_template = self._bg_template.packet_template
         packet_shape = packet_template.packet_shape
@@ -64,8 +63,8 @@ class simulated_data_generator():
         )
         pure_shower_packet = self._apply_antialias((GTU, Y, X), vals)
         final_packet = np.random.poisson(lam=lam, size=packet_shape)
-        final_packet = final_packet.astype(dtype)
-        final_packet += pure_shower_packet.astype(dtype)
+        final_packet = final_packet.astype('uint8')
+        final_packet += pure_shower_packet.astype('uint8')
 
         # get the sum of shower pixel values in all EC modules
         ECs_used = [packet_template.xy_to_ec_idx(x, y) for (x, y) in zip(X, Y)]
@@ -102,7 +101,7 @@ class simulated_data_generator():
             packet[:, Y[idx], X[idx]] = 0
         return packet, meta
 
-    def create_dataset(self, name, num_data, item_types):
+    def create_dataset(self, name, num_data, item_types, dtype='uint8'):
         """
             Generate and return a numpy dataset containing simulated showers
             and corresponding targets for them, for use in training neural
@@ -135,7 +134,7 @@ class simulated_data_generator():
         # create output data holders as needed
         template_shape = self._bg_template.packet_template.packet_shape
         dataset = ds.numpy_dataset(name, template_shape, item_types=item_types,
-                                   dtype=np.float32)
+                                   dtype=dtype)
 
         # output and target generation
         ec_gen = self._bg_template.get_new_bad_ECs
@@ -181,5 +180,6 @@ if __name__ == '__main__':
     )
     handler = io_utils.dataset_fs_persistency_handler(save_dir=args.outdir)
     dataset = data_generator.create_dataset(args.name, args.num_data,
-                                            args.item_types)
+                                            item_types=args.item_types,
+                                            dtype=args.dtype)
     handler.save_dataset(dataset, metafields_order=meta.SYNTH_METADATA)

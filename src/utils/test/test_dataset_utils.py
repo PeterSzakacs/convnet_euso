@@ -262,7 +262,8 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         packet, target = self.items['raw'][0], self.mock_targets[0]
         meta = self.mock_meta[0]
 
-        dset = ds.numpy_dataset(self.name, self.packet_shape, item_types)
+        dset = ds.numpy_dataset(self.name, self.packet_shape,
+                                item_types=item_types)
         dset.add_data_item(packet, target, meta)
         items = dset.get_data_as_dict()
         self._assertDatasetData(items, exp_items, exp_items.keys())
@@ -274,7 +275,8 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         packet, target = self.items['raw'][0], self.mock_targets[0]
         meta = self.mock_meta[0]
 
-        dset = ds.numpy_dataset(self.name, self.packet_shape, item_types)
+        dset = ds.numpy_dataset(self.name, self.packet_shape,
+                                item_types=item_types)
         dset.add_data_item(packet, target, meta)
         items = dset.get_data_as_arraylike()
         for idx in range(len(keys)):
@@ -306,8 +308,10 @@ class TestNumpyDataset(TestDatasetUtilsBase):
     # test merging datasets
 
     def test_merge_with(self):
-        dset1 = ds.numpy_dataset(self.name, self.packet_shape, self.item_types)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape, self.item_types)
+        dset1 = ds.numpy_dataset(self.name, self.packet_shape,
+                                 item_types=self.item_types)
+        dset2 = ds.numpy_dataset(self.name, self.packet_shape,
+                                 item_types=self.item_types)
         packet = self.items['raw'][0]
         dset1.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
         dset2.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
@@ -388,8 +392,10 @@ class TestNumpyDataset(TestDatasetUtilsBase):
     def test_is_compatible_with_bad_item_types(self):
         bad_item_types = self.item_types.copy()
         bad_item_types['raw'] = not bad_item_types['raw']
-        dset1 = ds.numpy_dataset(self.name, self.packet_shape, bad_item_types)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape, self.item_types)
+        dset1 = ds.numpy_dataset(self.name, self.packet_shape,
+                                 item_types=bad_item_types)
+        dset2 = ds.numpy_dataset(self.name, self.packet_shape,
+                                 item_types=self.item_types)
         self.assertFalse(dset1.is_compatible_with(dset2))
 
     # test adding new metafield with default value
@@ -412,6 +418,30 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         dset.add_metafield('random_metafield', default_value='default')
         self.assertListEqual(dset.get_metadata(), exp_meta)
         self.assertSetEqual(dset.metadata_fields, exp_metafields)
+
+    # dtype functionality
+
+    def test_implicit_dtype_conversion_when_adding_items(self):
+        dset = ds.numpy_dataset(self.name, self.packet_shape, dtype='float16',
+                                item_types=self.item_types)
+        dset.add_data_item(self.items['raw'][0], self.mock_targets[0],
+                           self.mock_meta[0])
+        items_dict = dset.get_data_as_dict()
+        for itype, is_present in dset.item_types.items():
+            if is_present:
+                self.assertEqual(items_dict[itype][0].dtype.name, 'float16')
+
+    def test_dtype_casting(self):
+        dset = ds.numpy_dataset(self.name, self.packet_shape,
+                                item_types=self.item_types)
+        dset.add_data_item(self.items['raw'][0], self.mock_targets[0],
+                           self.mock_meta[0])
+        dset.dtype = 'float16'
+        items_dict = dset.get_data_as_dict()
+        for itype, is_present in dset.item_types.items():
+            if is_present:
+                self.assertEqual(items_dict[itype][0].dtype.name, 'float16')
+        self.assertEqual(dset.dtype, 'float16')
 
     # TODO: Possibly think of a way to test ds.shuffle_dataset,
     # though it has low priority

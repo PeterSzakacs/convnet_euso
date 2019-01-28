@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
     output_handler = iout.dataset_fs_persistency_handler(save_dir=args.outdir)
     dataset = ds.numpy_dataset(args.name, extracted_packet_shape,
-                               item_types=args.item_types)
+                               item_types=args.item_types, dtype=args.dtype)
     input_tsv = args.filelist
     total_num_data = 0
     cache = {}
@@ -166,4 +166,4 @@ if __name__ == "__main__":
 
     print('Creating dataset "{}" containing {} items'.format(
         args.name, total_num_data))
-    output_handler.save_dataset(dataset, dtype=args.dtype)
+    output_handler.save_dataset(dataset)

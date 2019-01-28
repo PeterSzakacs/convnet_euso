@@ -22,8 +22,13 @@ class cmd_interface():
         atype = cargs.arg_type.OUTPUT
         self.dset_args.add_dataset_arg_double(ds_group, atype)
         self.item_args.add_item_type_args(ds_group, atype)
-        ds_group.add_argument('--num_data', required=True, type=atypes.int_range(1),
-                              help=('Number of data items (both noise and shower), corresponds to number of packets'))
+        ds_group.add_argument('--num_data', required=True,
+                              type=atypes.int_range(1),
+                              help=('Number of data items (both noise and '
+                                    'shower)'))
+        ds_group.add_argument('--dtype', default='uint8',
+                              help=('Data type of dataset items (default: '
+                                    'uint8)'))
 
         shower_group = self.parser.add_argument_group('shower properties')
         # arguments qualifying shower property ranges

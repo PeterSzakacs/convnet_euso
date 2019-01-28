@@ -337,6 +337,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         general = config['general']
         attrs['num_data'] = int(general['num_data'])
         attrs['metafields'] = ast.literal_eval(general['metafields'])
+        attrs['dtype'] = general['dtype']
         packet_shape = config['packet_shape']
         n_f = int(packet_shape['num_frames'])
         f_h = int(packet_shape['frame_height'])
@@ -362,7 +363,8 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         """
         attrs = self.load_dataset_config(name)
         itypes = item_types or attrs['item_types']
-        dataset = ds.numpy_dataset(name, attrs['packet_shape'], itypes)
+        dataset = ds.numpy_dataset(name, attrs['packet_shape'],
+                                   item_types=itypes, dtype=attrs['dtype'])
         return dataset
 
     def load_data(self, name, item_types):
@@ -412,7 +414,8 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         self._check_before_read()
         config = self.load_dataset_config(name)
         itypes = item_types or config['item_types']
-        dataset = ds.numpy_dataset(name, config['packet_shape'], itypes)
+        dataset = ds.numpy_dataset(name, config['packet_shape'],
+                                   item_types=itypes)
         data = self.load_data(name, dataset.item_types)
         targets = self._target_handler.load_targets(name)
         metadata = self._meta_handler.load_metadata(name)
@@ -454,7 +457,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
             savefiles[k] = filename
         return savefiles
 
-    def save_dataset(self, dataset, metafields_order=None, dtype=np.uint8):
+    def save_dataset(self, dataset, metafields_order=None):
         """
             Persist the dataset into secondary storage, with all files stored
             in the same directory (outdir).
@@ -475,7 +478,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         targets = dataset.get_targets()
         self._target_handler.save_targets(name, targets)
         data = dataset.get_data_as_dict()
-        self.save_data(name, data, dtype=dtype)
+        self.save_data(name, data, dtype=dataset.dtype)
 
         # save configuration file
         filename = os.path.join(self.savedir, '{}{}.ini'.format(
@@ -484,6 +487,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         config['general'] = {}
         config['general']['num_data'] = str(dataset.num_data)
         config['general']['metafields'] = str(dataset.metadata_fields)
+        config['general']['dtype'] = str(dataset.dtype)
         n_f, f_h, f_w = dataset.accepted_packet_shape
         config['packet_shape'] = {}
         config['packet_shape']['num_frames'] = str(n_f)

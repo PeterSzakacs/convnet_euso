@@ -2,7 +2,7 @@ import utils.io_utils as io_utils
 import utils.dataset_utils as ds
 
 def check_dataset_compatibility(attrs1, attrs2):
-    return (attrs1['packet_shape'] == attrs2['packet_shape'] and 
+    return (attrs1['packet_shape'] == attrs2['packet_shape'] and
             attrs1['item_types'] == attrs2['item_types'])
 
 if __name__ == "__main__":
@@ -14,13 +14,16 @@ if __name__ == "__main__":
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 
-    # first pass: ensure all datasets are compatible with each other before 
+    # first pass: ensure all datasets are compatible with each other before
     # loading their contents into memory or merging them
     in_dsets = args.dataset
+    dtype = args.dtype
     persistency_handlers = []
-    name, srcdir = in_dsets[0][:] 
+    name, srcdir = in_dsets[0][:]
     handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
     first_dataset = handler.load_empty_dataset(name)
+    if dtype:
+        first_dataset.dtype = dtype
     persistency_handlers.append((name, handler))
     for idx in range(1, len(in_dsets)):
         name, srcdir = in_dsets[idx][:]
@@ -30,7 +33,7 @@ if __name__ == "__main__":
             persistency_handlers.append((name, handler))
         else:
             raise ValueError('Incompatible datasets:\n {} (attrs: {})\n'
-                             ' and {} (attrs: {}):'.format(first_dataset, 
+                             ' and {} (attrs: {}):'.format(first_dataset,
                              dataset))
     # second pass: iteratively merge items from all datasets into the first
     # one and then save in the new directory

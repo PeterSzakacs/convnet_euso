@@ -148,7 +148,7 @@ def create_data_holders(packet_shape, item_types, num_items=None,
 # data item creation
 
 
-def create_subpacket(packet, start_idx=0, end_idx=None):
+def create_subpacket(packet, start_idx=0, end_idx=None, dtype=np.uint8):
     """
         Convert packet to a (sub)packet made up of frames from start_idx
         to end_idx (minus the latter).
@@ -161,11 +161,13 @@ def create_subpacket(packet, start_idx=0, end_idx=None):
             index of first frame in the packet to inculde
         end_idx :       int or None
             index of first frame in the packet to exclude
+        dtype :         str or np.number
+            data type of created subpacket
     """
-    return packet[start_idx:end_idx]
+    return packet[start_idx:end_idx].astype(dtype)
 
 
-def create_y_x_projection(packet, start_idx=0, end_idx=None):
+def create_y_x_projection(packet, start_idx=0, end_idx=None, dtype=np.uint8):
     """
         Convert packet to a projection by extracting the maximum of values
         along the GTU axis of the packet made up of frames from start_idx
@@ -179,11 +181,13 @@ def create_y_x_projection(packet, start_idx=0, end_idx=None):
             index of first packet frame to use in creating the projection
         end_idx :       int or None
             index of first packet frame to not use in creating the projection
+        dtype :         str or np.number
+            data type of created yx projection
     """
-    return np.max(packet[start_idx:end_idx], axis=0)
+    return np.max(packet[start_idx:end_idx], axis=0).astype(dtype)
 
 
-def create_gtu_x_projection(packet, start_idx=0, end_idx=None):
+def create_gtu_x_projection(packet, start_idx=0, end_idx=None, dtype=np.uint8):
     """
         Convert packet to a projection by extracting the maximum of values
         along the Y axis of the packet made up of frames from start_idx to
@@ -197,11 +201,13 @@ def create_gtu_x_projection(packet, start_idx=0, end_idx=None):
             index of first packet frame to use in creating the projection
         end_idx :       int or None
             index of first packet frame to not use in creating the projection
+        dtype :         str or np.number
+            data type of created gtux projection
     """
-    return np.max(packet[start_idx:end_idx], axis=1)
+    return np.max(packet[start_idx:end_idx], axis=1).astype(dtype)
 
 
-def create_gtu_y_projection(packet, start_idx=0, end_idx=None):
+def create_gtu_y_projection(packet, start_idx=0, end_idx=None, dtype=np.uint8):
     """
         Convert packet to a projection by extracting the maximum of values
         along the X axis of the packet made up of frames from start_idx to
@@ -215,8 +221,10 @@ def create_gtu_y_projection(packet, start_idx=0, end_idx=None):
             index of first packet frame to use in creating the projection
         end_idx :       int or None
             index of first packet frame to not use in creating the projection
+        dtype :         str or np.number
+            data type of created gtuy projection
     """
-    return np.max(packet[start_idx:end_idx], axis=2)
+    return np.max(packet[start_idx:end_idx], axis=2).astype(dtype)
 
 
 _packet_converters = {
@@ -227,7 +235,8 @@ _packet_converters = {
 }
 
 
-def convert_packet(packet, item_types, start_idx=0, end_idx=None):
+def convert_packet(packet, item_types, start_idx=0, end_idx=None,
+                   dtype=np.uint8):
     """
         Convert packet to a set of data items as specified by the keys in the
         parameter item_types. This function serves as a wrapper which calls the
@@ -244,12 +253,12 @@ def convert_packet(packet, item_types, start_idx=0, end_idx=None):
             index of first packet frame to use in creating the data items
         end_idx :       int or None
             index of first packet frame to not use in creating the data itmes
-        item_types :     dict of str to bool
+        item_types :    dict of str to bool
             the item types requested to be created from the original packet
     """
     check_item_types(item_types)
-    return {k: (None if item_types[k] is False else
-            _packet_converters[k](packet, start_idx, end_idx))
+    return {k: (None if item_types[k] is False else _packet_converters[k](
+                    packet, dtype=dtype, start_idx=start_idx, end_idx=end_idx))
             for k in ALL_ITEM_TYPES}
 
 # get data item shape
@@ -341,8 +350,9 @@ class numpy_dataset:
         packet projectons.
     """
 
-    def __init__(self, name, packet_shape, item_types={'raw': True,
-                 'yx': False, 'gtux': False, 'gtuy': False}, dtype=np.uint8):
+    def __init__(self, name, packet_shape, resizable=True, dtype=np.uint8,
+                 item_types={'raw': True, 'yx': False, 'gtux': False,
+                             'gtuy': False}):
         check_item_types(item_types)
         self._item_types = item_types
         self._used_types = tuple(k for k in ALL_ITEM_TYPES
@@ -355,6 +365,7 @@ class numpy_dataset:
         self._metadata = []
         self._metafields = set()
         self._num_data = 0
+        self.dtype = dtype
         self.resizable = True
         self.name = name
 
@@ -362,7 +373,8 @@ class numpy_dataset:
         attrs_dict = {
             'name': self.name,
             'packet_shape': self.accepted_packet_shape,
-            'item_types': self.item_types}
+            'item_types': self.item_types,
+            'dtype': dtype}
         return str(attrs_dict)
 
     # helper methods
@@ -392,6 +404,23 @@ class numpy_dataset:
     def resizable(self, value):
         """Boolean flag indicating whether adding items is allowed"""
         self._resizable = value
+
+    @property
+    def dtype(self):
+        """Datatype of dataset items."""
+        return self._dtype
+
+    @dtype.setter
+    def dtype(self, value):
+        """Datatype of dataset items."""
+        dtype = np.dtype(value)
+        if not np.issubdtype(dtype, np.number):
+            raise Exception('Illegal data type: {}'.format(value))
+        for item_type in self._used_types:
+            data = self._data[item_type]
+            data = [datum.astype(dtype) for datum in data]
+            self._data[item_type] = data
+        self._dtype = dtype.name
 
     @property
     def num_data(self):
@@ -465,11 +494,12 @@ class numpy_dataset:
     def add_data_item(self, packet, target, metadata={}):
         if not self._resizable:
             raise Exception('Cannot add items to dataset')
-        if packet.shape != self.accepted_packet_shape:
+        if packet.shape != self._packet_shape:
             raise ValueError('Packet with incompatible shape passed.\n'
-                             'Required:{}\nActual:'.format(self._packet_shape,
-                                                           packet.shape))
-        data_items = convert_packet(packet, item_types=self._item_types)
+                             'Required:{}\nActual{}:'.format(
+                                 self._packet_shape, packet.shape))
+        data_items = convert_packet(packet, self._item_types,
+                                    dtype=self._dtype)
         for key in self._used_types:
             self._data[key].append(data_items[key])
         self._targets.append(target)
@@ -497,7 +527,7 @@ class numpy_dataset:
             np.random.set_state(rng_state)
             np.random.shuffle(self._metadata)
 
-    def is_compatible_with(self, other_dataset):
+    def is_compatible_with(self, other_dataset, check_dtype=False):
         """
             Check if the other dataset is compatible with the current dataset.
 
@@ -537,6 +567,8 @@ class numpy_dataset:
         data = other_dataset.get_data_as_dict(s)
         for k in self._used_types:
             (self._data[k]).extend(data[k])
+        # cast values to current dtype
+        self.dtype = self.dtype
         targets = other_dataset.get_targets(s)
         self._targets.extend(targets)
         metadata = other_dataset.get_metadata(s)

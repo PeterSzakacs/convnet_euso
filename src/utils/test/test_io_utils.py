@@ -188,7 +188,7 @@ class TestDatasetMetadataFsPersistencyManager(unittest.TestCase):
 
         dset_meta = self.handler.load_metadata(self.name, metafields)
         self.assertListEqual(dset_meta, self.m_meta)
-        m_load.assert_called_once_with(exp_filename, 
+        m_load.assert_called_once_with(exp_filename,
                                        selected_columns=set(metafields))
 
     @mock.patch('utils.io_utils.save_TSV')
@@ -265,6 +265,7 @@ class TestDatasetFsPersistencyManager(unittest.TestCase):
         # a mock dataset to use (also serves as value container)
         m_dataset = mock.create_autospec(ds.numpy_dataset)
         m_dataset.name = 'test'
+        m_dataset.dtype = 'float32'
         m_dataset.num_data = n_data
         m_dataset.accepted_packet_shape = (n_f, f_h, f_w)
         m_dataset.item_types = item_types
@@ -279,15 +280,16 @@ class TestDatasetFsPersistencyManager(unittest.TestCase):
         cls.m_dataset = m_dataset
 
         cls.configfile_contents = (
-            '[general]{}'.format(os.linesep) + 
-            'num_data = {}{}'.format(n_data, os.linesep) + 
-            'metafields = {}{}'.format(metafields, os.linesep) + 
-            '{}[packet_shape]{}'.format(os.linesep, os.linesep) + 
-            'num_frames = {}{}'.format(n_f, os.linesep) + 
-            'frame_height = {}{}'.format(f_h, os.linesep) + 
-            'frame_width = {}{}'.format(f_w, os.linesep) + 
-            '{}[item_types]{}'.format(os.linesep, os.linesep) + 
-            ''.join('{} = {}{}'.format(k, item_types[k], os.linesep) 
+            '[general]{}'.format(os.linesep) +
+            'num_data = {}{}'.format(n_data, os.linesep) +
+            'metafields = {}{}'.format(metafields, os.linesep) +
+            'dtype = {}{}'.format(m_dataset.dtype, os.linesep) +
+            '{}[packet_shape]{}'.format(os.linesep, os.linesep) +
+            'num_frames = {}{}'.format(n_f, os.linesep) +
+            'frame_height = {}{}'.format(f_h, os.linesep) +
+            'frame_width = {}{}'.format(f_w, os.linesep) +
+            '{}[item_types]{}'.format(os.linesep, os.linesep) +
+            ''.join('{} = {}{}'.format(k, item_types[k], os.linesep)
                     for k in ds.ALL_ITEM_TYPES) +
             os.linesep
         )
@@ -339,7 +341,8 @@ class TestDatasetFsPersistencyManager(unittest.TestCase):
         exp_attrs = { 'num_data': m_dataset.num_data,
             'metafields': m_dataset.metadata_fields,
             'item_types': m_dataset.item_types,
-            'packet_shape': m_dataset.accepted_packet_shape }
+            'packet_shape': m_dataset.accepted_packet_shape,
+            'dtype': m_dataset.dtype }
         exp_filename = os.path.join(self.loaddir, self.configfile)
 
         config = self.handler.load_dataset_config(m_dataset.name)
@@ -392,7 +395,7 @@ class TestDatasetFsPersistencyManager(unittest.TestCase):
         exp_configfile = os.path.join(self.savedir, self.configfile)
         exp_filenames = {k: os.path.join(self.savedir, self.datafiles[k])
                          for k in items.keys()}
-        
+
         self.handler.save_dataset(m_dataset, metafields_order=self.meta_order)
         # main postcondition asserted: that the config file was saved to with
         # the proper filename
@@ -408,8 +411,8 @@ class TestDatasetFsPersistencyManager(unittest.TestCase):
         targ_handler = self.handler.targets_persistency_handler
         targ_handler.save_targets.assert_called_with(name, m_targets)
         meta_handler = self.handler.metadata_persistency_handler
-        meta_handler.save_metadata.assert_called_with(name, m_meta, 
-            metafields=m_dataset.metadata_fields, 
+        meta_handler.save_metadata.assert_called_with(name, m_meta,
+            metafields=m_dataset.metadata_fields,
             metafields_order=self.meta_order)
 
 if __name__ == '__main__':
