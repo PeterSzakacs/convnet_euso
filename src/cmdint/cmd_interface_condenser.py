@@ -2,6 +2,7 @@ import os
 import argparse
 
 import utils.common_utils as cutils
+import utils.target_utils as targ
 import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
 import cmdint.arparse_actions as actions
@@ -30,7 +31,7 @@ class cmd_interface():
         item_args = cargs.item_types_args()
         item_args.add_item_type_args(group, cargs.arg_type.OUTPUT)
         group.add_argument('--target', required=True,
-                           choices=('shower', 'noise'),
+                           choices=targ.CLASSIFICATION_TARGETS.keys(),
                            help=('classification target value to use for all '
                                  'items'))
         group.add_argument('--dtype', default='float32',

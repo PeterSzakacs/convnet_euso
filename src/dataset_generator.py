@@ -8,6 +8,7 @@ import utils.dataset_utils as ds
 import utils.io_utils as io_utils
 import utils.metadata_utils as meta
 import utils.synth_data_utils as sdutils
+import utils.target_utils as targ
 
 
 class simulated_data_generator():
@@ -141,16 +142,18 @@ class simulated_data_generator():
         num_showers = int(num_data / 2)
         shower_creator = self.create_shower_packet
         noise_creator = self.create_noise_packet
+        shower_target =  targ.CLASSIFICATION_TARGETS['shower']
+        noise_target = targ.CLASSIFICATION_TARGETS['noise']
         iteration_handlers = (
-            {'target': [1, 0], 'start': 0, 'stop': int(num_showers / 2),
+            {'target': shower_target, 'start': 0, 'stop': int(num_showers / 2),
              'packet_handler': lambda angle: shower_creator(angle, ec_gen())},
-            {'target': [1, 0], 'start': int(num_showers / 2),
+            {'target': shower_target, 'start': int(num_showers / 2),
              'stop': num_showers,
              'packet_handler': lambda angle: shower_creator(angle)},
-            {'target': [0, 1], 'start': num_showers,
+            {'target': noise_target, 'start': num_showers,
              'stop': num_data - int(num_showers / 2),
              'packet_handler': lambda angle: noise_creator(ec_gen())},
-            {'target': [0, 1], 'start': num_data - int(num_showers / 2),
+            {'target': noise_target, 'start': num_data - int(num_showers / 2),
              'stop': num_data,
              'packet_handler': lambda angle: noise_creator()}
         )

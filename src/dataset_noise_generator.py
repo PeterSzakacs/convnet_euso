@@ -5,6 +5,7 @@ import numpy as np
 import utils.common_utils as cutils
 import utils.dataset_utils as ds
 import utils.io_utils as io_utils
+import utils.target_utils as targ
 
 
 class bg_lambda_default_generator:
@@ -64,7 +65,7 @@ def main(**kwargs):
                                dtype=dtype)
     handler = io_utils.dataset_fs_persistency_handler(save_dir=outdir)
 
-    target = [0, 1]
+    target = targ.get_target_name('noise')
     for idx in range(num_items):
         packet, meta = packet_generator()
         dataset.add_data_item(packet, target, meta)
