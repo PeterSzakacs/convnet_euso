@@ -19,20 +19,23 @@ class TestPacketArgs(unittest.TestCase):
     # test methods
 
     def test_add_packet_arg_no_alias(self):
-        mock_parser = mock.MagicMock()
-        expected_aliases = ('--{}'.format(self.long_alias), )
-        self.packet_args.add_packet_arg(mock_parser)
-        self.assertEqual(mock_parser.add_argument.call_count, 1)
-        self.assertTupleEqual(mock_parser.add_argument.call_args[0],
-                              expected_aliases)
+        parser = argparse.ArgumentParser()
+        packet_dims = [128, 64, 48, 32, 16]
+        self.packet_args.add_packet_arg(parser)
+        cmdline = '--{} {}'.format(self.long_alias, 
+                                   ' '.join(str(v) for v in packet_dims))
+        args = parser.parse_args(cmdline.split())
+        self.assertListEqual(getattr(args, self.long_alias), packet_dims)
 
     def test_add_packet_arg_with_alias(self):
-        mock_parser = mock.MagicMock()
-        expected_aliases = ('-p', '--{}'.format(self.long_alias))
-        self.packet_args.add_packet_arg(mock_parser, short_alias='p')
-        self.assertEqual(mock_parser.add_argument.call_count, 1)
-        self.assertTupleEqual(mock_parser.add_argument.call_args[0],
-                              expected_aliases)
+        parser = argparse.ArgumentParser()
+        packet_dims = [128, 64, 48, 32, 16]
+        short_alias = 'p'
+        self.packet_args.add_packet_arg(parser, short_alias=short_alias)
+        cmdline = '-{} {}'.format(short_alias, 
+                                  ' '.join(str(v) for v in packet_dims))
+        args = parser.parse_args(cmdline.split())
+        self.assertListEqual(getattr(args, self.long_alias), packet_dims)
 
     def test_packet_arg_to_string(self):
         gtu, w, h = 128, 64, 48
