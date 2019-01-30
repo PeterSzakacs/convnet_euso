@@ -12,9 +12,10 @@ class TestPacketArgs(unittest.TestCase):
 
     # test setup
 
-    def setUp(self):
-        self.long_alias = 'packet'
-        self.packet_args = cargs.packet_args(long_alias=self.long_alias)
+    @classmethod
+    def setUpClass(cls):
+        cls.long_alias = 'packet'
+        cls.packet_args = cargs.packet_args(long_alias=cls.long_alias)
 
     # test methods
 
@@ -61,17 +62,18 @@ class TestDatasetArgs(unittest.TestCase):
 
     # test setup
 
-    def setUp(self):
-        self.in_alss = {
+    @classmethod
+    def setUpClass(cls):
+        cls.in_alss = {
             'dataset name': 'in_name', 'dataset directory': 'src_dir',
             'dataset': 'in_dset'
         }
-        self.out_alss = {
+        cls.out_alss = {
             'dataset name': 'out_name', 'dataset directory': 'out_dir',
             'dataset': 'out_dset'
         }
-        self.dset_args = cargs.dataset_args(input_aliases=self.in_alss,
-                                            output_aliases=self.out_alss)
+        cls.dset_args = cargs.dataset_args(input_aliases=cls.in_alss,
+                                            output_aliases=cls.out_alss)
 
     # test methods
     # dataset single-argument input/output
