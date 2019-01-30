@@ -59,38 +59,9 @@ class TestPacketArgs(unittest.TestCase):
 
 class TestDatasetArgs(unittest.TestCase):
 
-    # helper methods (custom assert)
-
-    def _assert_call_single(self, mock_parser, exp_pos, action, atype,
-                            multiple=False):
-        self.assertEqual(mock_parser.add_argument.call_count, 1)
-        self.assertEqual(mock_parser.add_argument.call_args[0], exp_pos)
-        kw = mock_parser.add_argument.call_args[1]
-        metavar = self.i_meta if atype == cargs.arg_type.INPUT else self.o_meta
-        help = '{} dataset'.format(atype.value)
-        if multiple:
-            help += '(s)'
-        self.assertEqual(kw['metavar'], metavar)
-        self.assertEqual(kw['action'], action)
-        self.assertEqual(kw['help'], help)
-
-    def _assert_call_double(self, mock_parser, exp_name_pos, exp_dir_pos,
-                            atype):
-        self.assertEqual(mock_parser.add_argument.call_count, 2)
-        name_pos, name_kw = mock_parser.add_argument.call_args_list[0][:]
-        dir_pos, dir_kw = mock_parser.add_argument.call_args_list[1][:]
-        self.assertEqual(name_pos, exp_name_pos)
-        self.assertEqual(dir_pos, exp_dir_pos)
-        dir_pos, dir_kw = mock_parser.add_argument.call_args_list[1][:]
-        v = atype.value
-        self.assertEqual(name_kw['help'], '{} dataset name'.format(v))
-        self.assertEqual(dir_kw['help'], '{} dataset directory'.format(v))
-
     # test setup
 
     def setUp(self):
-        self.i_meta = ('NAME', 'INPUT_DIR')
-        self.o_meta = ('NAME', 'OUTPUT_DIR')
         self.in_alss = {
             'dataset name': 'in_name', 'dataset directory': 'src_dir',
             'dataset': 'in_dset'
