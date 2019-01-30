@@ -22,7 +22,7 @@ class TestPacketArgs(unittest.TestCase):
         parser = argparse.ArgumentParser()
         packet_dims = [128, 64, 48, 32, 16]
         self.packet_args.add_packet_arg(parser)
-        cmdline = '--{} {}'.format(self.long_alias, 
+        cmdline = '--{} {}'.format(self.long_alias,
                                    ' '.join(str(v) for v in packet_dims))
         args = parser.parse_args(cmdline.split())
         self.assertListEqual(getattr(args, self.long_alias), packet_dims)
@@ -32,7 +32,7 @@ class TestPacketArgs(unittest.TestCase):
         packet_dims = [128, 64, 48, 32, 16]
         short_alias = 'p'
         self.packet_args.add_packet_arg(parser, short_alias=short_alias)
-        cmdline = '-{} {}'.format(short_alias, 
+        cmdline = '-{} {}'.format(short_alias,
                                   ' '.join(str(v) for v in packet_dims))
         args = parser.parse_args(cmdline.split())
         self.assertListEqual(getattr(args, self.long_alias), packet_dims)
@@ -103,78 +103,163 @@ class TestDatasetArgs(unittest.TestCase):
                                             output_aliases=self.out_alss)
 
     # test methods
+    # dataset single-argument input/output
 
     def test_add_dataset_arg_single_output(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.OUTPUT
-        exp_pos = ('--{}'.format(self.out_alss['dataset']), )
-        self.dset_args.add_dataset_arg_single(mock_parser, atype,
-                                              input_metavars=self.i_meta,
-                                              output_metavars=self.o_meta)
-        self._assert_call_single(mock_parser, exp_pos, 'store', atype, False)
+        parser = argparse.ArgumentParser()
+        self.dset_args.add_dataset_arg_single(parser, cargs.arg_type.OUTPUT)
+        alias = self.out_alss['dataset']
+        name, dir = 'test', '../dir'
+        cmdline = '--{} {}'.format(alias, ' '.join([name, dir]))
+        args = parser.parse_args(cmdline.split())
+        self.assertListEqual(getattr(args, alias), [name, dir])
 
-    def test_add_dataset_arg_single_short_alias(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.OUTPUT
-        exp_pos = ('-d', '--{}'.format(self.out_alss['dataset']))
-        self.dset_args.add_dataset_arg_single(mock_parser, atype,
-                                              short_alias='d',
-                                              input_metavars=self.i_meta,
-                                              output_metavars=self.o_meta)
-        self._assert_call_single(mock_parser, exp_pos, 'store', atype, False)
+    def test_add_dataset_arg_single_output_short_alias(self):
+        parser = argparse.ArgumentParser()
+        alias, s_alias = self.out_alss['dataset'], 'd'
+        self.dset_args.add_dataset_arg_single(parser, cargs.arg_type.OUTPUT,
+                                              short_alias=s_alias)
+        name, dir = 'test', '../dir'
+        cmdline = '-{} {}'.format(s_alias, ' '.join([name, dir]))
+        args = parser.parse_args(cmdline.split())
+        self.assertListEqual(getattr(args, alias), [name, dir])
+
+    def test_add_dataset_arg_single_output_multiple(self):
+        parser = argparse.ArgumentParser()
+        self.dset_args.add_dataset_arg_single(parser, cargs.arg_type.OUTPUT,
+                                              multiple=True)
+        alias = self.out_alss['dataset']
+        dsets = [['name1', '../dir2'], ['name2', '../dir1']]
+        cmdline = ' '.join('--{} {} {}'.format(alias, dset[0], dset[1])
+                           for dset in dsets)
+        args = parser.parse_args(cmdline.split())
+        self.assertListEqual(getattr(args, alias), dsets)
 
     def test_add_dataset_arg_single_input(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.INPUT
-        exp_pos = ('--{}'.format(self.in_alss['dataset']), )
-        self.dset_args.add_dataset_arg_single(mock_parser, atype,
-                                              input_metavars=self.i_meta,
-                                              output_metavars=self.o_meta)
-        self._assert_call_single(mock_parser, exp_pos, 'store', atype, False)
+        parser = argparse.ArgumentParser()
+        self.dset_args.add_dataset_arg_single(parser, cargs.arg_type.INPUT)
+        alias = self.in_alss['dataset']
+        name, dir = 'test', '../dir'
+        cmdline = '--{} {}'.format(alias, ' '.join([name, dir]))
+        args = parser.parse_args(cmdline.split())
+        self.assertListEqual(getattr(args, alias), [name, dir])
 
-    def test_add_dataset_arg_single_multiple(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.OUTPUT
-        exp_pos = ('--{}'.format(self.out_alss['dataset']), )
-        self.dset_args.add_dataset_arg_single(mock_parser, atype,
-                                              input_metavars=self.i_meta,
-                                              output_metavars=self.o_meta,
+    def test_add_dataset_arg_single_input_short_alias(self):
+        parser = argparse.ArgumentParser()
+        alias, s_alias = self.in_alss['dataset'], 'i'
+        self.dset_args.add_dataset_arg_single(parser, cargs.arg_type.INPUT,
+                                              short_alias=s_alias)
+        name, dir = 'test', '../dir'
+        cmdline = '-{} {}'.format(s_alias, ' '.join([name, dir]))
+        args = parser.parse_args(cmdline.split())
+        self.assertListEqual(getattr(args, alias), [name, dir])
+
+    def test_add_dataset_arg_single_input_multiple(self):
+        parser = argparse.ArgumentParser()
+        self.dset_args.add_dataset_arg_single(parser, cargs.arg_type.INPUT,
                                               multiple=True)
-        self._assert_call_single(mock_parser, exp_pos, 'append', atype, True)
+        alias = self.in_alss['dataset']
+        dsets = [['name1', '../dir2'], ['name2', '../dir1']]
+        cmdline = ' '.join('--{} {} {}'.format(alias, dset[0], dset[1])
+                           for dset in dsets)
+        args = parser.parse_args(cmdline.split())
+        self.assertListEqual(getattr(args, alias), dsets)
+
+    # dataset dual-argument input/output (name and dir argument)
 
     def test_add_dataset_arg_double_output(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.OUTPUT
-        exp_name_pos = ('--{}'.format(self.out_alss['dataset name']), )
-        exp_dir_pos = ('--{}'.format(self.out_alss['dataset directory']), )
-        self.dset_args.add_dataset_arg_double(mock_parser, atype)
-        self._assert_call_double(mock_parser, exp_name_pos, exp_dir_pos, atype)
+        parser = argparse.ArgumentParser()
+        self.dset_args.add_dataset_arg_double(parser, cargs.arg_type.OUTPUT)
+        name_als = self.out_alss['dataset name']
+        dir_als = self.out_alss['dataset directory']
+        name, dset_dir = 'name', 'testdir2/'
+        cmdline = '--{} {} --{} {}'.format(name_als, name, dir_als, dset_dir)
+        args = parser.parse_args(cmdline.split())
+        self.assertEqual(getattr(args, name_als), name)
+        self.assertEqual(getattr(args, dir_als), dset_dir)
 
-    def test_add_dataset_arg_double_name_alias(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.OUTPUT
-        exp_name_pos = ('-n', '--{}'.format(self.out_alss['dataset name']))
-        exp_dir_pos = ('--{}'.format(self.out_alss['dataset directory']), )
-        self.dset_args.add_dataset_arg_double(mock_parser, atype,
-                                              name_short_alias='n')
-        self._assert_call_double(mock_parser, exp_name_pos, exp_dir_pos, atype)
+    def test_add_dataset_arg_double_output_name_alias(self):
+        parser = argparse.ArgumentParser()
+        name_als, short_als = self.out_alss['dataset name'], 'n'
+        self.dset_args.add_dataset_arg_double(parser, cargs.arg_type.OUTPUT,
+                                              name_short_alias=short_als,
+                                              required=False)
+        name = 'dset_name'
+        cmdline = '-{} {}'.format(short_als, name)
+        args = parser.parse_args(cmdline.split())
+        self.assertEqual(getattr(args, name_als), name)
 
-    def test_add_dataset_arg_double_dir_alias(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.OUTPUT
-        exp_name_pos = ('--{}'.format(self.out_alss['dataset name']), )
-        exp_dir_pos = ('-d', '--{}'.format(self.out_alss['dataset directory']))
-        self.dset_args.add_dataset_arg_double(mock_parser, atype,
-                                              dir_short_alias='d')
-        self._assert_call_double(mock_parser, exp_name_pos, exp_dir_pos, atype)
+    def test_add_dataset_arg_double_output_dir_alias(self):
+        parser = argparse.ArgumentParser()
+        dir_als, short_als = self.out_alss['dataset directory'], 'd'
+        self.dset_args.add_dataset_arg_double(parser, cargs.arg_type.OUTPUT,
+                                              dir_short_alias=short_als,
+                                              required=False)
+        dset_dir = '/var/testdir'
+        cmdline = '-{} {}'.format(short_als, dset_dir)
+        args = parser.parse_args(cmdline.split())
+        self.assertEqual(getattr(args, dir_als), dset_dir)
 
     def test_add_dataset_arg_double_input(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.INPUT
-        exp_name_pos = ('--{}'.format(self.in_alss['dataset name']), )
-        exp_dir_pos = ('--{}'.format(self.in_alss['dataset directory']), )
-        self.dset_args.add_dataset_arg_double(mock_parser, atype)
-        self._assert_call_double(mock_parser, exp_name_pos, exp_dir_pos, atype)
+        parser = argparse.ArgumentParser()
+        self.dset_args.add_dataset_arg_double(parser, cargs.arg_type.INPUT)
+        name_als = self.in_alss['dataset name']
+        dir_als = self.in_alss['dataset directory']
+        name, dset_dir = 'name', 'testdir2/'
+        cmdline = '--{} {} --{} {}'.format(name_als, name, dir_als, dset_dir)
+        args = parser.parse_args(cmdline.split())
+        self.assertEqual(getattr(args, name_als), name)
+        self.assertEqual(getattr(args, dir_als), dset_dir)
+
+    def test_add_dataset_arg_double_input_name_alias(self):
+        parser = argparse.ArgumentParser()
+        name_als, short_als = self.in_alss['dataset name'], 'c'
+        self.dset_args.add_dataset_arg_double(parser, cargs.arg_type.INPUT,
+                                              name_short_alias=short_als,
+                                              required=False)
+        name = 'dset_name'
+        cmdline = '-{} {}'.format(short_als, name)
+        args = parser.parse_args(cmdline.split())
+        self.assertEqual(getattr(args, name_als), name)
+
+    def test_add_dataset_arg_double_input_dir_alias(self):
+        parser = argparse.ArgumentParser()
+        dir_als, short_als = self.in_alss['dataset directory'], 'i'
+        self.dset_args.add_dataset_arg_double(parser, cargs.arg_type.INPUT,
+                                              dir_short_alias=short_als,
+                                              required=False)
+        dset_dir = '/var/testdir'
+        cmdline = '-{} {}'.format(short_als, dset_dir)
+        args = parser.parse_args(cmdline.split())
+        self.assertEqual(getattr(args, dir_als), dset_dir)
+
+    def test_add_dataset_arg_double_input_dir_missing(self):
+        parser = argparse.ArgumentParser()
+        name_als, short_als = self.in_alss['dataset name'], 'c'
+        self.dset_args.add_dataset_arg_double(parser, cargs.arg_type.INPUT,
+                                              name_short_alias=short_als,
+                                              required=True)
+        name = 'dset_name'
+        cmdline = '-{} {}'.format(short_als, name)
+        with self.assertRaises(SystemExit) as cm:
+            args = parser.parse_args(cmdline.split())
+            self.fail('Failed to raise exception when directory not passed')
+        self.assertEqual(cm.exception.code, 2)
+
+    def test_add_dataset_arg_double_input_name_miissing(self):
+        parser = argparse.ArgumentParser()
+        dir_als, short_als = self.in_alss['dataset directory'], 'i'
+        self.dset_args.add_dataset_arg_double(parser, cargs.arg_type.INPUT,
+                                              dir_short_alias=short_als,
+                                              required=True)
+        dset_dir = '/var/testdir'
+        cmdline = '-{} {}'.format(short_als, dset_dir)
+        with self.assertRaises(SystemExit) as cm:
+            args = parser.parse_args(cmdline.split())
+            self.fail('Failed to raise exception when name not passed')
+        self.assertEqual(cm.exception.code, 2)
+
+    # test get arguments from arg object
 
     def test_get_dataset_double_input(self):
         attrs = [self.in_alss['dataset name'],
