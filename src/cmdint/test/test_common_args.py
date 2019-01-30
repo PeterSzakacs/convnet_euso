@@ -281,32 +281,28 @@ class TestItemTypeArgs(unittest.TestCase):
     # test methods
 
     def test_add_item_type_args_input(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.INPUT
-        self.item_args.add_item_type_args(mock_parser, atype, self.required)
-        self.assertEqual(mock_parser.add_argument.call_count,
-                         len(ds.ALL_ITEM_TYPES))
-        for idx in range(len(ds.ALL_ITEM_TYPES)):
-            item_type = ds.ALL_ITEM_TYPES[idx]
-            exp_pos = ('--{}_{}'.format(self.in_prefix, item_type), )
-            act_pos = mock_parser.add_argument.call_args_list[idx][0]
-            self.assertEqual(exp_pos, act_pos)
-            kw = mock_parser.add_argument.call_args_list[idx][1]
-            self.assertEqual(kw['required'], self.required[item_type])
+        parser = argparse.ArgumentParser()
+        self.item_args.add_item_type_args(parser, cargs.arg_type.INPUT,
+                                          self.required)
+        in_pref = self.in_prefix
+        exp_attrs = {'{}_{}'.format(in_pref, k): True
+                     for k in ds.ALL_ITEM_TYPES}
+        exp_args = argparse.Namespace(**exp_attrs)
+        cmdline = ['--{}'.format(k) for k in exp_attrs.keys()]
+        args = parser.parse_args(cmdline)
+        self.assertEqual(args, exp_args)
 
     def test_add_item_type_args_output(self):
-        mock_parser = mock.MagicMock()
-        atype = cargs.arg_type.OUTPUT
-        self.item_args.add_item_type_args(mock_parser, atype, self.required)
-        self.assertEqual(mock_parser.add_argument.call_count,
-                         len(ds.ALL_ITEM_TYPES))
-        for idx in range(len(ds.ALL_ITEM_TYPES)):
-            item_type = ds.ALL_ITEM_TYPES[idx]
-            exp_pos = ('--{}_{}'.format(self.out_prefix, item_type), )
-            act_pos = mock_parser.add_argument.call_args_list[idx][0]
-            self.assertEqual(exp_pos, act_pos)
-            kw = mock_parser.add_argument.call_args_list[idx][1]
-            self.assertEqual(kw['required'], self.required[item_type])
+        parser = argparse.ArgumentParser()
+        self.item_args.add_item_type_args(parser, cargs.arg_type.OUTPUT,
+                                          self.required)
+        in_pref = self.out_prefix
+        exp_attrs = {'{}_{}'.format(in_pref, k): True
+                     for k in ds.ALL_ITEM_TYPES}
+        exp_args = argparse.Namespace(**exp_attrs)
+        cmdline = ['--{}'.format(k) for k in exp_attrs.keys()]
+        args = parser.parse_args(cmdline)
+        self.assertEqual(args, exp_args)
 
     def test_get_item_type_args_input(self):
         attr_names = ['{}_{}'.format(self.in_prefix, item_type)
