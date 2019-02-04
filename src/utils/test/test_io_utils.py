@@ -12,7 +12,6 @@ import test.test_setups as testset
 import utils.dataset_utils as ds
 import utils.data_templates as templates
 import utils.io_utils as io_utils
-import utils.metadata_utils as meta
 
 
 class MockFileStream(io.StringIO):
@@ -154,14 +153,13 @@ class TestPacketExtractor(unittest.TestCase):
         nptest.assert_array_equal(extracted_packets, self.expected_packets)
 
 
-class TestDatasetMetadataFsPersistencyManager(unittest.TestCase):
+class TestDatasetMetadataFsPersistencyManager(testset.DatasetMetadataMixin,
+                                              unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestDatasetMetadataFsPersistencyManager, cls).setUpClass()
         cls.name, cls.loaddir, cls.savedir = 'test', '/dsets', '/test'
-        meta_dict = {k: None for k in meta.FLIGHT_METADATA}
-        cls.m_meta = [meta_dict] * 2
-        cls.meta_fields = set(meta.FLIGHT_METADATA)
         file_suffix = '_meta_test'
         cls.metafile = '{}{}.tsv'.format(cls.name, file_suffix)
         with mock.patch('os.path.isdir', return_value=True),\
@@ -174,45 +172,45 @@ class TestDatasetMetadataFsPersistencyManager(unittest.TestCase):
 
     @mock.patch('utils.io_utils.load_TSV')
     def test_load_dataset_metadata(self, m_load):
-        m_load.return_value = self.m_meta
+        m_load.return_value = self.mock_meta
         exp_filename = os.path.join(self.loaddir, self.metafile)
 
         dset_meta = self.handler.load_metadata(self.name)
-        self.assertListEqual(dset_meta, self.m_meta)
+        self.assertListEqual(dset_meta, self.mock_meta)
         m_load.assert_called_once_with(exp_filename, selected_columns=None)
 
     @mock.patch('utils.io_utils.load_TSV')
     def test_load_dataset_metadata_specific_fields(self, m_load):
-        m_load.return_value = self.m_meta
+        m_load.return_value = self.mock_meta
         exp_filename = os.path.join(self.loaddir, self.metafile)
-        metafields = [next(iter(self.meta_fields))]
+        metafields = [next(iter(self.metafields))]
 
         dset_meta = self.handler.load_metadata(self.name, metafields)
-        self.assertListEqual(dset_meta, self.m_meta)
+        self.assertListEqual(dset_meta, self.mock_meta)
         m_load.assert_called_once_with(exp_filename,
                                        selected_columns=set(metafields))
 
     @mock.patch('utils.io_utils.save_TSV')
     def test_save_dataset_metadata(self, m_save):
         exp_filename = os.path.join(self.savedir, self.metafile)
-        ordered_meta = list(self.meta_fields)
+        ordered_meta = list(self.metafields)
         ordered_meta.sort()
 
-        filename = self.handler.save_metadata(self.name, self.m_meta)
+        filename = self.handler.save_metadata(self.name, self.mock_meta)
         self.assertEqual(filename, exp_filename)
-        m_save.assert_called_once_with(exp_filename, self.m_meta,
+        m_save.assert_called_once_with(exp_filename, self.mock_meta,
                                        ordered_meta,
                                        file_exists_overwrite=True)
 
     @mock.patch('utils.io_utils.save_TSV')
     def test_save_dataset_metadata_unaccounted_metafields(self, m_save):
-        metafields = self.meta_fields.copy()
+        metafields = self.metafields.copy()
         metafields.add('testfield')
-        ordered_meta = list(self.meta_fields)
+        ordered_meta = list(self.metafields)
         ordered_meta.sort()
 
         self.assertRaises(Exception, self.handler.save_metadata, self.name,
-                          self.m_meta, metafields=metafields,
+                          self.mock_meta, metafields=metafields,
                           metafields_order=ordered_meta)
         m_save.assert_not_called()
 
