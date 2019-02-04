@@ -217,13 +217,14 @@ class TestDatasetMetadataFsPersistencyManager(unittest.TestCase):
         m_save.assert_not_called()
 
 
-class TestDatasetTargetsFsPersistencyManager(unittest.TestCase):
+class TestDatasetTargetsFsPersistencyManager(testset.DatasetTargetsMixin,
+                                             unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestDatasetTargetsFsPersistencyManager, cls).setUpClass()
         cls.name, cls.loaddir, cls.savedir = 'test', '/dsets', '/test'
         # for targets, having live numpy arrays is not necessary
-        cls.m_targets = 'targets'
         file_suffix = '_class_targets_test'
         cls.targetsfile = '{}{}.npy'.format(cls.name, file_suffix)
         with mock.patch('os.path.isdir', return_value=True),\
@@ -236,18 +237,18 @@ class TestDatasetTargetsFsPersistencyManager(unittest.TestCase):
 
     @mock.patch('numpy.load')
     def test_load_dataset_targets(self, m_load):
-        m_load.return_value = self.m_targets
+        m_load.return_value = self.mock_targets
         exp_filename = os.path.join(self.loaddir, self.targetsfile)
         dset_targets = self.handler.load_targets(self.name)
-        self.assertEqual(dset_targets, self.m_targets)
+        nptest.assert_array_equal(dset_targets, self.mock_targets)
         m_load.assert_called_with(exp_filename)
 
     @mock.patch('numpy.save')
     def test_save_dataset_targets(self, m_save):
         exp_filename = os.path.join(self.savedir, self.targetsfile)
-        filename = self.handler.save_targets(self.name, self.m_targets)
+        filename = self.handler.save_targets(self.name, self.mock_targets)
         self.assertEqual(filename, exp_filename)
-        m_save.assert_called_once_with(exp_filename, self.m_targets)
+        m_save.assert_called_once_with(exp_filename, self.mock_targets)
 
 
 class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
