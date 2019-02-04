@@ -1,43 +1,14 @@
 import unittest
-import unittest.mock as mock
 
 import numpy as np
 import numpy.testing as nptest
 
+import test.test_setups as testset
 import utils.dataset_utils as ds
 import utils.metadata_utils as meta
 
-class TestDatasetUtilsBase(unittest.TestCase):
 
-    # test setup
-
-    @classmethod
-    def setUpClass(cls):
-        cls.f_w, cls.f_h, cls.n_f = 48, 64, 20
-        cls.packet_shape = (cls.n_f, cls.f_h, cls.f_w)
-        cls.n_packets = 2
-        cls.item_shapes = {
-            'raw' : (cls.n_f, cls.f_h, cls.f_w),
-            'yx'  : (cls.f_h, cls.f_w),
-            'gtux': (cls.n_f, cls.f_w),
-            'gtuy': (cls.n_f, cls.f_h),
-        }
-        cls.items = {
-            'raw' : np.ones((cls.n_packets, *cls.item_shapes['raw'])),
-            'yx'  : np.ones((cls.n_packets, *cls.item_shapes['yx'])),
-            'gtux': np.ones((cls.n_packets, *cls.item_shapes['gtux'])),
-            'gtuy': np.ones((cls.n_packets, *cls.item_shapes['gtuy']))}
-        cls.item_types = {k: True for k in ds.ALL_ITEM_TYPES}
-        # make some randomness in the first packet and derived items
-        packet = cls.items['raw'][0]
-        packet[0, 0, 0], packet[1] = 3, 4
-        yx = cls.items['yx'][0]
-        yx.fill(4)
-        gtux, gtuy = cls.items['gtux'][0], cls.items['gtuy'][0]
-        gtux[0, 0], gtuy[0, 0], gtux[1], gtuy[1] = 3, 3, 4, 4
-
-
-class TestDatasetUtilsFunctions(TestDatasetUtilsBase):
+class TestDatasetUtilsFunctions(testset.DatasetItemsMixin, unittest.TestCase):
 
     # test setup
 
@@ -183,7 +154,8 @@ class TestDatasetUtilsFunctions(TestDatasetUtilsBase):
             item_types[item_type] = False
 
 
-class TestNumpyDataset(TestDatasetUtilsBase):
+class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
+                       testset.DatasetMetadataMixin, unittest.TestCase):
 
     # helper methods (custom assert)
 
@@ -221,9 +193,6 @@ class TestNumpyDataset(TestDatasetUtilsBase):
     def setUpClass(cls):
         super(TestNumpyDataset, cls).setUpClass()
         cls.name = 'test'
-        cls.mock_targets = np.zeros((cls.n_packets, 2))
-        meta_dict = {k: None for k in meta.FLIGHT_METADATA}
-        cls.mock_meta = [meta_dict.copy() for idx in range(cls.n_packets)]
 
     # test dataset item addition
 
@@ -322,7 +291,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
                      'gtuy': [self.items['gtuy'][0], self.items['gtuy'][0]] }
         exp_targets = [self.mock_targets[0], self.mock_targets[0]]
         exp_metadata = [self.mock_meta[0], self.mock_meta[0]]
-        exp_metafields = set(meta.FLIGHT_METADATA)
+        exp_metafields = self.metafields
         dset1.merge_with(dset2)
         self._assertDatasetItems(dset1, exp_data, exp_targets, exp_metadata,
                                  exp_metafields, num_data + dset2.num_data,
@@ -334,7 +303,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         packet = self.items['raw'][0]
         meta2 = self.mock_meta[0].copy()
         meta2['test'] = 'value'
-        exp_metafields = set(meta.FLIGHT_METADATA).union(meta2.keys())
+        exp_metafields = self.metafields.union(meta2.keys())
         dset1.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
         dset2.add_data_item(packet, self.mock_targets[0], meta2)
         dset1.merge_with(dset2)
@@ -348,7 +317,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         meta2['test'] = 'value'
         meta3 = self.mock_meta[0].copy()
         meta3['test2'] = 'value'
-        exp_metafields = set(meta.FLIGHT_METADATA).union(meta2.keys())
+        exp_metafields = self.metafields.union(meta2.keys())
         dset1.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
         dset2.add_data_item(packet, self.mock_targets[0], meta2)
         dset2.add_data_item(packet, self.mock_targets[0], meta2)
@@ -356,7 +325,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         # add items 0 and 1 from dset2 to dset1
         dset1.merge_with(dset2, slice(2))
         # metadata fields from item 2 of dset2 should not be added
-        exp_metafields = set(meta.FLIGHT_METADATA).union(meta2.keys())
+        exp_metafields = self.metafields.union(meta2.keys())
         self.assertEqual(dset1.num_data, 3)
         self.assertSetEqual(dset1.metadata_fields, exp_metafields)
 
@@ -413,7 +382,7 @@ class TestNumpyDataset(TestDatasetUtilsBase):
         exp_meta[1] = exp_meta[1].copy()
         exp_meta[0]['random_metafield'] = 'default'
         exp_meta[1]['random_metafield'] = 'default'
-        exp_metafields = set(meta.FLIGHT_METADATA).union(['random_metafield'])
+        exp_metafields = self.metafields.union(['random_metafield'])
 
         dset.add_metafield('random_metafield', default_value='default')
         self.assertListEqual(dset.get_metadata(), exp_meta)
