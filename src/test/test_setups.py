@@ -1,9 +1,17 @@
+import io
 import unittest
 
 import numpy as np
 
 import utils.dataset_utils as ds
 import utils.metadata_utils as meta
+
+
+class MockTextFileStream(io.StringIO):
+
+    def __exit__(self, type, value, traceback):
+        self.temp_buf = self.getvalue()
+        super(MockTextFileStream, self).__exit__(type, value, traceback)
 
 
 _NUM_PACKETS = 2

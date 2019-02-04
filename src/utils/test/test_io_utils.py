@@ -1,5 +1,4 @@
 import configparser
-import io
 import re
 import os
 import unittest
@@ -12,13 +11,6 @@ import test.test_setups as testset
 import utils.dataset_utils as ds
 import utils.data_templates as templates
 import utils.io_utils as io_utils
-
-
-class MockFileStream(io.StringIO):
-
-    def __exit__(self, type, value, traceback):
-        self.temp_buf = self.getvalue()
-        super(MockFileStream, self).__exit__(type, value, traceback)
 
 
 @mock.patch('os.path.exists')
@@ -35,7 +27,7 @@ class TestModuleFunctions(unittest.TestCase):
     @mock.patch('builtins.open', new_callable=mock.mock_open())
     def test_Save_TSV(self, m_open, m_isfile, m_exists):
         m_exists.return_value = m_isfile.return_value = False
-        buf = MockFileStream()
+        buf = testset.MockTextFileStream()
         m_open.return_value = buf
         io_utils.save_TSV(self.filename, self.m_rows,
                           self.cols_order)
@@ -46,7 +38,7 @@ class TestModuleFunctions(unittest.TestCase):
     def test_Save_TSV_overwrite_existing_file(self, m_open, m_isfile,
                                               m_exists):
         m_exists.return_value = m_isfile.return_value = True
-        buf = MockFileStream(initial_value='foo')
+        buf = testset.MockTextFileStream(initial_value='foo')
         m_open.return_value = buf
         io_utils.save_TSV(self.filename, self.m_rows, self.cols_order,
                             file_exists_overwrite=True)
@@ -339,7 +331,7 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
     @mock.patch('os.path.isfile', return_value=True)
     @mock.patch('builtins.open', new_callable=mock.mock_open())
     def test_load_dataset_config(self, m_open, m_isfile, m_exists):
-        m_open.return_value = MockFileStream(self.configfile_contents)
+        m_open.return_value = testset.MockTextFileStream(self.configfile_contents)
         m_dataset = self.m_dataset
         exp_attrs = { 'num_data': m_dataset.num_data,
             'metafields': m_dataset.metadata_fields,
@@ -362,7 +354,7 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
     @mock.patch('os.path.isfile', return_value=True)
     @mock.patch('builtins.open', new_callable=mock.mock_open())
     def test_load_empty_dataset(self, m_open, m_isfile, m_exists):
-        m_open.return_value = MockFileStream(self.configfile_contents)
+        m_open.return_value = testset.MockTextFileStream(self.configfile_contents)
         name = self.m_dataset.name
         itypes = self.m_dataset.item_types
         dataset = self.handler.load_empty_dataset(name, itypes)
@@ -393,7 +385,7 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
     @mock.patch('numpy.save')
     @mock.patch('builtins.open', new_callable=mock.mock_open())
     def test_save_dataset(self, m_open, m_save):
-        m_open.return_value = buf = MockFileStream()
+        m_open.return_value = buf = testset.MockTextFileStream()
         m_dataset = self.m_dataset
         name = m_dataset.name
         items, itypes = m_dataset.get_data_as_dict(), m_dataset.item_types
