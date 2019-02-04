@@ -8,6 +8,7 @@ import unittest.mock as mock
 import numpy as np
 import numpy.testing as nptest
 
+import test.test_setups as testset
 import utils.dataset_utils as ds
 import utils.data_templates as templates
 import utils.io_utils as io_utils
@@ -38,7 +39,7 @@ class TestModuleFunctions(unittest.TestCase):
         buf = MockFileStream()
         m_open.return_value = buf
         io_utils.save_TSV(self.filename, self.m_rows,
-                            self.cols_order)
+                          self.cols_order)
         m_open.assert_called_once_with(self.filename, 'w', encoding='UTF-8')
         self.assertEqual(buf.temp_buf, self.file_contents)
 
@@ -249,45 +250,48 @@ class TestDatasetTargetsFsPersistencyManager(unittest.TestCase):
         m_save.assert_called_once_with(exp_filename, self.m_targets)
 
 
-class TestDatasetFsPersistencyManager(unittest.TestCase):
+class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
+                                      testset.DatasetTargetsMixin,
+                                      testset.DatasetMetadataMixin,
+                                      unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        metafields = set(meta.FLIGHT_METADATA)
-        cls.meta_order = list(metafields)
+        super(TestDatasetFsPersistencyManager, cls).setUpClass()
+        cls.meta_order = list(cls.metafields)
         cls.meta_order.sort()
 
-        f_w, f_h, n_f = 48, 64, 20
-        n_data = 2
-        item_types = {k: True for k in ds.ALL_ITEM_TYPES}
+        n_data = cls.n_packets
+        item_types = cls.item_types
         item_types['gtux'], item_types['gtuy'] = False, False
-        items = {k: k for k, v in item_types.items() if v}
+        items = cls.items
+        items['gtux'], items['gtuy'] = False, False
         # a mock dataset to use (also serves as value container)
         m_dataset = mock.create_autospec(ds.numpy_dataset)
         m_dataset.name = 'test'
         m_dataset.dtype = 'float32'
         m_dataset.num_data = n_data
-        m_dataset.accepted_packet_shape = (n_f, f_h, f_w)
+        m_dataset.accepted_packet_shape = cls.packet_shape
         m_dataset.item_types = item_types
         m_dataset.item_shapes = ds.get_data_item_shapes(
-            m_dataset.accepted_packet_shape, m_dataset.item_types)
-        m_dataset.metadata_fields = metafields
+            m_dataset.accepted_packet_shape, item_types)
+        m_dataset.metadata_fields = cls.metafields
         m_dataset.get_data_as_dict.return_value = items
         m_dataset.get_data_as_arraylike.return_value = tuple(
-            items[k] for k in ds.ALL_ITEM_TYPES if items.get(k, False))
-        m_dataset.get_targets.return_value = n_data * ['targets']
-        m_dataset.get_metadata.return_value = n_data * ['meta']
+            items[k] for k in ds.ALL_ITEM_TYPES if not item_types[k])
+        m_dataset.get_targets.return_value = cls.mock_targets
+        m_dataset.get_metadata.return_value = cls.mock_meta
         cls.m_dataset = m_dataset
 
         cls.configfile_contents = (
             '[general]{}'.format(os.linesep) +
             'num_data = {}{}'.format(n_data, os.linesep) +
-            'metafields = {}{}'.format(metafields, os.linesep) +
+            'metafields = {}{}'.format(cls.metafields, os.linesep) +
             'dtype = {}{}'.format(m_dataset.dtype, os.linesep) +
             '{}[packet_shape]{}'.format(os.linesep, os.linesep) +
-            'num_frames = {}{}'.format(n_f, os.linesep) +
-            'frame_height = {}{}'.format(f_h, os.linesep) +
-            'frame_width = {}{}'.format(f_w, os.linesep) +
+            'num_frames = {}{}'.format(cls.n_f, os.linesep) +
+            'frame_height = {}{}'.format(cls.f_h, os.linesep) +
+            'frame_width = {}{}'.format(cls.f_w, os.linesep) +
             '{}[item_types]{}'.format(os.linesep, os.linesep) +
             ''.join('{} = {}{}'.format(k, item_types[k], os.linesep)
                     for k in ds.ALL_ITEM_TYPES) +
@@ -372,7 +376,6 @@ class TestDatasetFsPersistencyManager(unittest.TestCase):
     @mock.patch('numpy.save')
     def test_save_data(self, m_save):
         m_dataset = self.m_dataset
-        item_types = m_dataset.item_types
         items = m_dataset.get_data_as_dict()
         exp_filenames = {k: os.path.join(self.savedir, self.datafiles[k])
                          for k in items.keys()}
@@ -381,9 +384,12 @@ class TestDatasetFsPersistencyManager(unittest.TestCase):
         # assert save was not called for any type in item_types being False
         self.assertDictEqual(filenames, exp_filenames)
         self.assertEqual(m_save.call_count, len(items))
-        for itype in items.keys():
-            if item_types[itype]:
-                m_save.assert_any_call(exp_filenames[itype], items[itype])
+        pattern = '_(raw|gtux|gtuy|yx)_test.npy'
+        for cal in m_save.call_args_list:
+            filename = cal[0][0]
+            itype = re.search(pattern, filename).group(1)
+            self.assertEqual(filename, exp_filenames[itype])
+            nptest.assert_array_equal(cal[0][1], items[itype])
 
     @mock.patch('numpy.save')
     @mock.patch('builtins.open', new_callable=mock.mock_open())
@@ -403,9 +409,13 @@ class TestDatasetFsPersistencyManager(unittest.TestCase):
         m_open.assert_called_with(exp_configfile, 'w', encoding='UTF-8')
         # assert relevant data items were saved
         self.assertEqual(m_save.call_count, len(items))
-        for itype in itypes.keys():
+        pattern = '_(raw|gtux|gtuy|yx)_test.npy'
+        for cal in m_save.call_args_list:
+            filename = cal[0][0]
+            itype = re.search(pattern, filename).group(1)
             if itypes[itype]:
-                m_save.assert_any_call(exp_filenames[itype], items[itype])
+                self.assertEqual(filename, exp_filenames[itype])
+                nptest.assert_array_equal(cal[0][1], items[itype])
         # targets and metadata save assertions
         m_targets, m_meta = m_dataset.get_targets(), m_dataset.get_metadata()
         targ_handler = self.handler.targets_persistency_handler
