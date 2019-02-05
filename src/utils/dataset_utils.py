@@ -362,8 +362,7 @@ class numpy_dataset:
         self._data = create_data_holders(packet_shape, item_types=item_types,
                                          dtype=dtype)
         self._targets = []
-        self._metadata = []
-        self._metafields = set()
+        self._meta = meta.metadata_holder()
         self._num_data = 0
         self.dtype = dtype
         self.resizable = True
@@ -471,7 +470,7 @@ class numpy_dataset:
             not in this property, they are added to the end of the sequence
             sorted by their names.
         """
-        return self._metafields
+        return self._meta.metadata_fields
 
     # add/get items
 
@@ -489,7 +488,7 @@ class numpy_dataset:
 
     def get_metadata(self, metadata_slice_or_idx=None):
         s = self._get_items_slice(metadata_slice_or_idx)
-        return self._metadata[s]
+        return self._meta[s]
 
     def add_data_item(self, packet, target, metadata={}):
         if not self._resizable:
@@ -503,8 +502,7 @@ class numpy_dataset:
         for key in self._used_types:
             self._data[key].append(data_items[key])
         self._targets.append(target)
-        self._metadata.append(metadata)
-        self._metafields = self._metafields.union(metadata.keys())
+        self._meta.append(metadata)
         self._num_data += 1
 
     # dataset manipulation
@@ -518,6 +516,7 @@ class numpy_dataset:
             ----------
             :param int num_shuffles:   number of times to shuffle the dataset
         """
+        shuffler = np.random.shuffle
         for idx in range(num_shuffles):
             rng_state = np.random.get_state()
             for key in self._used_types:
@@ -525,7 +524,7 @@ class numpy_dataset:
                 np.random.set_state(rng_state)
             np.random.shuffle(self._targets)
             np.random.set_state(rng_state)
-            np.random.shuffle(self._metadata)
+            self._meta.shuffle(shuffler)
 
     def is_compatible_with(self, other_dataset, check_dtype=False):
         """
@@ -572,12 +571,7 @@ class numpy_dataset:
         targets = other_dataset.get_targets(s)
         self._targets.extend(targets)
         metadata = other_dataset.get_metadata(s)
-        self._metadata.extend(metadata)
-        if s == slice(None):
-            metafields = other_dataset._metafields
-        else:
-            metafields = meta.extract_metafields(metadata)
-        self._metafields = self._metafields.union(metafields)
+        self._meta.extend(other_dataset.get_metadata(s))
         self._num_data += len(metadata)
 
     def add_metafield(self, name, default_value=None):
@@ -591,6 +585,4 @@ class numpy_dataset:
             :param default_value:  default value for the new metafield
             :type default_value:   any
         """
-        self._metafields = self._metafields.union([name])
-        for metadata in self._metadata:
-            metadata[name] = default_value
+        self._meta.add_metafield(name, default_value=default_value)
