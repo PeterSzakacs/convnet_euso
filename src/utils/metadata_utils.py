@@ -24,7 +24,7 @@ def extract_metafields(metadata):
     return metafields
 
 
-class metadata_holder:
+class MetadataHolder:
 
     def __init__(self):
         self._metadata = []

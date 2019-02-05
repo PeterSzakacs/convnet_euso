@@ -16,7 +16,7 @@ class TestModuleFunctions(unittest.TestCase):
 class TestMetadataHolder(testset.DatasetMetadataMixin, unittest.TestCase):
 
     def test_extend_metadata(self):
-        holder = meta.metadata_holder()
+        holder = meta.MetadataHolder()
         metadata = self.mock_meta
         metafields = self.metafields
         holder.extend(metadata)
@@ -24,7 +24,7 @@ class TestMetadataHolder(testset.DatasetMetadataMixin, unittest.TestCase):
         self.assertSetEqual(holder.metadata_fields, metafields)
 
     def test_append_metadata(self):
-        holder = meta.metadata_holder()
+        holder = meta.MetadataHolder()
         metadata = [{'test': 'val'}, {'test2': 'otherval'},
                     {'test': 'valval', 'test3': 'someval2'}]
         holder.append(metadata[0])
@@ -35,7 +35,7 @@ class TestMetadataHolder(testset.DatasetMetadataMixin, unittest.TestCase):
         self.assertSetEqual(holder.metadata_fields, exp_metafields)
 
     def test_add_metafield(self):
-        holder = meta.metadata_holder()
+        holder = meta.MetadataHolder()
         metadata = [{'test': 'val'}, {'test2': 'otherval'},
                     {'test': 'valval', 'test3': 'someval2'}]
         holder.extend(metadata)
@@ -48,7 +48,7 @@ class TestMetadataHolder(testset.DatasetMetadataMixin, unittest.TestCase):
         self.assertSetEqual(holder.metadata_fields, exp_metafields)
 
     def test_shuffle(self):
-        holder = meta.metadata_holder()
+        holder = meta.MetadataHolder()
         metadata = [{'test': 'val'}, {'test2': 'otherval'},
                     {'test': 'valval', 'test3': 'someval2'}]
         holder.extend(metadata)
@@ -64,16 +64,16 @@ class TestMetadataHolder(testset.DatasetMetadataMixin, unittest.TestCase):
         self.assertSetEqual(holder.metadata_fields, exp_metafields)
 
     def test_length_empty(self):
-        holder = meta.metadata_holder()
+        holder = meta.MetadataHolder()
         self.assertEqual(len(holder), 0)
 
     def test_length_after_append(self):
-        holder = meta.metadata_holder()
+        holder = meta.MetadataHolder()
         holder.append(self.mock_meta[0])
         self.assertEqual(len(holder), 1)
 
     def test_length_after_extend(self):
-        holder = meta.metadata_holder()
+        holder = meta.MetadataHolder()
         holder.extend(self.mock_meta)
         self.assertEqual(len(holder), len(self.mock_meta))
 

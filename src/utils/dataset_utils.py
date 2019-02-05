@@ -4,6 +4,7 @@ import functools
 import numpy as np
 
 import utils.metadata_utils as meta
+import utils.target_utils as targ
 
 # module level constants
 
@@ -361,8 +362,8 @@ class numpy_dataset:
         self._packet_shape = tuple(packet_shape)
         self._data = create_data_holders(packet_shape, item_types=item_types,
                                          dtype=dtype)
-        self._targets = []
-        self._meta = meta.metadata_holder()
+        self._targ = targ.TargetsHolder()
+        self._meta = meta.MetadataHolder()
         self._num_data = 0
         self.dtype = dtype
         self.resizable = True
@@ -483,8 +484,7 @@ class numpy_dataset:
         return {k: self._data[k][s] for k in self._used_types}
 
     def get_targets(self, targets_slice_or_idx=None):
-        s = self._get_items_slice(targets_slice_or_idx)
-        return self._targets[s]
+        return self._targ.get_targets_as_arraylike(targets_slice_or_idx)[0]
 
     def get_metadata(self, metadata_slice_or_idx=None):
         s = self._get_items_slice(metadata_slice_or_idx)
@@ -501,7 +501,7 @@ class numpy_dataset:
                                     dtype=self._dtype)
         for key in self._used_types:
             self._data[key].append(data_items[key])
-        self._targets.append(target)
+        self._targ.append({'classification': target})
         self._meta.append(metadata)
         self._num_data += 1
 
@@ -522,8 +522,8 @@ class numpy_dataset:
             for key in self._used_types:
                 np.random.shuffle(self._data[key])
                 np.random.set_state(rng_state)
-            np.random.shuffle(self._targets)
-            np.random.set_state(rng_state)
+            self._targ.shuffle(shuffler,
+                               lambda: np.random.set_state(rng_state))
             self._meta.shuffle(shuffler)
 
     def is_compatible_with(self, other_dataset, check_dtype=False):
@@ -568,8 +568,7 @@ class numpy_dataset:
             (self._data[k]).extend(data[k])
         # cast values to current dtype
         self.dtype = self.dtype
-        targets = other_dataset.get_targets(s)
-        self._targets.extend(targets)
+        self._targ.extend({'classification': other_dataset.get_targets(s)})
         metadata = other_dataset.get_metadata(s)
         self._meta.extend(other_dataset.get_metadata(s))
         self._num_data += len(metadata)

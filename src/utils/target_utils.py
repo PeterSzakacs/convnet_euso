@@ -44,7 +44,7 @@ class TargetsHolder():
             shuffler(target)
             shuffler_state_resetter()
 
-    def get_targets_as_araylike(self, targets_slice_or_idx=None):
+    def get_targets_as_arraylike(self, targets_slice_or_idx=None):
         s = (slice(None) if targets_slice_or_idx is None
              else targets_slice_or_idx)
         return tuple(self._targets[ttype][s] for ttype in TARGET_TYPES

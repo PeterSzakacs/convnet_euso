@@ -27,41 +27,41 @@ class TestModuleFunctions(unittest.TestCase):
 
 class TestTargetHolder(testset.DatasetTargetsMixin, unittest.TestCase):
 
-    def test_get_data_as_dict_empty(self):
+    def test_get_targets_as_dict_empty(self):
         holder = targ.TargetsHolder()
         self.assertDictEqual(holder.get_targets_as_dict(),
                              {'classification': [], })
 
-    def test_get_data_as_dict_after_extend(self):
+    def test_get_targets_as_dict_after_extend(self):
         holder = targ.TargetsHolder()
         targets = {'classification': self.mock_targets}
         holder.extend(targets)
         self.assertDictEqual(holder.get_targets_as_dict(),
                              {'classification': targets['classification']})
 
-    def test_get_data_as_dict_after_append(self):
+    def test_get_targets_as_dict_after_append(self):
         holder = targ.TargetsHolder()
         target = {'classification': self.mock_targets[0]}
         holder.append(target)
         self.assertDictEqual(holder.get_targets_as_dict(),
                              {'classification': [target['classification'], ]})
 
-    def test_get_data_as_arraylike_empty(self):
+    def test_get_targets_as_arraylike_empty(self):
         holder = targ.TargetsHolder()
-        self.assertTupleEqual(holder.get_targets_as_araylike(), ([], ))
+        self.assertTupleEqual(holder.get_targets_as_arraylike(), ([], ))
 
-    def test_get_data_as_arraylike_after_extend(self):
+    def test_get_targets_as_arraylike_after_extend(self):
         holder = targ.TargetsHolder()
         targets = {'classification': self.mock_targets}
         holder.extend(targets)
-        self.assertTupleEqual(holder.get_targets_as_araylike(),
+        self.assertTupleEqual(holder.get_targets_as_arraylike(),
                               (targets['classification'], ))
 
-    def test_get_data_as_arraylike_after_append(self):
+    def test_get_targets_as_arraylike_after_append(self):
         holder = targ.TargetsHolder()
         target = {'classification': self.mock_targets[0]}
         holder.append(target)
-        self.assertTupleEqual(holder.get_targets_as_araylike(),
+        self.assertTupleEqual(holder.get_targets_as_arraylike(),
                               ([target['classification']], ))
 
     def test_shuffle(self):
