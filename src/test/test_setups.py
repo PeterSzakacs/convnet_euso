@@ -72,4 +72,3 @@ class DatasetMetadataMixin(unittest.TestCase):
         meta_dict = {k: None for k in meta.FLIGHT_METADATA}
         cls.mock_meta = [meta_dict.copy() for idx in range(n_meta)]
         cls.metafields = set(meta.FLIGHT_METADATA)
-
