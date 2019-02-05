@@ -60,7 +60,7 @@ class DatasetTargetsMixin(unittest.TestCase):
     def setUpClass(cls):
         super(DatasetTargetsMixin, cls).setUpClass()
         n_targets = _NUM_PACKETS
-        cls.mock_targets = np.zeros((n_targets, 2))
+        cls.mock_targets = [[0, 0], [0, 1], ]
 
 
 class DatasetMetadataMixin(unittest.TestCase):
