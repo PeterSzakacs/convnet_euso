@@ -5,7 +5,7 @@ import operator as op
 
 import numpy as np
 
-import utils.dataset_utils as ds
+import utils.data_utils as dat
 import utils.metadata_utils as meta
 import visualization.html_writers as html
 
@@ -18,7 +18,7 @@ class report_writer:
     DEFAULT_MAX_TABLE_SIZE=2000
 
 
-    def __init__(self, savedir, table_size=None, extra_fields=None, 
+    def __init__(self, savedir, table_size=None, extra_fields=None,
                  css_rules=None):
         # properties
         self.savedir = savedir
@@ -76,9 +76,9 @@ class report_writer:
     def css_rules(self, value=None):
         self._css = value or """
                                 table { border-collapse: collapse; }
-                                th, td { 
+                                th, td {
                                     border: 1px solid black;
-                                    padding: 0 6px 0 6px; 
+                                    padding: 0 6px 0 6px;
                                     text-align: center }
                                 .l { float: left; }
                                 .r { float: right; }
@@ -133,7 +133,7 @@ class report_writer:
         idx = log['item_idx']
         imgs = [self._img.get_image('../img/{}/frame-{}.svg'.format(k, idx),
                                     width="184px", height="138px")
-                for k in ds.ALL_ITEM_TYPES
+                for k in dat.ALL_ITEM_TYPES
                 if item_types[k]]
 
         shower_prob = round(float(log['shower_prob']) * 100, 2)
@@ -150,7 +150,7 @@ class report_writer:
         num_records = len(logs)
         num_reports = math.ceil(num_records / self._tbl_size)
         item_types = context['item_types']
-        image_headings = ["{} proj".format(k) for k in ds.ALL_ITEM_TYPES
+        image_headings = ["{} proj".format(k) for k in dat.ALL_ITEM_TYPES
                           if item_types[k]]
         table_headings = [*image_headings, "Shower %", "Noise %", "Output",
                           "Target", *self._extra_fields]

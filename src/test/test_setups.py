@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-import utils.dataset_utils as ds
+import utils.data_utils as dat
 import utils.metadata_utils as meta
 
 
@@ -38,7 +38,7 @@ class DatasetItemsMixin(unittest.TestCase):
             'yx'  : np.ones((n_packets, *item_shapes['yx'])),
             'gtux': np.ones((n_packets, *item_shapes['gtux'])),
             'gtuy': np.ones((n_packets, *item_shapes['gtuy']))}
-        item_types = {k: True for k in ds.ALL_ITEM_TYPES}
+        item_types = {k: True for k in dat.ALL_ITEM_TYPES}
         # make some randomness in the first packet and derived items
         packet = items['raw'][0]
         packet[0, 0, 0], packet[1] = 3, 4

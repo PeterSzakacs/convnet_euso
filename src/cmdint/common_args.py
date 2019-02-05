@@ -2,7 +2,7 @@ import enum
 
 import cmdint.argparse_types as atypes
 import utils.data_templates as templates
-import utils.dataset_utils as ds
+import utils.data_utils as dat
 import utils.metadata_utils as meta
 
 
@@ -225,7 +225,7 @@ class item_types_args:
         self.input_prefix = in_item_prefix
         self.output_prefix = out_item_prefix
         self.item_descriptions = {'raw': 'raw packets'}
-        for k in ds.ALL_ITEM_TYPES[1:]:
+        for k in dat.ALL_ITEM_TYPES[1:]:
             self.item_descriptions[k] = '{} packet projections'.format(k)
 
     def add_item_type_args(self, parser, atype, required_types={}, help={}):
@@ -258,7 +258,7 @@ class item_types_args:
             prefix = self.output_prefix
             default_help = 'store {}'
         desc = self.item_descriptions
-        for k in ds.ALL_ITEM_TYPES:
+        for k in dat.ALL_ITEM_TYPES:
             required = required_types.get(k, False)
             help_text = help.get(k, None) or default_help.format(desc[k])
             parser.add_argument('--{}_{}'.format(prefix, k), required=required,
@@ -271,12 +271,12 @@ class item_types_args:
         else:
             prefix = self.output_prefix
         types_selected = False
-        for k in ds.ALL_ITEM_TYPES:
+        for k in dat.ALL_ITEM_TYPES:
             arg_name = '{}_{}'.format(prefix, k)
             types_selected = types_selected or getattr(args, arg_name)
         if not types_selected:
             raise Exception('Please select at least one item type: {}'.format(
-                ds.ALL_ITEM_TYPES))
+                dat.ALL_ITEM_TYPES))
 
     def get_item_types(self, args, atype):
         if atype is arg_type.INPUT:
@@ -284,7 +284,7 @@ class item_types_args:
         else:
             prefix = self.output_prefix
         result = {}
-        for k in ds.ALL_ITEM_TYPES:
+        for k in dat.ALL_ITEM_TYPES:
             arg_name = '{}_{}'.format(prefix, k)
             result[k] = getattr(args, arg_name)
         return result

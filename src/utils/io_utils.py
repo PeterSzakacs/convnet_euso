@@ -6,6 +6,7 @@ import csv
 
 import numpy as np
 
+import utils.data_utils as dat
 import utils.dataset_utils as ds
 import utils.data_templates as templates
 import utils.metadata_utils as meta
@@ -279,7 +280,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
 
     DEFAULT_CONFIG_FILE_SUFFIX = '_config'
     DEFAULT_DATA_FILES_SUFFIXES = {k: '_{}'.format(k)
-                                   for k in ds.ALL_ITEM_TYPES}
+                                   for k in dat.ALL_ITEM_TYPES}
 
     def __init__(self, load_dir=None, save_dir=None, data_files_suffixes={},
                  configfile_suffix=None, targets_handler=None,
@@ -288,7 +289,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
             load_dir, save_dir)
         self._conf = configfile_suffix or self.DEFAULT_CONFIG_FILE_SUFFIX
         self._data = {}
-        for k in ds.ALL_ITEM_TYPES:
+        for k in dat.ALL_ITEM_TYPES:
             self._data[k] = data_files_suffixes.get(
                 k, self.DEFAULT_DATA_FILES_SUFFIXES[k])
         self._target_handler = (targets_handler or
@@ -383,9 +384,9 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
             :type item_types:   typing.Mapping[str, bool]
         """
         self._check_before_read()
-        ds.check_item_types(item_types)
+        dat.check_item_types(item_types)
         data = {}
-        for item_type in ds.ALL_ITEM_TYPES:
+        for item_type in dat.ALL_ITEM_TYPES:
             if item_types[item_type]:
                 filename = os.path.join(self.loaddir, '{}{}.npy'.format(
                     name, self._data[item_type]))
@@ -422,8 +423,8 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         for itype, is_present in dataset.item_types.items():
             if is_present:
                 dataset._data[itype].extend(data[itype])
-        dataset._targets.extend(targets)
-        dataset._metadata.extend(metadata)
+        dataset._targ.extend({'classification': targets})
+        dataset._meta.extend(metadata)
         dataset._metafields = config['metafields']
         dataset._num_data = config['num_data']
         return dataset
@@ -448,7 +449,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         self._check_before_write()
         savefiles = {}
         # save data
-        keys = set(ds.ALL_ITEM_TYPES).intersection(set(data_items_dict.keys()))
+        keys = set(dat.ALL_ITEM_TYPES).intersection(data_items_dict.keys())
         for k in keys:
             filename = os.path.join(self.savedir, '{}{}.npy'.format(
                 name, self._data[k]))
@@ -495,7 +496,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         config['packet_shape']['frame_width'] = str(f_w)
         item_types = dataset.item_types
         config['item_types'] = {}
-        for k in ds.ALL_ITEM_TYPES:
+        for k in dat.ALL_ITEM_TYPES:
             config['item_types'][k] = str(item_types[k])
         with open(filename, 'w', encoding='UTF-8') as configfile:
             config.write(configfile)

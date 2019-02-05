@@ -8,6 +8,7 @@ import numpy as np
 import numpy.testing as nptest
 
 import test.test_setups as testset
+import utils.data_utils as dat
 import utils.dataset_utils as ds
 import utils.data_templates as templates
 import utils.io_utils as io_utils
@@ -264,12 +265,12 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
         m_dataset.num_data = n_data
         m_dataset.accepted_packet_shape = cls.packet_shape
         m_dataset.item_types = item_types
-        m_dataset.item_shapes = ds.get_data_item_shapes(
+        m_dataset.item_shapes = dat.get_data_item_shapes(
             m_dataset.accepted_packet_shape, item_types)
         m_dataset.metadata_fields = cls.metafields
         m_dataset.get_data_as_dict.return_value = items
         m_dataset.get_data_as_arraylike.return_value = tuple(
-            items[k] for k in ds.ALL_ITEM_TYPES if not item_types[k])
+            items[k] for k in dat.ALL_ITEM_TYPES if not item_types[k])
         m_dataset.get_targets.return_value = cls.mock_targets
         m_dataset.get_metadata.return_value = cls.mock_meta
         cls.m_dataset = m_dataset
@@ -285,14 +286,14 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
             'frame_width = {}{}'.format(cls.f_w, os.linesep) +
             '{}[item_types]{}'.format(os.linesep, os.linesep) +
             ''.join('{} = {}{}'.format(k, item_types[k], os.linesep)
-                    for k in ds.ALL_ITEM_TYPES) +
+                    for k in dat.ALL_ITEM_TYPES) +
             os.linesep
         )
 
         cls.loaddir, cls.savedir = '/dsets', '/test'
-        suffixes = {k: '_{}_test'.format(k) for k in ds.ALL_ITEM_TYPES}
+        suffixes = {k: '_{}_test'.format(k) for k in dat.ALL_ITEM_TYPES}
         cls.datafiles = {k: '{}{}.npy'.format(m_dataset.name, suffixes[k])
-                         for k in ds.ALL_ITEM_TYPES}
+                         for k in dat.ALL_ITEM_TYPES}
         conf_suffix = '_config_test'
         cls.configfile = '{}{}.ini'.format(m_dataset.name, conf_suffix)
 
