@@ -332,3 +332,64 @@ def get_data_item_shapes(packet_shape, item_types):
     return {k: (None if item_types[k] is False else
             _item_shape_getters[k](packet_shape))
             for k in ALL_ITEM_TYPES}
+
+
+# classes
+
+class DataHolder():
+
+    def __init__(self, packet_shape, dtype=np.uint8, item_types={'raw': True,
+                 'yx': False, 'gtux': False, 'gtuy': False}):
+        check_item_types(item_types)
+        self._item_types = item_types
+        self._used_types = tuple(k for k in ALL_ITEM_TYPES
+                                 if item_types[k] is True)
+        self._item_shapes = get_data_item_shapes(packet_shape, item_types)
+        self._packet_shape = tuple(packet_shape)
+        self._data = create_data_holders(packet_shape, dtype=dtype,
+                                         item_types=item_types)
+        self.dtype = dtype
+
+    @property
+    def item_types(self):
+        """
+            The type of items in this dataset, as a dict of str to bool, where
+            the all the keys are from the 'ALL_ITEM_TYPES' module constant and
+            the values represent wheher a collection of items of this type is
+            present in this dataset.
+        """
+        return self._item_types
+
+    def append(self, items_dict):
+        used_types = self._used_types
+        missing = set(itype for itype in used_types
+                      if items_dict.get(itype, None) is None)
+        if missing:
+            raise Exception('Missing item types detected: {}'.format(missing))
+        for itype in self._used_types:
+            self._data[itype].append(items_dict[itype])
+
+    def extend(self, items_iter_dict):
+        used_types = self._used_types
+        missing = set(itype for itype in used_types
+                      if items_iter_dict.get(itype, None) is None)
+        if missing:
+            raise Exception('Missing item types detected: {}'.format(missing))
+        for itype in self._used_types:
+            self._data[itype].extend(
+                item for item in items_iter_dict[itype])
+
+    def append_packet(self, packet):
+        self.append(convert_packet(packet, self.item_types, dtype=self.dtype))
+
+    def extend_packets(self, packets_iter, data_slice_or_idx=None):
+        for packet in packets_iter:
+            self.append_packet(packet)
+
+    def get_data_as_arraylike(self, data_slice_or_idx=None):
+        s = slice(None) if data_slice_or_idx is None else data_slice_or_idx
+        return tuple(self._data[k][s] for k in self._used_types)
+
+    def get_data_as_dict(self, data_slice_or_idx=None):
+        s = slice(None) if data_slice_or_idx is None else data_slice_or_idx
+        return {k: self._data[k][s] for k in self._used_types}
