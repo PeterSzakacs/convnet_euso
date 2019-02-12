@@ -197,6 +197,30 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         return item_types
 
     # test methods
+    ## test holder properties
+
+    def test_item_shapes(self):
+        # might perhaps be better to not even have the dict keys for items
+        # that are not contained in the holder
+        included_types = ('yx', 'gtux', 'gtuy')
+        item_types = self._create_item_types(included_types)
+        item_shapes = self.item_shapes.copy()
+        item_shapes['raw'] = None
+        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
+        self.assertDictEqual(holder.item_shapes, item_shapes)
+
+    def test_accepted_packet_shape(self):
+        packet_shape = self.packet_shape
+        holder = dat.DataHolder(packet_shape)
+        self.assertTupleEqual(holder._packet_shape, packet_shape)
+
+    def test_item_types(self):
+        included_types = ('yx', 'gtux')
+        item_types = self._create_item_types(included_types)
+        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
+        self.assertDictEqual(holder.item_types, item_types)
+
+    ## test holder dtype
 
     def test_dtype_on_creation_empty(self):
         dtype = 'uint16'
@@ -236,11 +260,7 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         self._assertItemsDtype(items, dtype, item_types)
         self.assertEqual(holder.dtype, dtype)
 
-    def test_item_types(self):
-        included_types = ('yx', 'gtux')
-        item_types = self._create_item_types(included_types)
-        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
-        self.assertDictEqual(holder.item_types, item_types)
+    ## test item retrieval methods
 
     def test_get_data_as_dict_empty(self):
         included_types = ('raw', 'yx')
@@ -279,6 +299,8 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         holder.extend(items)
         self._assertItemsArraylike(holder.get_data_as_arraylike(), exp_items,
                                    item_types)
+
+    ## test item adding methods
 
     def test_extend(self):
         included_types = ('raw', 'gtux')
@@ -335,6 +357,8 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
 
         holder = dat.DataHolder(self.packet_shape, item_types=item_types)
         self.assertRaises(Exception, holder.extend, items)
+
+    ## test item shuffling
 
     def test_shuffle(self):
         included_types = ('raw', 'yx')

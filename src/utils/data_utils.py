@@ -377,6 +377,24 @@ class DataHolder():
         """
         return self._item_types
 
+    @property
+    def accepted_packet_shape(self):
+        """
+            The shape of accepted raw packets to be converted to dataset items.
+        """
+        return self._packet_shape
+
+    @property
+    def item_shapes(self):
+        """
+            The shape of individual item types in this dataset, in form of a
+            dict of str to tuple of int, where the keys are from the module
+            constant 'ALL_ITEM_TYPES' and the values represent the shape of
+            items as they would be presented from the items themselves by
+            getting the numpy.ndarray 'shape' property.
+        """
+        return self._item_shapes
+
     def append(self, items_dict):
         used_types = self._used_types
         missing = set(itype for itype in used_types
