@@ -410,3 +410,9 @@ class DataHolder():
     def get_data_as_dict(self, data_slice_or_idx=None):
         s = slice(None) if data_slice_or_idx is None else data_slice_or_idx
         return {k: self._data[k][s] for k in self._used_types}
+
+    def shuffle(self, shuffler, shuffler_state_resetter):
+        for item_type in self._used_types:
+            items = self._data[item_type]
+            shuffler(items)
+            shuffler_state_resetter()

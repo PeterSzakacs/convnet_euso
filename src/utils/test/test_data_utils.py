@@ -336,6 +336,23 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         holder = dat.DataHolder(self.packet_shape, item_types=item_types)
         self.assertRaises(Exception, holder.extend, items)
 
+    def test_shuffle(self):
+        included_types = ('raw', 'yx')
+        item_types = self._create_item_types(included_types)
+        items = self._create_items(included_types, slice(0, 2))
+        exp_items = {itype: items[itype] for itype in included_types}
+        def shuffler(seq):
+            temp = seq[0]
+            seq[0] = seq[1]
+            seq[1] = temp
+        shuffler(exp_items['raw'])
+        shuffler(exp_items['yx'])
+
+        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
+        holder.extend_packets(items['raw'])
+        holder.shuffle(shuffler, lambda: None)
+        self._assertItemsDict(holder.get_data_as_dict(), exp_items, item_types)
+
 
 if __name__ == '__main__':
     unittest.main()
