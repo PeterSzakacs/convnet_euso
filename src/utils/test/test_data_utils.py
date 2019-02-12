@@ -156,6 +156,13 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
 
     # helper methods (custom asserts)
 
+    def _assertItemsDtype(self, items_dict, exp_dtype, item_types):
+        for itype, is_present in item_types.items():
+            if is_present:
+                err_msg = "wrong dtype for items of type '{}'".format(itype)
+                ndarr = np.array(items_dict[itype])
+                self.assertEqual(ndarr.dtype, exp_dtype, err_msg)
+
     def _assertItemsDict(self, data, exp_data, exp_item_types):
         # unfortunately, assertDictEqual does not work in this case
         self.assertSetEqual(set(data.keys()), set(exp_data.keys()),
@@ -190,6 +197,44 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         return item_types
 
     # test methods
+
+    def test_dtype_on_creation_empty(self):
+        dtype = 'uint16'
+        holder = dat.DataHolder(self.packet_shape, dtype=dtype)
+        self.assertEqual(holder.dtype, dtype)
+
+    def test_dtype_on_casting_empty(self):
+        dtype = 'uint32'
+        holder = dat.DataHolder(self.packet_shape, dtype=dtype)
+        dtype = 'uint16'
+        holder.dtype = dtype
+        self.assertEqual(holder.dtype, dtype)
+
+    def test_dtype_after_creation_with_items(self):
+        dtype = 'uint16'
+        included_types = ('raw', 'yx')
+        item_types = self._create_item_types(included_types)
+        holder = dat.DataHolder(self.packet_shape, dtype=dtype,
+                                item_types=item_types)
+        packets = self.items['raw'].copy()
+        holder.extend_packets(packets)
+        items = holder.get_data_as_dict()
+        self._assertItemsDtype(items, dtype, item_types)
+        self.assertEqual(holder.dtype, dtype)
+
+    def test_dtype_after_casting_with_items(self):
+        included_types = ('raw', 'yx')
+        item_types = self._create_item_types(included_types)
+        dtype = 'uint32'
+        holder = dat.DataHolder(self.packet_shape, dtype=dtype,
+                                item_types=item_types)
+        packets = self.items['raw'].copy()
+        holder.extend_packets(packets)
+        dtype = 'uint16'
+        holder.dtype = dtype
+        items = holder.get_data_as_dict()
+        self._assertItemsDtype(items, dtype, item_types)
+        self.assertEqual(holder.dtype, dtype)
 
     def test_item_types(self):
         included_types = ('yx', 'gtux')

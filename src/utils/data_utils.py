@@ -351,6 +351,23 @@ class DataHolder():
         self.dtype = dtype
 
     @property
+    def dtype(self):
+        """Datatype of packet data and derived items."""
+        return self._dtype
+
+    @dtype.setter
+    def dtype(self, value):
+        """Datatype of packet data and derived items."""
+        dtype = np.dtype(value)
+        if not np.issubdtype(dtype, np.number):
+            raise Exception('Illegal data type: {}'.format(value))
+        for item_type in self._used_types:
+            data = self._data[item_type]
+            data = [datum.astype(dtype) for datum in data]
+            self._data[item_type] = data
+        self._dtype = dtype.name
+
+    @property
     def item_types(self):
         """
             The type of items in this dataset, as a dict of str to bool, where
@@ -367,7 +384,7 @@ class DataHolder():
         if missing:
             raise Exception('Missing item types detected: {}'.format(missing))
         for itype in self._used_types:
-            self._data[itype].append(items_dict[itype])
+            self._data[itype].append(items_dict[itype].astype(self.dtype))
 
     def extend(self, items_iter_dict):
         used_types = self._used_types
@@ -377,7 +394,7 @@ class DataHolder():
             raise Exception('Missing item types detected: {}'.format(missing))
         for itype in self._used_types:
             self._data[itype].extend(
-                item for item in items_iter_dict[itype])
+                item.astype(self.dtype) for item in items_iter_dict[itype])
 
     def append_packet(self, packet):
         self.append(convert_packet(packet, self.item_types, dtype=self.dtype))
