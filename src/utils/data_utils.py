@@ -417,8 +417,8 @@ class DataHolder():
     def append_packet(self, packet):
         s = packet.shape
         if s != self.accepted_packet_shape:
-            raise Exception('Wrong packet shape passed. Expected. {}, '
-                            'actual: {}'.format(self._packet_shape, s))
+            raise ValueError('Wrong packet shape passed. Expected. {}, '
+                             'actual: {}'.format(self._packet_shape, s))
         self.append(convert_packet(packet, self.item_types, dtype=self.dtype))
 
     def extend_packets(self, packets_iter, data_slice_or_idx=None):

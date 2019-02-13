@@ -22,18 +22,11 @@ class numpy_dataset:
     def __init__(self, name, packet_shape, resizable=True, dtype=np.uint8,
                  item_types={'raw': True, 'yx': False, 'gtux': False,
                              'gtuy': False}):
-        dat.check_item_types(item_types)
-        self._item_types = item_types
-        self._used_types = tuple(k for k in dat.ALL_ITEM_TYPES
-                                 if self._item_types[k] is True)
-        self._item_shapes = dat.get_data_item_shapes(packet_shape, item_types)
-        self._packet_shape = tuple(packet_shape)
-        self._data = dat.create_data_holders(packet_shape, dtype=dtype,
-                                             item_types=item_types)
+        self._data = dat.DataHolder(packet_shape, item_types=item_types,
+                                    dtype=dtype)
         self._targ = targ.TargetsHolder()
         self._meta = meta.MetadataHolder()
         self._num_data = 0
-        self.dtype = dtype
         self.resizable = True
         self.name = name
 
@@ -42,7 +35,7 @@ class numpy_dataset:
             'name': self.name,
             'packet_shape': self.accepted_packet_shape,
             'item_types': self.item_types,
-            'dtype': dtype}
+            'dtype': self.dtype}
         return str(attrs_dict)
 
     # helper methods
@@ -76,19 +69,12 @@ class numpy_dataset:
     @property
     def dtype(self):
         """Datatype of dataset items."""
-        return self._dtype
+        return self._data.dtype
 
     @dtype.setter
     def dtype(self, value):
         """Datatype of dataset items."""
-        dtype = np.dtype(value)
-        if not np.issubdtype(dtype, np.number):
-            raise Exception('Illegal data type: {}'.format(value))
-        for item_type in self._used_types:
-            data = self._data[item_type]
-            data = [datum.astype(dtype) for datum in data]
-            self._data[item_type] = data
-        self._dtype = dtype.name
+        self._data.dtype = value
 
     @property
     def num_data(self):
@@ -106,14 +92,14 @@ class numpy_dataset:
             the values represent wheher a collection of items of this type is
             present in this dataset.
         """
-        return self._item_types
+        return self._data.item_types
 
     @property
     def accepted_packet_shape(self):
         """
             The shape of accepted raw packets to be converted to dataset items.
         """
-        return self._packet_shape
+        return self._data.accepted_packet_shape
 
     @property
     def item_shapes(self):
@@ -124,7 +110,7 @@ class numpy_dataset:
             items as they would be presented from the items themselves by
             getting the numpy.ndarray 'shape' property.
         """
-        return self._item_shapes
+        return self._data.item_shapes
 
     @property
     def metadata_fields(self):
@@ -144,12 +130,10 @@ class numpy_dataset:
     # add/get items
 
     def get_data_as_arraylike(self, data_slice_or_idx=None):
-        s = self._get_items_slice(data_slice_or_idx)
-        return tuple(self._data[k][s] for k in self._used_types)
+        return self._data.get_data_as_arraylike(data_slice_or_idx)
 
     def get_data_as_dict(self, data_slice_or_idx=None):
-        s = self._get_items_slice(data_slice_or_idx)
-        return {k: self._data[k][s] for k in self._used_types}
+        return self._data.get_data_as_dict(data_slice_or_idx)
 
     def get_targets(self, targets_slice_or_idx=None):
         return self._targ.get_targets_as_arraylike(targets_slice_or_idx)[0]
@@ -161,14 +145,7 @@ class numpy_dataset:
     def add_data_item(self, packet, target, metadata={}):
         if not self._resizable:
             raise Exception('Cannot add items to dataset')
-        if packet.shape != self._packet_shape:
-            raise ValueError('Packet with incompatible shape passed.\n'
-                             'Required:{}\nActual{}:'.format(
-                                 self._packet_shape, packet.shape))
-        data_items = dat.convert_packet(packet, self._item_types,
-                                        dtype=self._dtype)
-        for key in self._used_types:
-            self._data[key].append(data_items[key])
+        self._data.append_packet(packet)
         self._targ.append({'classification': target})
         self._meta.append(metadata)
         self._num_data += 1
@@ -187,11 +164,9 @@ class numpy_dataset:
         shuffler = np.random.shuffle
         for idx in range(num_shuffles):
             rng_state = np.random.get_state()
-            for key in self._used_types:
-                np.random.shuffle(self._data[key])
-                np.random.set_state(rng_state)
-            self._targ.shuffle(shuffler,
-                               lambda: np.random.set_state(rng_state))
+            state_resetter = lambda: np.random.set_state(rng_state)
+            self._data.shuffle(shuffler, state_resetter)
+            self._targ.shuffle(shuffler, state_resetter)
             self._meta.shuffle(shuffler)
 
     def is_compatible_with(self, other_dataset, check_dtype=False):
@@ -231,11 +206,7 @@ class numpy_dataset:
             raise ValueError('Incompatible dataset to merge: {}',
                              other_dataset.name)
         s = self._get_items_slice(items_slice_or_idx)
-        data = other_dataset.get_data_as_dict(s)
-        for k in self._used_types:
-            (self._data[k]).extend(data[k])
-        # cast values to current dtype
-        self.dtype = self.dtype
+        self._data.extend(other_dataset.get_data_as_dict(s))
         self._targ.extend({'classification': other_dataset.get_targets(s)})
         metadata = other_dataset.get_metadata(s)
         self._meta.extend(other_dataset.get_metadata(s))

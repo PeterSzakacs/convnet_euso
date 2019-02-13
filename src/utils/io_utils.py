@@ -420,12 +420,9 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         data = self.load_data(name, dataset.item_types)
         targets = self._target_handler.load_targets(name)
         metadata = self._meta_handler.load_metadata(name)
-        for itype, is_present in dataset.item_types.items():
-            if is_present:
-                dataset._data[itype].extend(data[itype])
+        dataset._data.extend(data)
         dataset._targ.extend({'classification': targets})
         dataset._meta.extend(metadata)
-        dataset._metafields = config['metafields']
         dataset._num_data = config['num_data']
         return dataset
 

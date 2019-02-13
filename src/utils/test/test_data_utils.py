@@ -348,7 +348,7 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         packet_shape = (self.n_f + 1, self.f_h, self.f_w)
         packet = np.ones(packet_shape)
         holder = dat.DataHolder(self.packet_shape)
-        self.assertRaises(Exception, holder.append_packet, packet)
+        self.assertRaises(ValueError, holder.append_packet, packet)
 
     def test_extend_packets_raises_error_on_misshaped_packets_passed(self):
         packet_shape = (self.n_f + 1, self.f_h, self.f_w)
@@ -356,7 +356,7 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         packets.append(np.zeros(packet_shape))
 
         holder = dat.DataHolder(self.packet_shape)
-        self.assertRaises(Exception, holder.extend_packets, packets)
+        self.assertRaises(ValueError, holder.extend_packets, packets)
 
     def test_append_raises_error_on_missing_items(self):
         item_types = self._create_item_types(('raw', 'yx', 'gtux'))
