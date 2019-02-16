@@ -6,8 +6,9 @@ from tflearn.layers.core import input_data, fully_connected
 
 import net.base_classes as bclasses
 
-# NOTE: These tests are rather slow for unit tests, but mocking out all of
-# tflearn and tensorflow seemed like a really bad idea
+# NOTE: Since the classes under test here are 3rd party library wrappers, these
+# tests are much more integration tests than unit tests. Because of this, they
+# are rather slow.
 
 class MockNeuralNetwork(bclasses.NeuralNetwork):
 
@@ -51,33 +52,38 @@ class TestNeuralNetworkModel(unittest.TestCase):
 
     # helper methods (general)
 
+    def _fill_tensor_weights(self, weights, value=10):
+        for weight in weights:
+            weight.fill(value)
+        return weights
+
+    def _assign_model_tensors(self, tf_model, tensors, values):
+        for idx in range(len(tensors)):
+            tf_model.set_weights(tensors[idx], values[idx])
+
     def _create_static_weights(self, model, value=10):
         tf_model = model.network_model
         tf_layers = model.network_graph.trainable_layers
         weights = tuple(tf_model.get_weights(layer.W) for layer in tf_layers)
-        for weight in weights:
-            weight.fill(value)
-        return weights
+        return self._fill_tensor_weights(weights)
 
     def _create_static_biases(self, model, value=10):
         tf_model = model.network_model
         tf_layers = model.network_graph.trainable_layers
         weights = tuple(tf_model.get_weights(layer.b) for layer in tf_layers)
-        for weight in weights:
-            weight.fill(value)
-        return weights
+        return self._fill_tensor_weights(weights)
 
     def _set_all_weights(self, model, new_weights):
         tf_model = model.network_model
         tf_layers = model.network_graph.trainable_layers
-        for idx in range(len(tf_layers)):
-            tf_model.set_weights(tf_layers[idx].W, new_weights[idx])
+        tensors = tuple(layer.W for layer in tf_layers)
+        self._assign_model_tensors(tf_model, tensors, new_weights)
 
-    def _set_all_biases(self, model, new_weights):
+    def _set_all_biases(self, model, new_biases):
         tf_model = model.network_model
         tf_layers = model.network_graph.trainable_layers
-        for idx in range(len(tf_layers)):
-            tf_model.set_weights(tf_layers[idx].b, new_weights[idx])
+        tensors = tuple(layer.b for layer in tf_layers)
+        self._assign_model_tensors(tf_model, tensors, new_biases)
 
     # helper methods (custom asserts)
 
