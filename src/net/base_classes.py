@@ -21,10 +21,22 @@ class NetworkModel():
         model, layers = self._model, self._net.trainable_layers
         return tuple(model.get_weights(layer.W) for layer in layers)
 
+    @trainable_layer_weights.setter
+    def trainable_layer_weights(self, values):
+        model, layers = self._model, self._net.trainable_layers
+        for idx in range(len(layers)):
+            model.set_weights(layers[idx].W, values[idx])
+
     @property
     def trainable_layer_biases(self):
         model, layers = self._model, self._net.trainable_layers
         return tuple(model.get_weights(layer.b) for layer in layers)
+
+    @trainable_layer_biases.setter
+    def trainable_layer_biases(self, values):
+        model, layers = self._model, self._net.trainable_layers
+        for idx in range(len(layers)):
+            model.set_weights(layers[idx].b, values[idx])
 
     @property
     def trainable_layer_weights_snapshot(self):

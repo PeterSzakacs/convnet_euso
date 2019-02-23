@@ -11,15 +11,25 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
 
     @property
     def conv_weights(self):
-        model, graph = self.network_model, self.network_graph
-        conv_layers = graph.conv_layers
+        model, conv_layers = self.network_model, self.network_graph.conv_layers
         return tuple(model.get_weights(layer.W) for layer in conv_layers)
+
+    @conv_weights.setter
+    def conv_weights(self, values):
+        model, conv_layers = self.network_model, self.network_graph.conv_layers
+        for idx in range(len(conv_layers)):
+            model.set_weights(conv_layers[idx].W, values[idx])
 
     @property
     def conv_biases(self):
-        model, graph = self.network_model, self.network_graph
-        conv_layers = graph.conv_layers
+        model, conv_layers = self.network_model, self.network_graph.conv_layers
         return tuple(model.get_weights(layer.b) for layer in conv_layers)
+
+    @conv_biases.setter
+    def conv_biases(self, values):
+        model, conv_layers = self.network_model, self.network_graph.conv_layers
+        for idx in range(len(conv_layers)):
+            model.set_weights(conv_layers[idx].b, values[idx])
 
     @property
     def conv_weights_snapshot(self):
@@ -31,15 +41,25 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
 
     @property
     def fc_weights(self):
-        model, graph = self.network_model, self.network_graph
-        fc_layers = graph.fc_layers
+        model, fc_layers = self.network_model, self.network_graph.fc_layers
         return tuple(model.get_weights(layer.W) for layer in fc_layers)
+
+    @fc_weights.setter
+    def fc_weights(self, values):
+        model, fc_layers = self.network_model, self.network_graph.fc_layers
+        for idx in range(len(fc_layers)):
+            model.set_weights(fc_layers[idx].W, values[idx])
 
     @property
     def fc_biases(self):
-        model, graph = self.network_model, self.network_graph
-        fc_layers = graph.fc_layers
+        model, fc_layers = self.network_model, self.network_graph.fc_layers
         return tuple(model.get_weights(layer.b) for layer in fc_layers)
+
+    @fc_biases.setter
+    def fc_biases(self, values):
+        model, fc_layers = self.network_model, self.network_graph.fc_layers
+        for idx in range(len(fc_layers)):
+            model.set_weights(fc_layers[idx].b, values[idx])
 
     @property
     def fc_weights_snapshot(self):

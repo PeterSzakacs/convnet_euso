@@ -91,30 +91,6 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         weights = tuple(tf_model.get_weights(layer.b) for layer in tf_layers)
         return self._fill_tensor_weights(weights, value=value)
 
-    def _set_all_conv_weights(self, model, new_weights):
-        tf_model = model.network_model
-        tf_layers = model.network_graph.conv_layers
-        tensors = tuple(layer.W for layer in tf_layers)
-        self._assign_model_tensors(tf_model, tensors, new_weights)
-
-    def _set_all_fc_weights(self, model, new_weights):
-        tf_model = model.network_model
-        tf_layers = model.network_graph.fc_layers
-        tensors = tuple(layer.W for layer in tf_layers)
-        self._assign_model_tensors(tf_model, tensors, new_weights)
-
-    def _set_all_conv_biases(self, model, new_biases):
-        tf_model = model.network_model
-        tf_layers = model.network_graph.conv_layers
-        tensors = tuple(layer.b for layer in tf_layers)
-        self._assign_model_tensors(tf_model, tensors, new_biases)
-
-    def _set_all_fc_biases(self, model, new_biases):
-        tf_model = model.network_model
-        tf_layers = model.network_graph.fc_layers
-        tensors = tuple(layer.b for layer in tf_layers)
-        self._assign_model_tensors(tf_model, tensors, new_biases)
-
     # test methods
 
     def test_conv_weights_snapshots_after_update(self):
@@ -122,7 +98,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         new_weights = self._create_static_conv_weights(model)
-        self._set_all_conv_weights(model, new_weights)
+        model.conv_weights = new_weights
         model.update_snapshots()
         self._assert_weights_equal(model.conv_weights_snapshot,
                                    new_weights)
@@ -132,7 +108,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         new_biases = self._create_static_conv_biases(model)
-        self._set_all_conv_biases(model, new_biases)
+        model.conv_biases = new_biases
         model.update_snapshots()
         self._assert_biases_equal(model.conv_biases_snapshot,
                                   new_biases)
@@ -142,8 +118,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         prev_snapshot = model.conv_weights_snapshot
-        self._set_all_conv_weights(model,
-                                   self._create_static_conv_weights(model))
+        model.conv_weights = self._create_static_conv_weights(model)
         curr_snapshot = model.conv_weights_snapshot
         self._assert_weights_equal(prev_snapshot, curr_snapshot)
 
@@ -152,8 +127,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         prev_snapshot = model.conv_biases_snapshot
-        self._set_all_conv_biases(model,
-                                  self._create_static_conv_biases(model))
+        model.conv_biases = self._create_static_conv_biases(model)
         curr_snapshot = model.conv_biases_snapshot
         self._assert_biases_equal(prev_snapshot, curr_snapshot)
 
@@ -163,7 +137,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
 
         prev_weights = model.trainable_layer_weights
         new_weights = self._create_static_conv_weights(model)
-        self._set_all_conv_weights(model, new_weights)
+        model.conv_weights = new_weights
         self._assert_weights_equal(model.conv_weights, new_weights)
 
     def test_displayed_conv_biases_updated_after_changing_model(self):
@@ -172,7 +146,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
 
         prev_biases = model.trainable_layer_biases
         new_biases = self._create_static_conv_biases(model)
-        self._set_all_conv_biases(model, new_biases)
+        model.conv_biases = new_biases
         self._assert_biases_equal(model.conv_biases, new_biases)
 
     def test_conv_weights_restored_from_snapshot(self):
@@ -180,8 +154,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         prev_weights = model.conv_weights
-        self._set_all_conv_weights(model,
-                                   self._create_static_conv_weights(model))
+        model.conv_weights = self._create_static_conv_weights(model)
         model.restore_from_snapshot()
         self._assert_weights_equal(model.conv_weights, prev_weights)
 
@@ -190,8 +163,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         prev_biases = model.conv_biases
-        self._set_all_conv_biases(model,
-                                  self._create_static_conv_biases(model))
+        model.conv_biases = self._create_static_conv_biases(model)
         model.restore_from_snapshot()
         self._assert_biases_equal(model.conv_biases, prev_biases)
 
@@ -200,7 +172,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         new_weights = self._create_static_fc_weights(model)
-        self._set_all_fc_weights(model, new_weights)
+        model.fc_weights = new_weights
         model.update_snapshots()
         self._assert_weights_equal(model.fc_weights_snapshot,
                                    new_weights)
@@ -210,7 +182,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         new_biases = self._create_static_fc_biases(model)
-        self._set_all_fc_biases(model, new_biases)
+        model.fc_biases = new_biases
         model.update_snapshots()
         self._assert_biases_equal(model.fc_biases_snapshot,
                                    new_biases)
@@ -220,7 +192,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         prev_snapshot = model.fc_weights_snapshot
-        self._set_all_fc_weights(model, self._create_static_fc_weights(model))
+        model.fc_weights = self._create_static_fc_weights(model)
         curr_snapshot = model.fc_weights_snapshot
         self._assert_weights_equal(prev_snapshot, curr_snapshot)
 
@@ -229,7 +201,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         prev_snapshot = model.fc_biases_snapshot
-        self._set_all_fc_biases(model, self._create_static_fc_biases(model))
+        model.fc_biases = self._create_static_fc_biases(model)
         curr_snapshot = model.fc_biases_snapshot
         self._assert_biases_equal(prev_snapshot, curr_snapshot)
 
@@ -239,7 +211,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
 
         prev_weights = model.fc_weights
         new_weights = self._create_static_fc_weights(model)
-        self._set_all_fc_weights(model, new_weights)
+        model.fc_weights = new_weights
         self._assert_weights_equal(model.fc_weights, new_weights)
 
     def test_displayed_fc_biases_updated_after_changing_model(self):
@@ -248,7 +220,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
 
         prev_biases = model.fc_biases
         new_biases = self._create_static_fc_biases(model)
-        self._set_all_fc_biases(model, new_biases)
+        model.fc_biases = new_biases
         self._assert_biases_equal(model.fc_biases, new_biases)
 
     def test_fc_weights_restored_from_snapshot(self):
@@ -256,7 +228,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         prev_weights = model.fc_weights
-        self._set_all_fc_weights(model, self._create_static_fc_weights(model))
+        model.fc_weights = self._create_static_fc_weights(model)
         model.restore_from_snapshot()
         self._assert_weights_equal(model.fc_weights, prev_weights)
 
@@ -265,7 +237,7 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         model = conv_classes.Conv2DNetworkModel(network)
 
         prev_biases = model.fc_biases
-        self._set_all_fc_biases(model, self._create_static_fc_biases(model))
+        model.fc_biases = self._create_static_fc_biases(model)
         model.restore_from_snapshot()
         self._assert_biases_equal(model.fc_biases, prev_biases)
 

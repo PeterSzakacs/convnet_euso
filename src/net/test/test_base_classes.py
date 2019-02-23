@@ -57,10 +57,6 @@ class TestNeuralNetworkModel(unittest.TestCase):
             weight.fill(value)
         return weights
 
-    def _assign_model_tensors(self, tf_model, tensors, values):
-        for idx in range(len(tensors)):
-            tf_model.set_weights(tensors[idx], values[idx])
-
     def _create_static_weights(self, model, value=10):
         tf_model = model.network_model
         tf_layers = model.network_graph.trainable_layers
@@ -72,18 +68,6 @@ class TestNeuralNetworkModel(unittest.TestCase):
         tf_layers = model.network_graph.trainable_layers
         weights = tuple(tf_model.get_weights(layer.b) for layer in tf_layers)
         return self._fill_tensor_weights(weights)
-
-    def _set_all_weights(self, model, new_weights):
-        tf_model = model.network_model
-        tf_layers = model.network_graph.trainable_layers
-        tensors = tuple(layer.W for layer in tf_layers)
-        self._assign_model_tensors(tf_model, tensors, new_weights)
-
-    def _set_all_biases(self, model, new_biases):
-        tf_model = model.network_model
-        tf_layers = model.network_graph.trainable_layers
-        tensors = tuple(layer.b for layer in tf_layers)
-        self._assign_model_tensors(tf_model, tensors, new_biases)
 
     # helper methods (custom asserts)
 
@@ -104,7 +88,7 @@ class TestNeuralNetworkModel(unittest.TestCase):
         model = bclasses.NetworkModel(network)
 
         new_weights = self._create_static_weights(model)
-        self._set_all_weights(model, new_weights)
+        model.trainable_layer_weights = new_weights
         model.update_snapshots()
         self._assert_weights_equal(model.trainable_layer_weights_snapshot,
                                    new_weights)
@@ -114,7 +98,7 @@ class TestNeuralNetworkModel(unittest.TestCase):
         model = bclasses.NetworkModel(network)
 
         new_biases = self._create_static_biases(model)
-        self._set_all_biases(model, new_biases)
+        model.trainable_layer_biases = new_biases
         model.update_snapshots()
         self._assert_biases_equal(model.trainable_layer_biases_snapshot,
                                    new_biases)
@@ -124,7 +108,7 @@ class TestNeuralNetworkModel(unittest.TestCase):
         model = bclasses.NetworkModel(network)
 
         prev_snapshot = model.trainable_layer_weights_snapshot
-        self._set_all_weights(model, self._create_static_weights(model))
+        model.trainable_layer_weights = self._create_static_weights(model)
         curr_snapshot = model.trainable_layer_weights_snapshot
         self._assert_weights_equal(prev_snapshot, curr_snapshot)
 
@@ -133,7 +117,7 @@ class TestNeuralNetworkModel(unittest.TestCase):
         model = bclasses.NetworkModel(network)
 
         prev_snapshot = model.trainable_layer_biases_snapshot
-        self._set_all_biases(model, self._create_static_biases(model))
+        model.trainable_layer_biases = self._create_static_biases(model)
         curr_snapshot = model.trainable_layer_biases_snapshot
         self._assert_biases_equal(prev_snapshot, curr_snapshot)
 
@@ -143,7 +127,7 @@ class TestNeuralNetworkModel(unittest.TestCase):
 
         prev_weights = model.trainable_layer_weights
         new_weights = self._create_static_weights(model)
-        self._set_all_weights(model, new_weights)
+        model.trainable_layer_weights = new_weights
         self._assert_weights_equal(model.trainable_layer_weights, new_weights)
 
     def test_displayed_layer_biases_updated_after_changing_model(self):
@@ -152,7 +136,7 @@ class TestNeuralNetworkModel(unittest.TestCase):
 
         prev_biases = model.trainable_layer_biases
         new_biases = self._create_static_biases(model)
-        self._set_all_biases(model, new_biases)
+        model.trainable_layer_biases = new_biases
         self._assert_biases_equal(model.trainable_layer_biases, new_biases)
 
     def test_weights_restored_from_snapshot(self):
@@ -160,7 +144,7 @@ class TestNeuralNetworkModel(unittest.TestCase):
         model = bclasses.NetworkModel(network)
 
         prev_weights = model.trainable_layer_weights
-        self._set_all_weights(model, self._create_static_weights(model))
+        model.trainable_layer_weights = self._create_static_weights(model)
         model.restore_from_snapshot()
         self._assert_weights_equal(model.trainable_layer_weights, prev_weights)
 
@@ -169,7 +153,7 @@ class TestNeuralNetworkModel(unittest.TestCase):
         model = bclasses.NetworkModel(network)
 
         prev_biases = model.trainable_layer_biases
-        self._set_all_biases(model, self._create_static_biases(model))
+        model.trainable_layer_biases = self._create_static_biases(model)
         model.restore_from_snapshot()
         self._assert_biases_equal(model.trainable_layer_biases, prev_biases)
 
