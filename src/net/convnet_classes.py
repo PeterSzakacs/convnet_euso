@@ -1,3 +1,5 @@
+import numpy as np
+
 import net.base_classes as bclasses
 
 
@@ -7,18 +9,38 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
         super(Conv2DNetworkModel, self).__init__(
             neural_network, **model_settings)
 
+    def _convert_weights_to_external_form(self, layer, weights):
+        net = self.network_graph
+        if layer in net.conv_layers:
+            return np.moveaxis(weights, [2, 3], [1, 0])
+        elif layer in net.fc_layers:
+            return np.moveaxis(weights, 0, 1)
+        super()._convert_weights_to_external_form(layer, weights)
+
+    def _convert_weights_to_internal_form(self, layer, weights):
+        net = self.network_graph
+        if layer in net.conv_layers:
+            return np.moveaxis(weights, [0, 1], [3, 2])
+        elif layer in net.fc_layers:
+            return np.moveaxis(weights, 1, 0)
+        super()._convert_weights_to_internal_form(layer, weights)
+
     # properties
 
     @property
     def conv_weights(self):
         model, conv_layers = self.network_model, self.network_graph.conv_layers
-        return tuple(model.get_weights(layer.W) for layer in conv_layers)
+        convert = self._convert_weights_to_external_form
+        return tuple(convert(layer, model.get_weights(layer.W))
+                     for layer in conv_layers)
 
     @conv_weights.setter
     def conv_weights(self, values):
         model, conv_layers = self.network_model, self.network_graph.conv_layers
+        convert = self._convert_weights_to_internal_form
         for idx in range(len(conv_layers)):
-            model.set_weights(conv_layers[idx].W, values[idx])
+            layer = conv_layers[idx]
+            model.set_weights(layer.W, convert(layer, values[idx]))
 
     @property
     def conv_biases(self):
@@ -42,13 +64,17 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
     @property
     def fc_weights(self):
         model, fc_layers = self.network_model, self.network_graph.fc_layers
-        return tuple(model.get_weights(layer.W) for layer in fc_layers)
+        convert = self._convert_weights_to_external_form
+        return tuple(convert(layer, model.get_weights(layer.W))
+                     for layer in fc_layers)
 
     @fc_weights.setter
     def fc_weights(self, values):
         model, fc_layers = self.network_model, self.network_graph.fc_layers
+        convert = self._convert_weights_to_internal_form
         for idx in range(len(fc_layers)):
-            model.set_weights(fc_layers[idx].W, values[idx])
+            layer = fc_layers[idx]
+            model.set_weights(layer.W, convert(layer, values[idx]))
 
     @property
     def fc_biases(self):

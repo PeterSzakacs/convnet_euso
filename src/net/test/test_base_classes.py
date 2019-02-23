@@ -1,5 +1,6 @@
 import unittest
 
+import numpy as np
 from numpy.testing import assert_array_equal
 from tflearn.layers import regression
 from tflearn.layers.core import input_data, fully_connected
@@ -31,6 +32,8 @@ class MockNeuralNetwork(bclasses.NeuralNetwork):
         self._exp_num_layers = len(layers)
         self._exp_layers = layers
         self._exp_output = net
+        self.all_w = (np.zeros((3, 10)), np.zeros((10, 3)), )
+        self.all_b = (np.zeros(10, ), np.zeros(3, ), )
         super(MockNeuralNetwork, self).__init__(layers, net)
 
     def network_type(self):
@@ -39,12 +42,12 @@ class MockNeuralNetwork(bclasses.NeuralNetwork):
 
 class TestNeuralNetwork(unittest.TestCase):
 
-    def test_trainable_layer_order(self):
-        network = MockNeuralNetwork.get_instance()
+    def test_trainable_layer_order(self, network=None):
+        network = network or MockNeuralNetwork.get_instance()
         self.assertEqual(network.trainable_layers, network._exp_layers)
 
-    def test_output_layer(self):
-        network = MockNeuralNetwork.get_instance()
+    def test_output_layer(self, network=None):
+        network = network or MockNeuralNetwork.get_instance()
         self.assertEqual(network.output_layer, network._exp_output)
 
 
@@ -53,21 +56,13 @@ class TestNeuralNetworkModel(unittest.TestCase):
     # helper methods (general)
 
     def _fill_tensor_weights(self, weights, value=10):
-        for weight in weights:
-            weight.fill(value)
-        return weights
+        return tuple(np.full(weight.shape, value) for weight in weights)
 
-    def _create_static_weights(self, model, value=10):
-        tf_model = model.network_model
-        tf_layers = model.network_graph.trainable_layers
-        weights = tuple(tf_model.get_weights(layer.W) for layer in tf_layers)
-        return self._fill_tensor_weights(weights)
+    def _create_static_weights(self, weights, value=10):
+        return self._fill_tensor_weights(weights, value=value)
 
-    def _create_static_biases(self, model, value=10):
-        tf_model = model.network_model
-        tf_layers = model.network_graph.trainable_layers
-        weights = tuple(tf_model.get_weights(layer.b) for layer in tf_layers)
-        return self._fill_tensor_weights(weights)
+    def _create_static_biases(self, biases, value=10):
+        return self._fill_tensor_weights(biases, value=value)
 
     # helper methods (custom asserts)
 
@@ -83,77 +78,89 @@ class TestNeuralNetworkModel(unittest.TestCase):
 
     # test methods
 
-    def test_layer_weights_snapshots_after_update(self):
-        network = MockNeuralNetwork.get_instance()
-        model = bclasses.NetworkModel(network)
+    def test_layer_weights_snapshots_after_update(self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
 
-        new_weights = self._create_static_weights(model)
+        new_weights = self._create_static_weights(net.all_w)
         model.trainable_layer_weights = new_weights
         model.update_snapshots()
         self._assert_weights_equal(model.trainable_layer_weights_snapshot,
                                    new_weights)
 
-    def test_layer_biases_snapshots_after_update(self):
-        network = MockNeuralNetwork.get_instance()
-        model = bclasses.NetworkModel(network)
+    def test_layer_biases_snapshots_after_update(self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
 
-        new_biases = self._create_static_biases(model)
+        new_biases = self._create_static_biases(net.all_b)
         model.trainable_layer_biases = new_biases
         model.update_snapshots()
         self._assert_biases_equal(model.trainable_layer_biases_snapshot,
                                    new_biases)
 
-    def test_layer_weights_snapshots_untouched_after_changing_model(self):
-        network = MockNeuralNetwork.get_instance()
-        model = bclasses.NetworkModel(network)
+    def test_layer_weights_snapshots_untouched_after_changing_model(
+        self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
 
         prev_snapshot = model.trainable_layer_weights_snapshot
-        model.trainable_layer_weights = self._create_static_weights(model)
+        model.trainable_layer_weights = self._create_static_weights(net.all_w)
         curr_snapshot = model.trainable_layer_weights_snapshot
         self._assert_weights_equal(prev_snapshot, curr_snapshot)
 
-    def test_layer_biases_snapshots_untouched_after_changing_model(self):
-        network = MockNeuralNetwork.get_instance()
-        model = bclasses.NetworkModel(network)
+    def test_layer_biases_snapshots_untouched_after_changing_model(
+        self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
 
         prev_snapshot = model.trainable_layer_biases_snapshot
-        model.trainable_layer_biases = self._create_static_biases(model)
+        model.trainable_layer_biases = self._create_static_biases(net.all_b)
         curr_snapshot = model.trainable_layer_biases_snapshot
         self._assert_biases_equal(prev_snapshot, curr_snapshot)
 
-    def test_displayed_layer_weigths_updated_after_changing_model(self):
-        network = MockNeuralNetwork.get_instance()
-        model = bclasses.NetworkModel(network)
+    def test_displayed_layer_weigths_updated_after_changing_model(
+        self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
 
         prev_weights = model.trainable_layer_weights
-        new_weights = self._create_static_weights(model)
+        new_weights = self._create_static_weights(net.all_w)
         model.trainable_layer_weights = new_weights
         self._assert_weights_equal(model.trainable_layer_weights, new_weights)
 
-    def test_displayed_layer_biases_updated_after_changing_model(self):
-        network = MockNeuralNetwork.get_instance()
-        model = bclasses.NetworkModel(network)
+    def test_displayed_layer_biases_updated_after_changing_model(
+        self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
 
         prev_biases = model.trainable_layer_biases
-        new_biases = self._create_static_biases(model)
+        new_biases = self._create_static_biases(net.all_b)
         model.trainable_layer_biases = new_biases
         self._assert_biases_equal(model.trainable_layer_biases, new_biases)
 
-    def test_weights_restored_from_snapshot(self):
-        network = MockNeuralNetwork.get_instance()
-        model = bclasses.NetworkModel(network)
+    def test_weights_restored_from_snapshot(self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
 
         prev_weights = model.trainable_layer_weights
-        model.trainable_layer_weights = self._create_static_weights(model)
+        model.trainable_layer_weights = self._create_static_weights(net.all_w)
         model.restore_from_snapshot()
         self._assert_weights_equal(model.trainable_layer_weights, prev_weights)
 
-    def test_biases_restored_from_snapshot(self):
-        network = MockNeuralNetwork.get_instance()
-        model = bclasses.NetworkModel(network)
+    def test_biases_restored_from_snapshot(self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
 
         prev_biases = model.trainable_layer_biases
-        model.trainable_layer_biases = self._create_static_biases(model)
+        model.trainable_layer_biases = self._create_static_biases(net.all_b)
         model.restore_from_snapshot()
         self._assert_biases_equal(model.trainable_layer_biases, prev_biases)
 

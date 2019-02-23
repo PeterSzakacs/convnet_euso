@@ -8,6 +8,18 @@ class NetworkModel():
         self._net = neural_network
         self.initialize_model(**model_settings)
 
+    def _convert_weights_to_internal_form(self, layer, weights):
+        return weights
+
+    def _convert_biases_to_internal_form(self, layer, biases):
+        return biases
+
+    def _convert_weights_to_external_form(self, layer, weights):
+        return weights
+
+    def _convert_biases_to_external_form(self, layer, biases):
+        return biases
+
     @property
     def network_graph(self):
         return self._net
@@ -19,24 +31,32 @@ class NetworkModel():
     @property
     def trainable_layer_weights(self):
         model, layers = self._model, self._net.trainable_layers
-        return tuple(model.get_weights(layer.W) for layer in layers)
+        convert = self._convert_weights_to_external_form
+        return tuple(convert(layer, model.get_weights(layer.W))
+                     for layer in layers)
 
     @trainable_layer_weights.setter
     def trainable_layer_weights(self, values):
         model, layers = self._model, self._net.trainable_layers
+        convert = self._convert_weights_to_internal_form
         for idx in range(len(layers)):
-            model.set_weights(layers[idx].W, values[idx])
+            layer = layers[idx]
+            model.set_weights(layer.W, convert(layer, values[idx]))
 
     @property
     def trainable_layer_biases(self):
         model, layers = self._model, self._net.trainable_layers
-        return tuple(model.get_weights(layer.b) for layer in layers)
+        convert = self._convert_biases_to_external_form
+        return tuple(convert(layer, model.get_weights(layer.b))
+                     for layer in layers)
 
     @trainable_layer_biases.setter
     def trainable_layer_biases(self, values):
         model, layers = self._model, self._net.trainable_layers
+        convert = self._convert_biases_to_internal_form
         for idx in range(len(layers)):
-            model.set_weights(layers[idx].b, values[idx])
+            layer = layers[idx]
+            model.set_weights(layer.b, convert(layer, values[idx]))
 
     @property
     def trainable_layer_weights_snapshot(self):
@@ -61,8 +81,8 @@ class NetworkModel():
         model, layers = self._model, self._net.trainable_layers
         weights, biases = self._train_layer_w, self._train_layer_b
         for idx in range(len(layers)):
-            model.set_weights(layers[idx].W, weights[idx])
-            model.set_weights(layers[idx].b, biases[idx])
+            self.trainable_layer_weights = weights
+            self.trainable_layer_biases = biases
 
     def update_snapshots(self):
         model, layers = self._model, self._net.trainable_layers
