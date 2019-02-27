@@ -196,6 +196,12 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
             item_types[itype] = True
         return item_types
 
+    # test setup
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestDataHolder, cls).setUpClass(num_items=4)
+
     # test methods
     ## test holder properties
 
@@ -219,6 +225,21 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         item_types = self._create_item_types(included_types)
         holder = dat.DataHolder(self.packet_shape, item_types=item_types)
         self.assertDictEqual(holder.item_types, item_types)
+
+    def test_num_items_empty(self):
+        included_types = ('yx', 'gtux', )
+        item_types = self._create_item_types(included_types)
+        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
+        self.assertEqual(len(holder), 0)
+
+    def test_num_items_with_items(self):
+        included_types = ('raw', )
+        item_types = self._create_item_types(included_types)
+        items = self._create_items(included_types, slice(0, 2))
+
+        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
+        holder.extend(items)
+        self.assertEqual(len(holder), 2)
 
     ## test holder dtype
 
@@ -270,7 +291,7 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         holder = dat.DataHolder(self.packet_shape, item_types=item_types)
         self._assertItemsDict(holder.get_data_as_dict(), exp_items, item_types)
 
-    def test_get_data_as_dict(self):
+    def test_get_data_as_dict_with_slice(self):
         included_types = ('yx', 'gtux', 'gtuy')
         item_types = self._create_item_types(included_types)
         items = self._create_items(included_types, slice(0, 2))
@@ -279,6 +300,32 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         holder = dat.DataHolder(self.packet_shape, item_types=item_types)
         holder.extend(items)
         self._assertItemsDict(holder.get_data_as_dict(), exp_items, item_types)
+
+    def test_get_data_as_dict_with_range(self):
+        included_types = ('raw', 'yx')
+        item_types = self._create_item_types(included_types)
+        items = self._create_items(included_types, range(0, 3))
+        req_range = range(1, 3)
+        exp_items = {itype: list(items[itype][req_range])
+                     for itype in included_types}
+
+        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
+        holder.extend(items)
+        self._assertItemsDict(holder.get_data_as_dict(req_range),
+                              exp_items, item_types)
+
+    def test_get_data_as_dict_with_indexes_list(self):
+        included_types = ('yx', )
+        item_types = self._create_item_types(included_types)
+        items = self._create_items(included_types, range(0, 3))
+        req_idx = [0, 2]
+        exp_items = {itype: list(items[itype][req_idx])
+                     for itype in included_types}
+
+        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
+        holder.extend(items)
+        self._assertItemsDict(holder.get_data_as_dict(req_idx),
+                              exp_items, item_types)
 
     def test_get_data_as_arraylike_empty(self):
         included_types = ('yx', )
@@ -289,7 +336,7 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         self._assertItemsArraylike(holder.get_data_as_arraylike(), exp_items,
                                    item_types)
 
-    def test_get_data_as_arraylike(self):
+    def test_get_data_as_arraylike_with_slice(self):
         included_types = ('yx', 'gtux', 'gtuy')
         item_types = self._create_item_types(included_types)
         items = self._create_items(included_types, slice(0, 2))
@@ -299,6 +346,32 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
         holder.extend(items)
         self._assertItemsArraylike(holder.get_data_as_arraylike(), exp_items,
                                    item_types)
+
+    def test_get_data_as_arraylike_with_range(self):
+        included_types = ('gtux', )
+        item_types = self._create_item_types(included_types)
+        items = self._create_items(included_types, range(0, 3))
+        req_range = range(1, 3)
+        exp_items = tuple(list(items[itype][req_range])
+                          for itype in included_types)
+
+        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
+        holder.extend(items)
+        self._assertItemsArraylike(holder.get_data_as_arraylike(req_range),
+                                   exp_items, item_types)
+
+    def test_get_data_as_arraylike_with_indexes_list(self):
+        included_types = ('gtux', 'gtuy', )
+        item_types = self._create_item_types(included_types)
+        items = self._create_items(included_types, range(0, 3))
+        req_idx = [1, 2]
+        exp_items = tuple(list(items[itype][req_idx])
+                          for itype in included_types)
+
+        holder = dat.DataHolder(self.packet_shape, item_types=item_types)
+        holder.extend(items)
+        self._assertItemsArraylike(holder.get_data_as_arraylike(req_idx),
+                                   exp_items, item_types)
 
     ## test item adding methods
 

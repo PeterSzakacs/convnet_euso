@@ -1,3 +1,4 @@
+import collections
 import operator
 import functools
 
@@ -341,6 +342,7 @@ class DataHolder():
     def __init__(self, packet_shape, dtype=np.uint8, item_types={'raw': True,
                  'yx': False, 'gtux': False, 'gtuy': False}):
         check_item_types(item_types)
+        self._num_items = 0
         self._item_types = item_types
         self._used_types = tuple(k for k in ALL_ITEM_TYPES
                                  if item_types[k] is True)
@@ -349,6 +351,18 @@ class DataHolder():
         self._data = create_data_holders(packet_shape, dtype=dtype,
                                          item_types=item_types)
         self.dtype = dtype
+
+    def __len__(self):
+        return self._num_items
+
+    def _get_indexes_sequence(self, indexing_obj):
+        if indexing_obj is None:
+            return range(self._num_items)
+        elif isinstance(indexing_obj, slice):
+            return range(self._num_items)[indexing_obj]
+        elif isinstance(indexing_obj, collections.Sequence):
+            # range, list, tuple, etc
+            return indexing_obj
 
     @property
     def dtype(self):
@@ -403,6 +417,7 @@ class DataHolder():
             raise Exception('Missing item types detected: {}'.format(missing))
         for itype in self._used_types:
             self._data[itype].append(items_dict[itype].astype(self.dtype))
+        self._num_items += 1
 
     def extend(self, items_iter_dict):
         used_types = self._used_types
@@ -410,9 +425,10 @@ class DataHolder():
                       if items_iter_dict.get(itype, None) is None)
         if missing:
             raise Exception('Missing item types detected: {}'.format(missing))
-        for itype in self._used_types:
+        for itype in used_types:
             self._data[itype].extend(
                 item.astype(self.dtype) for item in items_iter_dict[itype])
+        self._num_items = len(self._data[used_types[0]])
 
     def append_packet(self, packet):
         s = packet.shape
@@ -421,17 +437,19 @@ class DataHolder():
                              'actual: {}'.format(self._packet_shape, s))
         self.append(convert_packet(packet, self.item_types, dtype=self.dtype))
 
-    def extend_packets(self, packets_iter, data_slice_or_idx=None):
+    def extend_packets(self, packets_iter):
         for packet in packets_iter:
             self.append_packet(packet)
 
     def get_data_as_arraylike(self, data_slice_or_idx=None):
-        s = slice(None) if data_slice_or_idx is None else data_slice_or_idx
-        return tuple(self._data[k][s] for k in self._used_types)
+        idxs = self._get_indexes_sequence(data_slice_or_idx)
+        data = self._data
+        return tuple([data[k][idx] for idx in idxs] for k in self._used_types)
 
     def get_data_as_dict(self, data_slice_or_idx=None):
-        s = slice(None) if data_slice_or_idx is None else data_slice_or_idx
-        return {k: self._data[k][s] for k in self._used_types}
+        idxs = self._get_indexes_sequence(data_slice_or_idx)
+        data = self._data
+        return {k: [data[k][idx] for idx in idxs] for k in self._used_types}
 
     def shuffle(self, shuffler, shuffler_state_resetter):
         for item_type in self._used_types:
