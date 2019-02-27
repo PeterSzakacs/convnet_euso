@@ -70,6 +70,34 @@ class TestDatasetSplitter(setups.DatasetMixin, unittest.TestCase):
         res = splitter.get_data_and_targets(dset)
         self.assertDictEqual(res, exp_res)
 
+    # Currently no real way to test the 'RANDOM' mode, aside from checking
+    # the internally generated train/test indexes, which requires exposing
+    # that functonality. For now its just excluded from testing.
+    def test_dset_split_mode_random_with_num(self):
+        num_items, dset = self.num, self.dset
+        keys = ('test_data', 'test_targets', 'train_data', 'train_targets', )
+        splitter = netutils.DatasetSplitter(split_mode='RANDOM',
+                                            num_items=num_items)
+        res = splitter.get_data_and_targets(dset)
+        self.assertSetEqual(set(res.keys()), set(keys))
+        self.assertEqual(len(res['train_data'][0]), dset.num_data - num_items)
+        self.assertEqual(len(res['train_targets']), dset.num_data - num_items)
+        self.assertEqual(len(res['test_data'][0]), num_items)
+        self.assertEqual(len(res['test_targets']), num_items)
+
+    def test_dset_split_mode_random_with_fraction(self):
+        frac, dset = self.fraction, self.dset
+        num_items = round(dset.num_data * frac)
+        keys = ('test_data', 'test_targets', 'train_data', 'train_targets', )
+        splitter = netutils.DatasetSplitter(split_mode='RANDOM',
+                                            items_fraction=frac)
+        res = splitter.get_data_and_targets(dset)
+        self.assertSetEqual(set(res.keys()), set(keys))
+        self.assertEqual(len(res['train_data'][0]), dset.num_data - num_items)
+        self.assertEqual(len(res['train_targets']), dset.num_data - num_items)
+        self.assertEqual(len(res['test_data'][0]), num_items)
+        self.assertEqual(len(res['test_targets']), num_items)
+
     def test_num_overrides_faction(self):
         num_items, frac, dset = self.num, self.fraction, self.dset
         exp_res = {

@@ -1,6 +1,7 @@
 import os
 import importlib
 import datetime as dt
+import random
 
 import tflearn
 import numpy as np
@@ -132,7 +133,7 @@ def save_model(model, save_pathname):
 
 class DatasetSplitter():
 
-    DATASET_SPLIT_MODES = ('FROM_START', 'FROM_END', )
+    DATASET_SPLIT_MODES = ('FROM_START', 'FROM_END', 'RANDOM', )
 
     def __init__(self, split_mode, items_fraction=0.1, num_items=None):
         self.split_mode = split_mode
@@ -192,6 +193,15 @@ class DatasetSplitter():
                 test_idx, train_idx = slice(n_items), slice(n_items, n_data)
             elif mode == 'FROM_END':
                 test_idx, train_idx = slice(n_items, n_data), slice(n_items)
+            elif mode == 'RANDOM':
+                test_idx, next_idx = [], None
+                all_idx = set(range(n_data))
+                for idx in range(n_items):
+                    while next_idx not in all_idx:
+                        next_idx = random.randrange(0, n_data)
+                    all_idx.remove(next_idx)
+                    test_idx.append(next_idx)
+                train_idx = list(all_idx)
         return {'train_data': train_dset.get_data_as_arraylike(train_idx),
                 'train_targets': train_dset.get_targets(train_idx),
                 'test_data': test_dset.get_data_as_arraylike(test_idx),
