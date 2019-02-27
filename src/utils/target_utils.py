@@ -1,3 +1,5 @@
+import collections
+
 import numpy as np
 
 TARGET_TYPES = ['classification']
@@ -31,13 +33,27 @@ class TargetsHolder():
         self._targets = targets
         self._used_types = used_types
 
+    def __len__(self):
+        return self._num_targets
+
+    def _get_indexes_sequence(self, indexing_obj):
+        if indexing_obj is None:
+            return range(self._num_targets)
+        elif isinstance(indexing_obj, slice):
+            return range(self._num_targets)[indexing_obj]
+        elif isinstance(indexing_obj, collections.Sequence):
+            # range, list, tuple, etc
+            return indexing_obj
+
     def append(self, targets_dict):
         for ttype in self._used_types.keys():
             self._targets[ttype].append(targets_dict[ttype])
+        self._num_targets += 1
 
     def extend(self, targets_iterable_dict):
         for ttype in self._used_types.keys():
             self._targets[ttype].extend(targets_iterable_dict[ttype])
+        self._num_targets = len(next(iter(self._targets.values())))
 
     def shuffle(self, shuffler, shuffler_state_resetter):
         for target_type, target in self._targets.items():
@@ -45,13 +61,13 @@ class TargetsHolder():
             shuffler_state_resetter()
 
     def get_targets_as_arraylike(self, targets_slice_or_idx=None):
-        s = (slice(None) if targets_slice_or_idx is None
-             else targets_slice_or_idx)
-        return tuple(self._targets[ttype][s] for ttype in TARGET_TYPES
-                     if self._target_types[ttype])
+        idxs = self._get_indexes_sequence(targets_slice_or_idx)
+        targets = self._targets
+        return tuple([targets[ttype][idx] for idx in idxs]
+                     for ttype in TARGET_TYPES if self._target_types[ttype])
 
     def get_targets_as_dict(self, targets_slice_or_idx=None):
-        s = (slice(None) if targets_slice_or_idx is None
-             else targets_slice_or_idx)
-        return {ttype: self._targets[ttype][s] for ttype in TARGET_TYPES
-                if self._target_types[ttype]}
+        idxs = self._get_indexes_sequence(targets_slice_or_idx)
+        targets = self._targets
+        return {ttype: [targets[ttype][idx] for idx in idxs]
+                for ttype in TARGET_TYPES if self._target_types[ttype]}
