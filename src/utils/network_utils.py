@@ -128,3 +128,71 @@ def evaluate_classification_model(model, dataset, items_slice=None,
 
 def save_model(model, save_pathname):
     model.save(save_pathname)
+
+
+class DatasetSplitter():
+
+    DATASET_SPLIT_MODES = ('FROM_START', 'FROM_END', )
+
+    def __init__(self, split_mode, items_fraction=0.1, num_items=None):
+        self.split_mode = split_mode
+        self.test_items_fraction = items_fraction
+        self.test_items_count = num_items
+
+    @property
+    def split_mode(self):
+        return self._mode
+
+    @split_mode.setter
+    def split_mode(self, value):
+        val = value.upper()
+        if val not in self.DATASET_SPLIT_MODES:
+            raise ValueError('Invalid split mode {}, choose one of {}'.format(
+                value, self.DATASET_SPLIT_MODES
+            ))
+        self._mode = val
+
+    @property
+    def test_items_count(self):
+        return self._count
+
+    @test_items_count.setter
+    def test_items_count(self, value):
+        if value is not None:
+            self._count = int(value)
+        else:
+            self._count = value
+
+    @property
+    def test_items_fraction(self):
+        return self._frac
+
+    @test_items_fraction.setter
+    def test_items_fraction(self, value):
+        frac = float(value)
+        if frac >= 1:
+            raise ValueError('Invalid fraction {}, must be less than 1'.format(
+                frac
+            ))
+        if frac < 0:
+            raise ValueError('Invalid fraction {}, cannot be negative'.format(
+                frac
+            ))
+        self._frac = frac
+
+    def get_data_and_targets(self, train_dset, test_dset=None):
+        train_idx, test_idx = None, None
+        if test_dset is None:
+            test_dset = train_dset
+            n_data = train_dset.num_data
+            n_items = self.test_items_count or round(
+                self.test_items_fraction * train_dset.num_data)
+            mode = self.split_mode
+            if mode == 'FROM_START':
+                test_idx, train_idx = slice(n_items), slice(n_items, n_data)
+            elif mode == 'FROM_END':
+                test_idx, train_idx = slice(n_items, n_data), slice(n_items)
+        return {'train_data': train_dset.get_data_as_arraylike(train_idx),
+                'train_targets': train_dset.get_targets(train_idx),
+                'test_data': test_dset.get_data_as_arraylike(test_idx),
+                'test_targets': test_dset.get_targets(test_idx)}
