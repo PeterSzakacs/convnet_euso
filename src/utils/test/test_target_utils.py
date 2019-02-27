@@ -27,42 +27,69 @@ class TestModuleFunctions(unittest.TestCase):
 
 class TestTargetHolder(testset.DatasetTargetsMixin, unittest.TestCase):
 
+    # helper methods (targets setup)
+
+    def _create_targets(self, itm_slice):
+        return {'classification': self.mock_targets[itm_slice]}
+
+    # helper methods (custom asserts)
+
+    def _assertTargetsArraylikeEqual(self, targets, exp_targets):
+        self.assertTupleEqual(targets, exp_targets)
+
+    def _assertTargetsDictEqual(self, targets, exp_targets):
+        self.assertDictEqual(targets, exp_targets)
+
+    # test setup
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestTargetHolder, cls).setUpClass(num_items=4)
+
+    # test methods
+    ## test item retrieval methods
+
     def test_get_targets_as_dict_empty(self):
         holder = targ.TargetsHolder()
-        self.assertDictEqual(holder.get_targets_as_dict(),
-                             {'classification': [], })
+        self._assertTargetsDictEqual(holder.get_targets_as_dict(),
+                                     {'classification': [], })
 
-    def test_get_targets_as_dict_after_extend(self):
+    def test_get_targets_as_dict_with_items(self):
+        targets = self._create_targets(slice(0, 2))
         holder = targ.TargetsHolder()
-        targets = {'classification': self.mock_targets}
         holder.extend(targets)
-        self.assertDictEqual(holder.get_targets_as_dict(),
-                             {'classification': targets['classification']})
-
-    def test_get_targets_as_dict_after_append(self):
-        holder = targ.TargetsHolder()
-        target = {'classification': self.mock_targets[0]}
-        holder.append(target)
-        self.assertDictEqual(holder.get_targets_as_dict(),
-                             {'classification': [target['classification'], ]})
+        self._assertTargetsDictEqual(holder.get_targets_as_dict(), targets)
 
     def test_get_targets_as_arraylike_empty(self):
         holder = targ.TargetsHolder()
-        self.assertTupleEqual(holder.get_targets_as_arraylike(), ([], ))
+        self._assertTargetsArraylikeEqual(holder.get_targets_as_arraylike(),
+                                          ([], ))
 
-    def test_get_targets_as_arraylike_after_extend(self):
+    def test_get_targets_as_arraylike_with_items(self):
+        targets = self._create_targets(slice(0, 2))
+        exp_targets = (targets['classification'], )
         holder = targ.TargetsHolder()
-        targets = {'classification': self.mock_targets}
         holder.extend(targets)
-        self.assertTupleEqual(holder.get_targets_as_arraylike(),
-                              (targets['classification'], ))
+        self._assertTargetsArraylikeEqual(holder.get_targets_as_arraylike(),
+                                          exp_targets)
 
-    def test_get_targets_as_arraylike_after_append(self):
+    ## test item addition methods
+
+    def test_extend(self):
+        targets = self._create_targets(slice(None))
+        exp_targets = {'classification': targets['classification']}
         holder = targ.TargetsHolder()
-        target = {'classification': self.mock_targets[0]}
+        holder.extend(targets)
+        self._assertTargetsDictEqual(holder.get_targets_as_dict(), exp_targets)
+
+    def test_append(self):
+        target = self._create_targets(0)
+        exp_target = {'classification': [target['classification']]}
+        holder = targ.TargetsHolder()
         holder.append(target)
-        self.assertTupleEqual(holder.get_targets_as_arraylike(),
-                              ([target['classification']], ))
+        self._assertTargetsDictEqual(holder.get_targets_as_dict(), exp_target)
+
+    ## test shuffle
 
     def test_shuffle(self):
         holder = targ.TargetsHolder()
@@ -75,7 +102,7 @@ class TestTargetHolder(testset.DatasetTargetsMixin, unittest.TestCase):
             seq[1] = temp
         shuffler(exp_targets['classification'])
         holder.shuffle(shuffler, lambda: None)
-        self.assertDictEqual(holder.get_targets_as_dict(), exp_targets)
+        self._assertTargetsDictEqual(holder.get_targets_as_dict(), exp_targets)
 
 if __name__ == '__main__':
     unittest.main()
