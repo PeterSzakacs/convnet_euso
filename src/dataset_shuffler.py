@@ -3,7 +3,7 @@ import sys
 
 import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
-import utils.dataset_utils as ds
+import dataset.dataset_utils as ds
 import utils.io_utils as io_utils
 
 if __name__ == "__main__":

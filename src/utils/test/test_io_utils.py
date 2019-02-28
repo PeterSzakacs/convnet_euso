@@ -7,9 +7,10 @@ import unittest.mock as mock
 import numpy as np
 import numpy.testing as nptest
 
+import dataset.constants as cons
+import dataset.data_utils as dat
+import dataset.dataset_utils as ds
 import test.test_setups as testset
-import utils.data_utils as dat
-import utils.dataset_utils as ds
 import utils.data_templates as templates
 import utils.io_utils as io_utils
 
@@ -112,7 +113,7 @@ class TestPacketExtractor(unittest.TestCase):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20
         cls.template = templates.packet_template(EC_width, EC_height,
-                                                  width, height, num_frames)
+                                                 width, height, num_frames)
         # the packets as used in the functions
         n_packets = 2
         cls.packets = np.ones((n_packets * num_frames, height, width),
@@ -270,7 +271,7 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
         m_dataset.metadata_fields = cls.metafields
         m_dataset.get_data_as_dict.return_value = items
         m_dataset.get_data_as_arraylike.return_value = tuple(
-            items[k] for k in dat.ALL_ITEM_TYPES if not item_types[k])
+            items[k] for k in cons.ALL_ITEM_TYPES if not item_types[k])
         m_dataset.get_targets.return_value = cls.mock_targets
         m_dataset.get_metadata.return_value = cls.mock_meta
         cls.m_dataset = m_dataset
@@ -286,14 +287,14 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
             'frame_width = {}{}'.format(cls.f_w, os.linesep) +
             '{}[item_types]{}'.format(os.linesep, os.linesep) +
             ''.join('{} = {}{}'.format(k, item_types[k], os.linesep)
-                    for k in dat.ALL_ITEM_TYPES) +
+                    for k in cons.ALL_ITEM_TYPES) +
             os.linesep
         )
 
         cls.loaddir, cls.savedir = '/dsets', '/test'
-        suffixes = {k: '_{}_test'.format(k) for k in dat.ALL_ITEM_TYPES}
+        suffixes = {k: '_{}_test'.format(k) for k in cons.ALL_ITEM_TYPES}
         cls.datafiles = {k: '{}{}.npy'.format(m_dataset.name, suffixes[k])
-                         for k in dat.ALL_ITEM_TYPES}
+                         for k in cons.ALL_ITEM_TYPES}
         conf_suffix = '_config_test'
         cls.configfile = '{}{}.ini'.format(m_dataset.name, conf_suffix)
 

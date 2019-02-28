@@ -4,9 +4,7 @@ import functools
 
 import numpy as np
 
-# module level constants
-
-ALL_ITEM_TYPES = ('raw', 'yx', 'gtux', 'gtuy')
+import dataset.constants as cons
 
 # other functions
 
@@ -16,8 +14,8 @@ def check_item_types(item_types):
     if not functools.reduce(operator.or_, item_types.values(), False):
         raise ValueError(('At least one item type (possible types: {})'
                          ' must be used in the dataset').format(
-                         ALL_ITEM_TYPES))
-    illegal_keys = item_types.keys() - set(ALL_ITEM_TYPES)
+                         cons.ALL_ITEM_TYPES))
+    illegal_keys = item_types.keys() - set(cons.ALL_ITEM_TYPES)
     if len(illegal_keys) > 0:
         raise Exception(('Unknown keys found: {}'.format(illegal_keys)))
 
@@ -142,7 +140,7 @@ def create_data_holders(packet_shape, item_types, num_items=None,
     check_item_types(item_types)
     return {k: (None if item_types[k] is False else
             _holder_creators[k](packet_shape, num_items, dtype))
-            for k in ALL_ITEM_TYPES}
+            for k in cons.ALL_ITEM_TYPES}
 
 # data item creation
 
@@ -258,7 +256,7 @@ def convert_packet(packet, item_types, start_idx=0, end_idx=None,
     check_item_types(item_types)
     return {k: (None if item_types[k] is False else _packet_converters[k](
                     packet, dtype=dtype, start_idx=start_idx, end_idx=end_idx))
-            for k in ALL_ITEM_TYPES}
+            for k in cons.ALL_ITEM_TYPES}
 
 # get data item shape
 
@@ -332,7 +330,7 @@ def get_data_item_shapes(packet_shape, item_types):
     check_item_types(item_types)
     return {k: (None if item_types[k] is False else
             _item_shape_getters[k](packet_shape))
-            for k in ALL_ITEM_TYPES}
+            for k in cons.ALL_ITEM_TYPES}
 
 
 # classes
@@ -344,7 +342,7 @@ class DataHolder():
         check_item_types(item_types)
         self._num_items = 0
         self._item_types = item_types
-        self._used_types = tuple(k for k in ALL_ITEM_TYPES
+        self._used_types = tuple(k for k in cons.ALL_ITEM_TYPES
                                  if item_types[k] is True)
         self._item_shapes = get_data_item_shapes(packet_shape, item_types)
         self._packet_shape = tuple(packet_shape)

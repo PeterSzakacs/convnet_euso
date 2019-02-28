@@ -3,10 +3,9 @@ import unittest
 import numpy as np
 import numpy.testing as nptest
 
+import dataset.constants as cons
+import dataset.dataset_utils as ds
 import test.test_setups as testset
-import utils.data_utils as dat
-import utils.dataset_utils as ds
-import utils.metadata_utils as meta
 
 
 class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
@@ -150,7 +149,7 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
         dset1.merge_with(dset2)
         self._assertDatasetItems(dset1, exp_data, exp_targets, exp_metadata,
                                  exp_metafields, num_data + dset2.num_data,
-                                 dat.ALL_ITEM_TYPES)
+                                 cons.ALL_ITEM_TYPES)
 
     def test_merge_with_new_metafields(self):
         dset1 = ds.numpy_dataset(self.name, self.packet_shape)

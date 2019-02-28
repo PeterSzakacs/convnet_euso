@@ -2,15 +2,10 @@ import collections
 
 import numpy as np
 
-TARGET_TYPES = ['classification']
-
-CLASSIFICATION_TARGETS = {
-    'shower': [1, 0],
-    'noise': [0, 1],
-}
+import dataset.constants as cons
 
 def get_target_name(target_value):
-    return [k for k, v in CLASSIFICATION_TARGETS.items()
+    return [k for k, v in cons.CLASSIFICATION_TARGETS.items()
             if np.array_equal(v, target_value)][0]
 
 def get_target_probabilities(raw_output, precision=4):
@@ -24,7 +19,7 @@ class TargetsHolder():
     def __init__(self, target_types={'classification': True}):
         self._num_targets = 0
         self._target_types = target_types
-        targets = dict.fromkeys(TARGET_TYPES)
+        targets = dict.fromkeys(cons.TARGET_TYPES)
         used_types = {}
         for target_type in target_types:
             if target_type:
@@ -64,10 +59,11 @@ class TargetsHolder():
         idxs = self._get_indexes_sequence(targets_slice_or_idx)
         targets = self._targets
         return tuple([targets[ttype][idx] for idx in idxs]
-                     for ttype in TARGET_TYPES if self._target_types[ttype])
+                     for ttype in cons.TARGET_TYPES
+                     if self._target_types[ttype])
 
     def get_targets_as_dict(self, targets_slice_or_idx=None):
         idxs = self._get_indexes_sequence(targets_slice_or_idx)
         targets = self._targets
         return {ttype: [targets[ttype][idx] for idx in idxs]
-                for ttype in TARGET_TYPES if self._target_types[ttype]}
+                for ttype in cons.TARGET_TYPES if self._target_types[ttype]}

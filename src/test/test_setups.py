@@ -3,9 +3,8 @@ import unittest
 
 import numpy as np
 
-import utils.data_utils as dat
-import utils.dataset_utils as ds
-import utils.metadata_utils as meta
+import dataset.constants as cons
+import dataset.dataset_utils as ds
 
 
 class MockTextFileStream(io.StringIO):
@@ -37,7 +36,7 @@ class DatasetItemsMixin(unittest.TestCase):
             'yx'  : np.ones((num_items, *item_shapes['yx'])),
             'gtux': np.ones((num_items, *item_shapes['gtux'])),
             'gtuy': np.ones((num_items, *item_shapes['gtuy']))}
-        item_types = {k: True for k in dat.ALL_ITEM_TYPES}
+        item_types = {k: True for k in cons.ALL_ITEM_TYPES}
         # make some randomness in the first packet and derived items
         packet = items['raw'][0]
         packet[0, 0, 0], packet[1] = 3, 4
@@ -71,9 +70,9 @@ class DatasetMetadataMixin(unittest.TestCase):
         if (num_items < 2):
             raise ValueError('Number of items must be at least 2')
         super(DatasetMetadataMixin, cls).setUpClass()
-        meta_dict = {k: None for k in meta.FLIGHT_METADATA}
+        meta_dict = {k: None for k in cons.FLIGHT_METADATA}
         cls.mock_meta = [meta_dict.copy() for idx in range(num_items)]
-        cls.metafields = set(meta.FLIGHT_METADATA)
+        cls.metafields = set(cons.FLIGHT_METADATA)
 
 
 class DatasetMixin():

@@ -1,5 +1,5 @@
+import dataset.dataset_utils as ds
 import utils.io_utils as io_utils
-import utils.dataset_utils as ds
 
 def check_dataset_compatibility(attrs1, attrs2):
     return (attrs1['packet_shape'] == attrs2['packet_shape'] and

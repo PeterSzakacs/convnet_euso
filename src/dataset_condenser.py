@@ -1,10 +1,9 @@
 import sys
 import csv
 
-import utils.dataset_utils as ds
+import dataset.constants as cons
+import dataset.dataset_utils as ds
 import utils.io_utils as iout
-import utils.metadata_utils as meta
-import utils.target_utils as targ
 import cmdint.cmd_interface_condenser as cmd
 
 SRCFILE_KEY = 'source_file_acquisition_full'
@@ -111,7 +110,7 @@ if __name__ == "__main__":
     packet_template = args.template
     extractor = iout.packet_extractor(packet_template=packet_template)
 
-    target = targ.CLASSIFICATION_TARGETS[args.target]
+    target = cons.CLASSIFICATION_TARGETS[args.target]
     if args.converter == 'gtupack':
         before, after = args.num_gtu_around[0:2]
         data_transformer = gtu_in_packet_event_transformer(

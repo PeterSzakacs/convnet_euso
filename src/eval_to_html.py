@@ -1,7 +1,6 @@
 import os
 import csv
 
-import utils.metadata_utils as meta
 import utils.network_utils as netutils
 import visualization.classification_report_writer as cwriter
 import visualization.event_visualization as eviz

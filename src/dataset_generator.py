@@ -4,11 +4,10 @@ import operator
 import skimage.filters as filters
 import numpy as np
 
-import utils.dataset_utils as ds
+import dataset.constants as cons
+import dataset.dataset_utils as ds
 import utils.io_utils as io_utils
-import utils.metadata_utils as meta
 import utils.synth_data_utils as sdutils
-import utils.target_utils as targ
 
 
 class simulated_data_generator():
@@ -142,8 +141,8 @@ class simulated_data_generator():
         num_showers = int(num_data / 2)
         shower_creator = self.create_shower_packet
         noise_creator = self.create_noise_packet
-        shower_target =  targ.CLASSIFICATION_TARGETS['shower']
-        noise_target = targ.CLASSIFICATION_TARGETS['noise']
+        shower_target =  cons.CLASSIFICATION_TARGETS['shower']
+        noise_target = cons.CLASSIFICATION_TARGETS['noise']
         iteration_handlers = (
             {'target': shower_target, 'start': 0, 'stop': int(num_showers / 2),
              'packet_handler': lambda angle: shower_creator(angle, ec_gen())},
@@ -185,4 +184,4 @@ if __name__ == '__main__':
     dataset = data_generator.create_dataset(args.name, args.num_data,
                                             item_types=args.item_types,
                                             dtype=args.dtype)
-    handler.save_dataset(dataset, metafields_order=meta.SYNTH_METADATA)
+    handler.save_dataset(dataset, metafields_order=cons.SYNTH_METADATA)

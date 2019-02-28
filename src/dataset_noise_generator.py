@@ -2,10 +2,10 @@ import random as rand
 
 import numpy as np
 
+import dataset.dataset_utils as ds
+import dataset.target_utils as targ
 import utils.common_utils as cutils
-import utils.dataset_utils as ds
 import utils.io_utils as io_utils
-import utils.target_utils as targ
 
 
 class bg_lambda_default_generator:

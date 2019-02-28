@@ -3,8 +3,9 @@ import unittest
 import numpy as np
 import numpy.testing as nptest
 
+import dataset.constants as cons
+import dataset.data_utils as dat
 import test.test_setups as testset
-import utils.data_utils as dat
 
 class TestDatasetUtilsFunctions(testset.DatasetItemsMixin, unittest.TestCase):
 
@@ -21,35 +22,35 @@ class TestDatasetUtilsFunctions(testset.DatasetItemsMixin, unittest.TestCase):
     def test_create_packet_holder(self):
         exp_arr_shape = (self.n_packets, *self.item_shapes['raw'])
         result = dat.create_packet_holder(self.packet_shape,
-                                         num_items=self.n_packets)
+                                          num_items=self.n_packets)
         self.assertEqual(result.shape, exp_arr_shape)
 
     def test_create_y_x_projection_holder(self):
         exp_arr_shape = (self.n_packets, *self.item_shapes['yx'])
         result = dat.create_y_x_projection_holder(self.packet_shape,
-                                                 num_items=self.n_packets)
+                                                  num_items=self.n_packets)
         self.assertEqual(result.shape, exp_arr_shape)
 
     def test_create_gtu_x_projection_holder(self):
         exp_arr_shape = (self.n_packets, *self.item_shapes['gtux'])
         result = dat.create_gtu_x_projection_holder(self.packet_shape,
-                                                   num_items=self.n_packets)
+                                                    num_items=self.n_packets)
         self.assertEqual(result.shape, exp_arr_shape)
 
     def test_create_gtu_y_projection_holder(self):
         exp_arr_shape = (self.n_packets, *self.item_shapes['gtuy'])
         result = dat.create_gtu_y_projection_holder(self.packet_shape,
-                                                   num_items=self.n_packets)
+                                                    num_items=self.n_packets)
         self.assertEqual(result.shape, exp_arr_shape)
 
     def test_create_data_holders(self):
         exp_shapes = {k: (self.n_packets, *self.item_shapes[k])
-                         for k in dat.ALL_ITEM_TYPES}
-        item_types = {k: True for k in dat.ALL_ITEM_TYPES}
+                         for k in cons.ALL_ITEM_TYPES}
+        item_types = {k: True for k in cons.ALL_ITEM_TYPES}
         ## gradually turn off all item types except 'gtuy'
-        for item_type in dat.ALL_ITEM_TYPES:
+        for item_type in cons.ALL_ITEM_TYPES:
             holders = dat.create_data_holders(self.packet_shape, item_types,
-                                             num_items=self.n_packets)
+                                              num_items=self.n_packets)
             holder_shapes = {k: (v.shape if v is not None else None)
                              for k, v in holders.items()}
             self.assertDictEqual(holder_shapes, exp_shapes)
@@ -73,10 +74,10 @@ class TestDatasetUtilsFunctions(testset.DatasetItemsMixin, unittest.TestCase):
         self.assertListEqual(result, [])
 
     def test_create_data_holders(self):
-        exp_holders = {k: [] for k in dat.ALL_ITEM_TYPES}
-        item_types = {k: True for k in dat.ALL_ITEM_TYPES}
+        exp_holders = {k: [] for k in cons.ALL_ITEM_TYPES}
+        item_types = {k: True for k in cons.ALL_ITEM_TYPES}
         ## gradually turn off all item types except 'gtuy'
-        for item_type in dat.ALL_ITEM_TYPES:
+        for item_type in cons.ALL_ITEM_TYPES:
             holders = dat.create_data_holders(self.packet_shape, item_types)
             self.assertDictEqual(holders, exp_holders)
             exp_holders[item_type] = None
@@ -87,25 +88,25 @@ class TestDatasetUtilsFunctions(testset.DatasetItemsMixin, unittest.TestCase):
     def test_create_subpacket(self):
         expected_result = self.items['raw'][0][self.start:self.end]
         result = dat.create_subpacket(self.packet, start_idx=self.start,
-                                     end_idx=self.end)
+                                      end_idx=self.end)
         nptest.assert_array_equal(result, expected_result)
 
     def test_create_y_x_projection(self):
         expected_result = self.items['yx'][0]
         result = dat.create_y_x_projection(self.packet, start_idx=self.start,
-                                          end_idx=self.end)
+                                           end_idx=self.end)
         nptest.assert_array_equal(result, expected_result)
 
     def test_create_gtu_x_projection(self):
         expected_result = self.items['gtux'][0][self.start:self.end]
         result = dat.create_gtu_x_projection(self.packet, start_idx=self.start,
-                                            end_idx=self.end)
+                                             end_idx=self.end)
         nptest.assert_array_equal(result, expected_result)
 
     def test_create_gtu_y_projection(self):
         expected_result = self.items['gtuy'][0][self.start:self.end]
         result = dat.create_gtu_y_projection(self.packet, start_idx=self.start,
-                                            end_idx=self.end)
+                                             end_idx=self.end)
         nptest.assert_array_equal(result, expected_result)
 
     def test_convert_packet(self):
@@ -113,12 +114,12 @@ class TestDatasetUtilsFunctions(testset.DatasetItemsMixin, unittest.TestCase):
             'gtux': self.items['gtux'][0][self.start:self.end],
             'gtuy': self.items['gtuy'][0][self.start:self.end],
             'yx'  : self.items['yx'][0]}
-        item_types = {k: True for k in dat.ALL_ITEM_TYPES}
-        exp_types = {k: True for k in dat.ALL_ITEM_TYPES}
+        item_types = {k: True for k in cons.ALL_ITEM_TYPES}
+        exp_types = {k: True for k in cons.ALL_ITEM_TYPES}
         ## gradually turn off all item types except 'gtuy'
-        for item_type in dat.ALL_ITEM_TYPES:
+        for item_type in cons.ALL_ITEM_TYPES:
             items = dat.convert_packet(self.packet, item_types,
-                                      start_idx=self.start, end_idx=self.end)
+                                       start_idx=self.start, end_idx=self.end)
             all_equal = {k: (not item_types[k] if v is None
                              else np.array_equal(v, exp_items[k]))
                              for k, v in items.items()}
@@ -144,8 +145,8 @@ class TestDatasetUtilsFunctions(testset.DatasetItemsMixin, unittest.TestCase):
         # Test function which gets item shapes based on which item types are
         # set to True
         item_shapes = self.item_shapes.copy()
-        item_types = {k: True for k in dat.ALL_ITEM_TYPES}
-        for item_type in dat.ALL_ITEM_TYPES:
+        item_types = {k: True for k in cons.ALL_ITEM_TYPES}
+        for item_type in cons.ALL_ITEM_TYPES:
             shapes = dat.get_data_item_shapes(self.packet_shape, item_types)
             self.assertDictEqual(shapes, item_shapes)
             item_shapes[item_type] = None
@@ -176,7 +177,8 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
     def _assertItemsArraylike(self, data, exp_data, exp_item_types):
         # unfortunately, assertTupleEqual does not work in this case
         self.assertEqual(len(data), len(exp_data))
-        keys = [itype for itype in dat.ALL_ITEM_TYPES if exp_item_types[itype]]
+        keys = [itype for itype in cons.ALL_ITEM_TYPES
+                if exp_item_types[itype]]
         for idx in range(len(keys)):
             err_msg = "items of type '{}' are not equal".format(keys[idx])
             nptest.assert_array_equal(data[idx], exp_data[idx],
@@ -185,13 +187,13 @@ class TestDataHolder(testset.DatasetItemsMixin, unittest.TestCase):
     # helper methods (items and types setup)
 
     def _create_items(self, contained_types, itm_slice):
-        items = dict.fromkeys(dat.ALL_ITEM_TYPES, None)
+        items = dict.fromkeys(cons.ALL_ITEM_TYPES, None)
         for itype in contained_types:
             items[itype] = self.items[itype][itm_slice]
         return items
 
     def _create_item_types(self, contained_types):
-        item_types = dict.fromkeys(dat.ALL_ITEM_TYPES, False)
+        item_types = dict.fromkeys(cons.ALL_ITEM_TYPES, False)
         for itype in contained_types:
             item_types[itype] = True
         return item_types

@@ -1,7 +1,6 @@
 import unittest
 
-import utils.metadata_utils as meta
-
+import dataset.metadata_utils as meta
 import test.test_setups as testset
 
 class TestModuleFunctions(unittest.TestCase):

@@ -4,9 +4,8 @@ from __future__ import division, print_function, absolute_import
 import os
 import csv
 
-import utils.dataset_utils as ds
+import dataset.dataset_utils as ds
 import utils.io_utils as io_utils
-import utils.metadata_utils as meta
 import utils.network_utils as netutils
 
 

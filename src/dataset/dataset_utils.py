@@ -3,9 +3,9 @@ import functools
 
 import numpy as np
 
-import utils.data_utils as dat
-import utils.metadata_utils as meta
-import utils.target_utils as targ
+import dataset.data_utils as dat
+import dataset.metadata_utils as meta
+import dataset.target_utils as targ
 
 
 class numpy_dataset:

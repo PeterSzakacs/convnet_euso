@@ -1,25 +1,26 @@
 import unittest
 
+import dataset.constants as cons
+import dataset.target_utils as targ
 import test.test_setups as testset
-import utils.target_utils as targ
 
 
 class TestModuleFunctions(unittest.TestCase):
 
     def test_get_target_name_shower(self):
-        target = targ.CLASSIFICATION_TARGETS['shower']
+        target = cons.CLASSIFICATION_TARGETS['shower']
         name = targ.get_target_name(target)
         self.assertEqual(name, 'shower')
 
     def test_get_target_name_noise(self):
-        target = targ.CLASSIFICATION_TARGETS['noise']
+        target = cons.CLASSIFICATION_TARGETS['noise']
         name = targ.get_target_name(target)
         self.assertEqual(name, 'noise')
 
     def test_get_target_probabilities(self):
         output = [0, 0]
-        output[targ.CLASSIFICATION_TARGETS['shower'].index(1)] = 0.2314123
-        output[targ.CLASSIFICATION_TARGETS['noise'].index(1)] = 0.2321131
+        output[cons.CLASSIFICATION_TARGETS['shower'].index(1)] = 0.2314123
+        output[cons.CLASSIFICATION_TARGETS['noise'].index(1)] = 0.2321131
         probs = targ.get_target_probabilities(output, precision=3)
         self.assertEqual(probs['shower'], 0.231)
         self.assertEqual(probs['noise'], 0.232)

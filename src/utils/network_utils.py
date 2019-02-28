@@ -6,9 +6,7 @@ import random
 import tflearn
 import numpy as np
 
-import utils.dataset_utils as ds
-import utils.metadata_utils as meta
-import utils.target_utils as targ
+import dataset.target_utils as targ
 
 CLASSIFICATION_FIELDS   = ['item_idx', 'output', 'target', 'shower_prob',
                            'noise_prob']

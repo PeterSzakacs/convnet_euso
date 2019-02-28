@@ -1,9 +1,8 @@
 import enum
 
 import cmdint.argparse_types as atypes
+import dataset.constants as cons
 import utils.data_templates as templates
-import utils.data_utils as dat
-import utils.metadata_utils as meta
 
 
 class arg_type(enum.Enum):
@@ -225,7 +224,7 @@ class item_types_args:
         self.input_prefix = in_item_prefix
         self.output_prefix = out_item_prefix
         self.item_descriptions = {'raw': 'raw packets'}
-        for k in dat.ALL_ITEM_TYPES[1:]:
+        for k in cons.ALL_ITEM_TYPES[1:]:
             self.item_descriptions[k] = '{} packet projections'.format(k)
 
     def add_item_type_args(self, parser, atype, required_types={}, help={}):
@@ -258,7 +257,7 @@ class item_types_args:
             prefix = self.output_prefix
             default_help = 'store {}'
         desc = self.item_descriptions
-        for k in dat.ALL_ITEM_TYPES:
+        for k in cons.ALL_ITEM_TYPES:
             required = required_types.get(k, False)
             help_text = help.get(k, None) or default_help.format(desc[k])
             parser.add_argument('--{}_{}'.format(prefix, k), required=required,
@@ -271,12 +270,12 @@ class item_types_args:
         else:
             prefix = self.output_prefix
         types_selected = False
-        for k in dat.ALL_ITEM_TYPES:
+        for k in cons.ALL_ITEM_TYPES:
             arg_name = '{}_{}'.format(prefix, k)
             types_selected = types_selected or getattr(args, arg_name)
         if not types_selected:
             raise Exception('Please select at least one item type: {}'.format(
-                dat.ALL_ITEM_TYPES))
+                cons.ALL_ITEM_TYPES))
 
     def get_item_types(self, args, atype):
         if atype is arg_type.INPUT:
@@ -284,7 +283,7 @@ class item_types_args:
         else:
             prefix = self.output_prefix
         result = {}
-        for k in dat.ALL_ITEM_TYPES:
+        for k in cons.ALL_ITEM_TYPES:
             arg_name = '{}_{}'.format(prefix, k)
             result[k] = getattr(args, arg_name)
         return result
@@ -295,11 +294,11 @@ class item_types_args:
 
 class metafield_order_arg:
 
-    default_aliases = {k: k for k in meta.METADATA_TYPES.keys()}
+    default_aliases = {k: k for k in cons.METADATA_TYPES.keys()}
 
     def __init__(self, order_arg_aliases={}):
         self._aliases = {}
-        for meta_type in meta.METADATA_TYPES.keys():
+        for meta_type in cons.METADATA_TYPES.keys():
             self._aliases[meta_type] = (order_arg_aliases.get(meta_type, None)
                                         or self.default_aliases[meta_type])
 
@@ -307,7 +306,7 @@ class metafield_order_arg:
                                  group_title='Metadata field order'):
         parser_or_group = (parser if not create_group
                            else parser.add_argument_group(title=group_title))
-        for meta_type in meta.METADATA_TYPES.keys():
+        for meta_type in cons.METADATA_TYPES.keys():
             alias = self._aliases[meta_type]
             parser_or_group.add_argument('--{}'.format(alias),
                                          action='store_const', const=meta_type,
@@ -331,7 +330,7 @@ class metafield_order_arg:
             else:
                 raise Exception('No metafield order specified')
         else:
-            return meta.METADATA_TYPES[meta_type]['field order']
+            return cons.METADATA_TYPES[meta_type]['field order']
 
 
 # number range
