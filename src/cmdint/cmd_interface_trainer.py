@@ -3,6 +3,7 @@ import argparse
 
 import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
+from utils.network_utils import DatasetSplitter
 
 class cmd_interface():
 
@@ -20,6 +21,16 @@ class cmd_interface():
         group = parser.add_argument_group(title="Input dataset")
         dset_args.add_dataset_arg_double(group, atype)
         item_args.add_item_type_args(group, atype)
+        group.add_argument('--test_items_count', type=atypes.int_range(1),
+                           help='Number of dataset items to include in the '
+                                'test set. Overrides test_items_fraction.')
+        group.add_argument('--test_items_fraction', type=float, default=0.1,
+                           help='Number of dataset items to include in the '
+                                'test set, expressed as a fraction.')
+        modes = DatasetSplitter.DATASET_SPLIT_MODES
+        group.add_argument('--split_mode', choices=modes, required=True,
+                           help='Method of splitting the test items subset '
+                                'from the input dataset.')
 
         # network(s) to train
         group = parser.add_argument_group(title="Network configuration")

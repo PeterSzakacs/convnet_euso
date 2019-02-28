@@ -76,28 +76,25 @@ def import_convnet(module_name, tb_dir, input_shapes, model_file=None,
     return model, network, conv_layers, fc_layers
 
 
-def train_model(model, train_dataset, run_id, num_epochs=11, eval_dataset=None,
-                eval_num=None, eval_fraction=0.1, step=100, metric=True):
-    num_data = train_dataset.num_data
-    if eval_dataset == None:
-        eval_dataset = train_dataset
-        eval_size = eval_num or round(num_data*eval_fraction)
-        train_slice, eval_slice = slice(eval_size, num_data), slice(eval_size)
-    else:
-        eval_size = eval_dataset.num_data
-        train_slice, eval_slice = slice(num_data), slice(eval_size)
-    train_data = reshape_data_for_convnet(
-        train_dataset.get_data_as_arraylike(train_slice)
-    )
-    eval_data = reshape_data_for_convnet(
-        eval_dataset.get_data_as_arraylike(eval_slice)
-    )
-    train_targets = train_dataset.get_targets(train_slice)
-    eval_targets = eval_dataset.get_targets(eval_slice)
+def import_model(module_name, input_shapes, model_file=None, **optsettings):
+    network_module = importlib.import_module(module_name)
+    shapes = {k:[None, *v, 1] for k,v in input_shapes.items() if v is not None}
+    model = network_module.create_model(shapes, **optsettings)
+    if model_file != None:
+        model.load_from_file(model_file, **optsettings)
+    return model
 
-    model.fit(train_data, train_targets, n_epoch=num_epochs, run_id=run_id,
-              validation_set=(eval_data, eval_targets), snapshot_step=step,
-              show_metric=metric)
+
+def train_model(model, data_dict, run_id=None, num_epochs=11, step=100,
+                metric=True):
+    tr_data, tr_targets = data_dict['train_data'], data_dict['train_targets']
+    te_data, te_targets = data_dict['test_data'], data_dict['test_targets']
+
+    run_id = run_id or get_default_run_id(model.network_graph.__module__)
+    tf_model = model.network_model
+    tf_model.fit(tr_data, tr_targets, n_epoch=num_epochs, run_id=run_id,
+                 validation_set=(te_data, te_targets), snapshot_step=step,
+                 show_metric=metric)
 
 
 def evaluate_classification_model(model, dataset, items_slice=None,

@@ -24,23 +24,32 @@ if __name__ == '__main__':
 
     name, srcdir = args.name, args.srcdir
     item_types = args.item_types
+    mode = args.split_mode
+    fraction, num_items = args.test_items_fraction, args.test_items_count
+    optsettings = {'learning_rate': args.learning_rate, 'loss_fn': args.loss,
+                   'optimizer': args.optimizer}
 
     input_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
     dataset = input_handler.load_dataset(name, item_types=item_types)
+    splitter = netutils.DatasetSplitter(mode, items_fraction=fraction,
+                                        num_items=num_items)
+    data_dict = splitter.get_data_and_targets(dataset)
+    data_dict['train_data'] = netutils.reshape_data_for_convnet(
+        data_dict['train_data'])
+    data_dict['test_data'] = netutils.reshape_data_for_convnet(
+        data_dict['test_data'])
     for network_name in args.networks:
         network_module_name = 'net.' + network_name
-        tb_dir = os.path.join(netutils.DEFAULT_TRAINING_LOGDIR,
-                              netutils.get_default_run_id(network_module_name))
         run_id = netutils.get_default_run_id(network_module_name)
+        tb_dir = os.path.join(netutils.DEFAULT_TRAINING_LOGDIR, run_id)
+        optsettings['tb_dir'] = tb_dir
         graph = tf.Graph()
         with graph.as_default():
-            model, net, conv, fc = netutils.import_convnet(
-                network_module_name, tb_dir, input_shapes=dataset.item_shapes,
-                learning_rate=args.learning_rate, optimizer=args.optimizer,
-                loss_fn=args.loss
-            )
+            input_shapes=dataset.item_shapes
+            model = netutils.import_model(network_module_name, input_shapes,
+                                          **optsettings)
             epochs = args.epochs
-            netutils.train_model(model, dataset, run_id, num_epochs=epochs)
+            netutils.train_model(model, data_dict, run_id, num_epochs=epochs)
             if args.save:
                 save_file = os.path.join(tb_dir, '{}.tflearn'.format(
                     network_module_name
