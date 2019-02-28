@@ -74,8 +74,9 @@ class NetworkModel():
         self._model = model
         self.update_snapshots()
 
-    def load_from_file(model_file, **optargs):
-        return self._model.load(model_file, **optargs)
+    def load_from_file(self, model_file, **optargs):
+        w_only = optargs.get('weights_only', False)
+        return self._model.load(model_file, weights_only=w_only)
 
     def restore_from_snapshot(self):
         model, layers = self._model, self._net.trainable_layers
