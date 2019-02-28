@@ -178,27 +178,32 @@ class DatasetSplitter():
             ))
         self._frac = frac
 
+    def get_train_test_indices(self, n_data):
+        n_test = self.test_items_count or round(
+            self.test_items_fraction * n_data)
+        n_train = n_data - n_test
+        mode = self.split_mode
+        if mode == 'FROM_START':
+            test_idx, train_idx = range(n_test), range(n_test, n_data)
+        elif mode == 'FROM_END':
+            test_idx, train_idx = range(n_train, n_data), range(n_train)
+        elif mode == 'RANDOM':
+            test_idx, next_idx = [], None
+            all_idx = set(range(n_data))
+            for idx in range(n_test):
+                while next_idx not in all_idx:
+                    next_idx = random.randrange(0, n_data)
+                all_idx.remove(next_idx)
+                test_idx.append(next_idx)
+            train_idx = list(all_idx)
+        return list(train_idx), list(test_idx)
+
     def get_data_and_targets(self, train_dset, test_dset=None):
         train_idx, test_idx = None, None
         if test_dset is None:
             test_dset = train_dset
             n_data = train_dset.num_data
-            n_items = self.test_items_count or round(
-                self.test_items_fraction * train_dset.num_data)
-            mode = self.split_mode
-            if mode == 'FROM_START':
-                test_idx, train_idx = slice(n_items), slice(n_items, n_data)
-            elif mode == 'FROM_END':
-                test_idx, train_idx = slice(n_items, n_data), slice(n_items)
-            elif mode == 'RANDOM':
-                test_idx, next_idx = [], None
-                all_idx = set(range(n_data))
-                for idx in range(n_items):
-                    while next_idx not in all_idx:
-                        next_idx = random.randrange(0, n_data)
-                    all_idx.remove(next_idx)
-                    test_idx.append(next_idx)
-                train_idx = list(all_idx)
+            train_idx, test_idx = self.get_train_test_indices(n_data)
         return {'train_data': train_dset.get_data_as_arraylike(train_idx),
                 'train_targets': train_dset.get_targets(train_idx),
                 'test_data': test_dset.get_data_as_arraylike(test_idx),
