@@ -1,7 +1,7 @@
 import os
 import csv
 
-import utils.network_utils as netutils
+import net.network_utils as netutils
 import visualization.classification_report_writer as cwriter
 import visualization.event_visualization as eviz
 

@@ -5,8 +5,8 @@ import os
 import csv
 
 import dataset.dataset_utils as ds
+import net.network_utils as netutils
 import utils.io_utils as io_utils
-import utils.network_utils as netutils
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 import unittest
 
 import test.test_setups as setups
-import utils.network_utils as netutils
+import net.network_utils as netutils
 
 
 class TestDatasetSplitter(setups.DatasetMixin, unittest.TestCase):

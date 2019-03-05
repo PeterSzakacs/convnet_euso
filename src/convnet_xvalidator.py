@@ -3,8 +3,8 @@ import os
 import tensorflow as tf
 
 import dataset.dataset_utils as ds
+import net.network_utils as netutils
 import utils.io_utils as io_utils
-import utils.network_utils as netutils
 
 
 def main(**settings):

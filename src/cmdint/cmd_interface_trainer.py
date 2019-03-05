@@ -3,7 +3,7 @@ import argparse
 
 import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
-from utils.network_utils import DatasetSplitter
+from net.network_utils import DatasetSplitter
 
 class cmd_interface():
 
