@@ -58,37 +58,16 @@ class NetworkModel():
             layer = layers[idx]
             model.set_weights(layer.b, convert(layer, values[idx]))
 
-    @property
-    def trainable_layer_weights_snapshot(self):
-        return self._train_layer_w
-
-    @property
-    def trainable_layer_biases_snapshot(self):
-        return self._train_layer_b
-
     def initialize_model(self, **model_settings):
         tb_dir = model_settings.get('tb_dir', '/tmp/tflearn_logs/')
         tb_verbosity = model_settings.get('tb_verbosity', 0)
         model = tflearn.DNN(self._net.output_layer, tensorboard_dir=tb_dir,
                             tensorboard_verbose=tb_verbosity)
         self._model = model
-        self.update_snapshots()
 
     def load_from_file(self, model_file, **optargs):
         w_only = optargs.get('weights_only', False)
         return self._model.load(model_file, weights_only=w_only)
-
-    def restore_from_snapshot(self):
-        model, layers = self._model, self._net.trainable_layers
-        weights, biases = self._train_layer_w, self._train_layer_b
-        for idx in range(len(layers)):
-            self.trainable_layer_weights = weights
-            self.trainable_layer_biases = biases
-
-    def update_snapshots(self):
-        model, layers = self._model, self._net.trainable_layers
-        self._train_layer_w = self.trainable_layer_weights
-        self._train_layer_b = self.trainable_layer_biases
 
 
 class NeuralNetwork(abc.ABC):

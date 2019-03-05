@@ -78,91 +78,35 @@ class TestNeuralNetworkModel(unittest.TestCase):
 
     # test methods
 
-    def test_layer_weights_snapshots_after_update(self, model=None):
+    def test_get_initial_weights(self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
+        self._assert_weights_equal(model.trainable_layer_weights, net.all_w)
+
+    def test_get_initial_biases(self, model=None):
+        model = model or bclasses.NetworkModel(
+            MockNeuralNetwork.get_instance())
+        net = model.network_graph
+        self._assert_biases_equal(model.trainable_layer_biases, net.all_b)
+
+    def test_set_weights(self, model=None):
         model = model or bclasses.NetworkModel(
             MockNeuralNetwork.get_instance())
         net = model.network_graph
 
-        new_weights = self._create_static_weights(net.all_w)
-        model.trainable_layer_weights = new_weights
-        model.update_snapshots()
-        self._assert_weights_equal(model.trainable_layer_weights_snapshot,
-                                   new_weights)
-
-    def test_layer_biases_snapshots_after_update(self, model=None):
-        model = model or bclasses.NetworkModel(
-            MockNeuralNetwork.get_instance())
-        net = model.network_graph
-
-        new_biases = self._create_static_biases(net.all_b)
-        model.trainable_layer_biases = new_biases
-        model.update_snapshots()
-        self._assert_biases_equal(model.trainable_layer_biases_snapshot,
-                                   new_biases)
-
-    def test_layer_weights_snapshots_untouched_after_changing_model(
-        self, model=None):
-        model = model or bclasses.NetworkModel(
-            MockNeuralNetwork.get_instance())
-        net = model.network_graph
-
-        prev_snapshot = model.trainable_layer_weights_snapshot
-        model.trainable_layer_weights = self._create_static_weights(net.all_w)
-        curr_snapshot = model.trainable_layer_weights_snapshot
-        self._assert_weights_equal(prev_snapshot, curr_snapshot)
-
-    def test_layer_biases_snapshots_untouched_after_changing_model(
-        self, model=None):
-        model = model or bclasses.NetworkModel(
-            MockNeuralNetwork.get_instance())
-        net = model.network_graph
-
-        prev_snapshot = model.trainable_layer_biases_snapshot
-        model.trainable_layer_biases = self._create_static_biases(net.all_b)
-        curr_snapshot = model.trainable_layer_biases_snapshot
-        self._assert_biases_equal(prev_snapshot, curr_snapshot)
-
-    def test_displayed_layer_weigths_updated_after_changing_model(
-        self, model=None):
-        model = model or bclasses.NetworkModel(
-            MockNeuralNetwork.get_instance())
-        net = model.network_graph
-
-        prev_weights = model.trainable_layer_weights
         new_weights = self._create_static_weights(net.all_w)
         model.trainable_layer_weights = new_weights
         self._assert_weights_equal(model.trainable_layer_weights, new_weights)
 
-    def test_displayed_layer_biases_updated_after_changing_model(
-        self, model=None):
+    def test_set_biases(self, model=None):
         model = model or bclasses.NetworkModel(
             MockNeuralNetwork.get_instance())
         net = model.network_graph
 
-        prev_biases = model.trainable_layer_biases
         new_biases = self._create_static_biases(net.all_b)
         model.trainable_layer_biases = new_biases
         self._assert_biases_equal(model.trainable_layer_biases, new_biases)
-
-    def test_weights_restored_from_snapshot(self, model=None):
-        model = model or bclasses.NetworkModel(
-            MockNeuralNetwork.get_instance())
-        net = model.network_graph
-
-        prev_weights = model.trainable_layer_weights
-        model.trainable_layer_weights = self._create_static_weights(net.all_w)
-        model.restore_from_snapshot()
-        self._assert_weights_equal(model.trainable_layer_weights, prev_weights)
-
-    def test_biases_restored_from_snapshot(self, model=None):
-        model = model or bclasses.NetworkModel(
-            MockNeuralNetwork.get_instance())
-        net = model.network_graph
-
-        prev_biases = model.trainable_layer_biases
-        model.trainable_layer_biases = self._create_static_biases(net.all_b)
-        model.restore_from_snapshot()
-        self._assert_biases_equal(model.trainable_layer_biases, prev_biases)
 
 
 if __name__ == '__main__':
