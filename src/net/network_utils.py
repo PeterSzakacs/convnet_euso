@@ -7,6 +7,7 @@ import tflearn
 import numpy as np
 
 import dataset.target_utils as targ
+import net.constants as net_cons
 
 CLASSIFICATION_FIELDS   = ['item_idx', 'output', 'target', 'shower_prob',
                            'noise_prob']
@@ -23,10 +24,6 @@ def _classification_fields_handler(raw_output, target, item_idx,
     old_dict['target'] = targ.get_target_name(target)
     old_dict['item_idx'] = item_idx
     return old_dict
-
-
-DEFAULT_CHECKING_LOGDIR = '/run/user/{}/convnet_checker'.format(os.getuid())
-DEFAULT_TRAINING_LOGDIR = '/run/user/{}/convnet_trainer'.format(os.getuid())
 
 
 def get_default_run_id(network_module_name):
@@ -116,9 +113,6 @@ def save_model(model, save_pathname):
 
 class DatasetSplitter():
 
-    DATASET_SPLIT_MODES = ('FROM_START', 'FROM_END', 'RANDOM', )
-    DATA_KEYS = ('train_data', 'train_targets', 'test_data', 'test_targets', )
-
     def __init__(self, split_mode, items_fraction=0.1, num_items=None):
         self.split_mode = split_mode
         self.test_items_fraction = items_fraction
@@ -131,9 +125,9 @@ class DatasetSplitter():
     @split_mode.setter
     def split_mode(self, value):
         val = value.upper()
-        if val not in self.DATASET_SPLIT_MODES:
+        if val not in net_cons.DATASET_SPLIT_MODES:
             raise ValueError('Invalid split mode {}, choose one of {}'.format(
-                value, self.DATASET_SPLIT_MODES
+                value, net_cons.DATASET_SPLIT_MODES
             ))
         self._mode = val
 
@@ -238,7 +232,7 @@ class TfModelTrainer():
     @train_test_data.setter
     def train_test_data(self, values):
         new_data_dict = {}
-        for k in DatasetSplitter.DATA_KEYS:
+        for k in net_cons.TRAIN_DATA_DICT_KEYS:
             new_data_dict[k] = values[k]
         self._data_dict = new_data_dict
 

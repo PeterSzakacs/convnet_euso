@@ -5,6 +5,7 @@ import os
 import csv
 
 import dataset.dataset_utils as ds
+import net.constants as net_cons
 import net.network_utils as netutils
 import utils.io_utils as io_utils
 
@@ -31,7 +32,7 @@ if __name__ == '__main__':
     dataset = input_handler.load_dataset(name, item_types=item_types)
 
     #load trained network model
-    logdir = netutils.DEFAULT_CHECKING_LOGDIR
+    logdir = net_cons.DEFAULT_CHECK_LOGDIR
     if not os.path.exists(logdir):
         os.mkdir(logdir)
     network_module_name, model_file = args.network[0:2]

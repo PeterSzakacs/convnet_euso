@@ -1,14 +1,14 @@
 import os
 import argparse
 
+import net.constants as net_cons
 import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
 
 class cmd_interface():
 
     def __init__(self):
-        self.default_logdir = os.path.join('/run/user/', str(os.getuid()),
-                                           'convnet_trainer/')
+        self.default_logdir = net_cons.DEFAULT_XVAL_LOGDIR
         parser = argparse.ArgumentParser(
             description="Perform Kfold cross-validation on the passed in "
                         "convolutional neural network with the given dataset.")

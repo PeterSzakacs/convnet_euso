@@ -6,6 +6,7 @@ import os
 import tensorflow as tf
 
 import dataset.dataset_utils as ds
+import net.constants as net_cons
 import net.network_utils as netutils
 import utils.io_utils as io_utils
 #import visualization.network.filters_visualizer as filtersViz
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     for network_name in args.networks:
         network_module_name = 'net.' + network_name
         run_id = netutils.get_default_run_id(network_module_name)
-        tb_dir = os.path.join(netutils.DEFAULT_TRAINING_LOGDIR, run_id)
+        tb_dir = os.path.join(net_cons.DEFAULT_TRAIN_LOGDIR, run_id)
         optsettings['tb_dir'] = tb_dir
         graph = tf.Graph()
         with graph.as_default():

@@ -3,13 +3,12 @@ import argparse
 
 import cmdint.argparse_types as atypes
 import cmdint.common_args as cargs
-from net.network_utils import DatasetSplitter
+import net.constants as net_cons
 
 class cmd_interface():
 
     def __init__(self):
-        self.default_logdir = os.path.join('/run/user/', str(os.getuid()),
-                                           'convnet_trainer/')
+        self.default_logdir = net_cons.DEFAULT_TRAIN_LOGDIR
         parser = argparse.ArgumentParser(
             description="Train convolutional network(s) using provided dataset")
 
@@ -27,7 +26,7 @@ class cmd_interface():
         group.add_argument('--test_items_fraction', type=float, default=0.1,
                            help='Number of dataset items to include in the '
                                 'test set, expressed as a fraction.')
-        modes = DatasetSplitter.DATASET_SPLIT_MODES
+        modes = net_cons.DATASET_SPLIT_MODES
         group.add_argument('--split_mode', choices=modes, required=True,
                            help='Method of splitting the test items subset '
                                 'from the input dataset.')
