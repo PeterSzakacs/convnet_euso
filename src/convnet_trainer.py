@@ -38,6 +38,10 @@ if __name__ == '__main__':
         data_dict['train_data'])
     data_dict['test_data'] = netutils.reshape_data_for_convnet(
         data_dict['test_data'])
+    num_epochs = args.epochs
+    trainer = netutils.TfModelTrainer(data_dict, num_epochs=num_epochs,
+                                      **optsettings)
+
     for network_name in args.networks:
         network_module_name = 'net.' + network_name
         run_id = netutils.get_default_run_id(network_module_name)
@@ -49,7 +53,7 @@ if __name__ == '__main__':
             model = netutils.import_model(network_module_name, input_shapes,
                                           **optsettings)
             epochs = args.epochs
-            netutils.train_model(model, data_dict, run_id, num_epochs=epochs)
+            trainer.train_model(model)
             if args.save:
                 save_file = os.path.join(tb_dir, '{}.tflearn'.format(
                     network_module_name

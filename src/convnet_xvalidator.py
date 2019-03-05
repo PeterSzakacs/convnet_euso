@@ -8,22 +8,30 @@ import utils.network_utils as netutils
 
 
 def main(**settings):
+    # load dataset
     name, srcdir = settings['name'], settings['srcdir']
     item_types = settings['item_types']
     input_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
     dataset = input_handler.load_dataset(name, item_types=item_types)
 
+    # create dataset splitter
     fraction = settings['test_items_fraction']
     num_items = settings['test_items_count']
     splitter = netutils.DatasetSplitter('RANDOM', items_fraction=fraction,
                                         num_items=num_items)
 
+    # import network
     net_module_name = settings['network']
     model = netutils.import_model(net_module_name, dataset.item_shapes,
                                   **settings)
-    weights = model.trainable_layer_weights
-    num_epochs = settings['epochs']
 
+    # prepare network trainer
+    num_epochs = settings['epochs']
+    trainer = netutils.TfModelTrainer(splitter.get_data_and_targets(dataset),
+                                      num_epochs=num_epochs, **settings)
+
+    # main loop
+    weights = model.trainable_layer_weights
     run_id = 'cval_{}'.format(netutils.get_default_run_id(net_module_name))
     num_crossvals = settings['num_crossvals']
     for run_idx in range(num_crossvals):
@@ -33,8 +41,7 @@ def main(**settings):
             data_dict['train_data'])
         data_dict['test_data'] = netutils.reshape_data_for_convnet(
             data_dict['test_data'])
-        netutils.train_model(model, data_dict, num_epochs=num_epochs,
-                             run_id=run_id)
+        trainer.train_model(model, data_dict=data_dict, run_id=run_id)
         model.trainable_layer_weights = weights
 
 

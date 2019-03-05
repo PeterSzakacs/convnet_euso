@@ -83,18 +83,6 @@ def import_model(module_name, input_shapes, model_file=None, **optsettings):
     return model
 
 
-def train_model(model, data_dict, run_id=None, num_epochs=11, step=100,
-                metric=True):
-    tr_data, tr_targets = data_dict['train_data'], data_dict['train_targets']
-    te_data, te_targets = data_dict['test_data'], data_dict['test_targets']
-
-    run_id = run_id or get_default_run_id(model.network_graph.__module__)
-    tf_model = model.network_model
-    tf_model.fit(tr_data, tr_targets, n_epoch=num_epochs, run_id=run_id,
-                 validation_set=(te_data, te_targets), snapshot_step=step,
-                 show_metric=metric)
-
-
 def evaluate_classification_model(model, dataset, items_slice=None,
                                   batch_size=128):
     items_slice = items_slice or slice(0, None)
@@ -129,6 +117,7 @@ def save_model(model, save_pathname):
 class DatasetSplitter():
 
     DATASET_SPLIT_MODES = ('FROM_START', 'FROM_END', 'RANDOM', )
+    DATA_KEYS = ('train_data', 'train_targets', 'test_data', 'test_targets', )
 
     def __init__(self, split_mode, items_fraction=0.1, num_items=None):
         self.split_mode = split_mode
@@ -206,3 +195,78 @@ class DatasetSplitter():
                 'train_targets': train_dset.get_targets(train_idx),
                 'test_data': test_dset.get_data_as_arraylike(test_idx),
                 'test_targets': test_dset.get_targets(test_idx)}
+
+
+class TfModelTrainer():
+
+    DEFAULT_OPTIONAL_SETTINGS = {
+        'batch_size': None, 'validation_batch_size': None, 'show_metric': True,
+        'snapshot_step': 100,
+    }
+
+    def __init__(self, data_dict, num_epochs=11, **optsettings):
+        self.train_test_data = data_dict
+        self.default_num_epochs = num_epochs
+        self._settings = self.DEFAULT_OPTIONAL_SETTINGS.copy()
+        self.optional_settings = optsettings
+
+    def _validate_setting(self, key, value):
+        if key.endswith('batch_size') or key == 'snapshot_step':
+            if value is None:
+                return None
+            else:
+                return int(value)
+        elif key == 'show_metric':
+            return bool(value)
+
+    def _get_new_settings_dict(self, **settings):
+        old_settings = self._settings
+        new_settings = {}
+        for key, val in old_settings.items():
+            try:
+                # cannot use optsettings.get(key, default_value=None), or we
+                # could not set some settings to None
+                new_settings[key] = self._validate_setting(key, settings[key])
+            except KeyError:
+                new_settings[key] = val
+        return new_settings
+
+    @property
+    def train_test_data(self):
+        return self._data_dict
+
+    @train_test_data.setter
+    def train_test_data(self, values):
+        new_data_dict = {}
+        for k in DatasetSplitter.DATA_KEYS:
+            new_data_dict[k] = values[k]
+        self._data_dict = new_data_dict
+
+    @property
+    def default_num_epochs(self):
+        return self._epochs
+
+    @default_num_epochs.setter
+    def default_num_epochs(self, value):
+        self._epochs = int(value)
+
+    @property
+    def optional_settings(self):
+        return self._settings
+
+    @optional_settings.setter
+    def optional_settings(self, values):
+        self._settings = self._get_new_settings_dict(**values)
+
+    def train_model(self, model, data_dict=None, num_epochs=None, run_id=None,
+                    **optsettings):
+        data = data_dict or self._data_dict
+        tr_data, tr_targets = data['train_data'], data['train_targets']
+        te_data, te_targets = data['test_data'], data['test_targets']
+        epochs = num_epochs or self.default_num_epochs
+        settings = self._get_new_settings_dict(**optsettings)
+        run_id = run_id or get_default_run_id(model.network_graph.__module__)
+
+        tf_model = model.network_model
+        tf_model.fit(tr_data, tr_targets, n_epoch=epochs, run_id=run_id,
+                     validation_set=(te_data, te_targets), **settings)
