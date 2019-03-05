@@ -1,7 +1,6 @@
 import os
 
-import dataset.dataset_utils as ds
-import utils.io_utils as io_utils
+import dataset.io.fs_io as io_utils
 import visualization.event_visualization as eviz
 
 frame_creators = {

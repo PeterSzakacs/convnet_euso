@@ -2,9 +2,8 @@ import os
 
 import tensorflow as tf
 
-import dataset.dataset_utils as ds
+import dataset.io.fs_io as io_utils
 import net.network_utils as netutils
-import utils.io_utils as io_utils
 
 
 def main(**settings):

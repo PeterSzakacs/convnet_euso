@@ -5,10 +5,9 @@ import os
 
 import tensorflow as tf
 
-import dataset.dataset_utils as ds
+import dataset.io.fs_io as io_utils
 import net.constants as net_cons
 import net.network_utils as netutils
-import utils.io_utils as io_utils
 #import visualization.network.filters_visualizer as filtersViz
 #import visualization.network.conv_layer_visualizer as convViz
 #import visualization.network.fc_layer_visualizer as fcViz

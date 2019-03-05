@@ -1,10 +1,9 @@
-import sys
 import csv
 
 import dataset.constants as cons
 import dataset.dataset_utils as ds
-import utils.io_utils as iout
-import cmdint.cmd_interface_condenser as cmd
+import dataset.io.fs_io as fs_io
+import utils.io_utils as io_utils
 
 SRCFILE_KEY = 'source_file_acquisition_full'
 REQUIRED_FILELIST_COLUMNS = [SRCFILE_KEY, 'packet_id', 'gtu_in_packet',
@@ -102,13 +101,16 @@ class gtu_in_packet_event_transformer:
 # currently no usage for L1 trigger file, so it is just ignored
 
 if __name__ == "__main__":
+    import sys
+    import cmdint.cmd_interface_condenser as cmd
+
     # command line parsing
     cmd_int = cmd.cmd_interface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 
     packet_template = args.template
-    extractor = iout.packet_extractor(packet_template=packet_template)
+    extractor = io_utils.packet_extractor(packet_template=packet_template)
 
     target = cons.CLASSIFICATION_TARGETS[args.target]
     if args.converter == 'gtupack':
@@ -127,7 +129,7 @@ if __name__ == "__main__":
     extracted_packet_shape = list(packet_template.packet_shape)
     extracted_packet_shape[0] = data_transformer.num_frames
 
-    output_handler = iout.dataset_fs_persistency_handler(save_dir=args.outdir)
+    output_handler = fs_io.dataset_fs_persistency_handler(save_dir=args.outdir)
     dataset = ds.numpy_dataset(args.name, extracted_packet_shape,
                                item_types=args.item_types, dtype=args.dtype)
     input_tsv = args.filelist
@@ -136,7 +138,8 @@ if __name__ == "__main__":
 
 
     # main loop
-    rows = iout.load_TSV(input_tsv, selected_columns=REQUIRED_FILELIST_COLUMNS)
+    rows = io_utils.load_TSV(input_tsv,
+                             selected_columns=REQUIRED_FILELIST_COLUMNS)
     for row in rows:
         srcfile, triggerfile = row[SRCFILE_KEY], None
         print("Processing file {}".format(srcfile))

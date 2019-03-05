@@ -6,7 +6,7 @@ import numpy as np
 
 import dataset.constants as cons
 import dataset.dataset_utils as ds
-import utils.io_utils as io_utils
+import dataset.io.fs_io as io_utils
 import utils.synth_data_utils as sdutils
 
 

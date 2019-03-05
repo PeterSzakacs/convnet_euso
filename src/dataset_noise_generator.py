@@ -4,8 +4,8 @@ import numpy as np
 
 import dataset.dataset_utils as ds
 import dataset.target_utils as targ
+import dataset.io.fs_io as io_utils
 import utils.common_utils as cutils
-import utils.io_utils as io_utils
 
 
 class bg_lambda_default_generator:
@@ -32,7 +32,7 @@ class bg_lambda_default_generator:
         self._rng.seed(seed)
 
     def __call__(self):
-        return round(self._rng.uniform(self._lam_min, self._lam_max), 
+        return round(self._rng.uniform(self._lam_min, self._lam_max),
                      self._ndigits)
 
 
@@ -52,7 +52,7 @@ class poisson_packet_generator:
 def main(**kwargs):
     bg_lambda_range = kwargs['bg_lambda']
     seed, precision = kwargs['seed'], kwargs['precision']
-    lambda_gen = bg_lambda_default_generator(bg_lambda_range, rng_seed=seed, 
+    lambda_gen = bg_lambda_default_generator(bg_lambda_range, rng_seed=seed,
                                              lambda_precision=precision)
 
     packet_shape = kwargs['packet_shape']
@@ -61,7 +61,7 @@ def main(**kwargs):
     item_types = kwargs['item_types']
     name, outdir = kwargs['name'], kwargs['outdir']
     num_items, dtype = kwargs['num_items'], kwargs['dtype']
-    dataset = ds.numpy_dataset(name, packet_shape, item_types=item_types, 
+    dataset = ds.numpy_dataset(name, packet_shape, item_types=item_types,
                                dtype=dtype)
     handler = io_utils.dataset_fs_persistency_handler(save_dir=outdir)
 

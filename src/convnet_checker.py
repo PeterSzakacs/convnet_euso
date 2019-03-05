@@ -4,10 +4,9 @@ from __future__ import division, print_function, absolute_import
 import os
 import csv
 
-import dataset.dataset_utils as ds
+import dataset.io.fs_io as io_utils
 import net.constants as net_cons
 import net.network_utils as netutils
-import utils.io_utils as io_utils
 
 
 if __name__ == '__main__':
