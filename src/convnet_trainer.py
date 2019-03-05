@@ -32,6 +32,8 @@ if __name__ == '__main__':
 
     input_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
     dataset = input_handler.load_dataset(name, item_types=item_types)
+    shapes = netutils.convert_item_shapes_to_convnet_input_shapes(dataset)
+
     splitter = netutils.DatasetSplitter(mode, items_fraction=fraction,
                                         num_items=num_items)
     data_dict = splitter.get_data_and_targets(dataset)
@@ -39,10 +41,10 @@ if __name__ == '__main__':
         data_dict['train_data'])
     data_dict['test_data'] = netutils.reshape_data_for_convnet(
         data_dict['test_data'])
+
     num_epochs = args.epochs
     trainer = netutils.TfModelTrainer(data_dict, num_epochs=num_epochs,
                                       **optsettings)
-
     for network_name in args.networks:
         network_module_name = 'net.' + network_name
         run_id = netutils.get_default_run_id(network_module_name)
@@ -50,8 +52,7 @@ if __name__ == '__main__':
         optsettings['tb_dir'] = tb_dir
         graph = tf.Graph()
         with graph.as_default():
-            input_shapes=dataset.item_shapes
-            model = netutils.import_model(network_module_name, input_shapes,
+            model = netutils.import_model(network_module_name, shapes,
                                           **optsettings)
             epochs = args.epochs
             trainer.train_model(model)
