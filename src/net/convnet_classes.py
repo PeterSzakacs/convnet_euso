@@ -54,14 +54,6 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
             model.set_weights(conv_layers[idx].b, values[idx])
 
     @property
-    def conv_weights_snapshot(self):
-        return self._conv_w
-
-    @property
-    def conv_biases_snapshot(self):
-        return self._conv_b
-
-    @property
     def fc_weights(self):
         model, fc_layers = self.network_model, self.network_graph.fc_layers
         convert = self._convert_weights_to_external_form
@@ -86,24 +78,6 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
         model, fc_layers = self.network_model, self.network_graph.fc_layers
         for idx in range(len(fc_layers)):
             model.set_weights(fc_layers[idx].b, values[idx])
-
-    @property
-    def fc_weights_snapshot(self):
-        return self._fc_w
-
-    @property
-    def fc_biases_snapshot(self):
-        return self._fc_b
-
-    # interface methods
-
-    def update_snapshots(self):
-        super(Conv2DNetworkModel, self).update_snapshots()
-        model = self.network_model
-        self._conv_w = self.conv_weights
-        self._conv_b = self.conv_biases
-        self._fc_w = self.fc_weights
-        self._fc_b = self.fc_biases
 
 
 class Conv2DNetwork(bclasses.NeuralNetwork):

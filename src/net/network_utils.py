@@ -52,29 +52,18 @@ def reshape_data_for_convnet(data, num_channels=1, create_getter=False):
         return data_reshaped
 
 
+def convert_item_shapes_to_convnet_input_shapes(dataset, batch_size=None):
+    item_shapes = dataset.item_shapes
+    return {k:[batch_size, *v, 1] for k,v in item_shapes.items()
+            if v is not None}
+
+
 # model functions (import, train, evaluate, save, etc.)
-
-
-def import_convnet(module_name, tb_dir, input_shapes, model_file=None,
-                   optimizer=None, loss_fn=None, learning_rate=None,
-                   tb_verbosity=0):
-    network_module = importlib.import_module(module_name)
-    shapes = {k:[None, *v, 1] for k,v in input_shapes.items() if v is not None}
-    network, conv_layers, fc_layers = network_module.create(
-        inputShape=shapes, learning_rate=learning_rate, optimizer=optimizer,
-        loss_fn=loss_fn
-    )
-    model = tflearn.DNN(network, tensorboard_verbose=tb_verbosity,
-                        tensorboard_dir=tb_dir)
-    if model_file != None:
-        model.load(model_file)
-    return model, network, conv_layers, fc_layers
 
 
 def import_model(module_name, input_shapes, model_file=None, **optsettings):
     network_module = importlib.import_module(module_name)
-    shapes = {k:[None, *v, 1] for k,v in input_shapes.items() if v is not None}
-    model = network_module.create_model(shapes, **optsettings)
+    model = network_module.create_model(input_shapes, **optsettings)
     if model_file != None:
         model.load_from_file(model_file, **optsettings)
     return model

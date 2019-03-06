@@ -21,8 +21,8 @@ def main(**settings):
 
     # import network
     net_module_name = settings['network']
-    model = netutils.import_model(net_module_name, dataset.item_shapes,
-                                  **settings)
+    shapes = netutils.convert_item_shapes_to_convnet_input_shapes(dataset)
+    model = netutils.import_model(net_module_name, shapes, **settings)
 
     # prepare network trainer
     num_epochs = settings['epochs']
