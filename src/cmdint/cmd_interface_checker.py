@@ -2,8 +2,9 @@ import os
 import sys
 import argparse
 
-import cmdint.argparse_types as atypes
-import cmdint.common_args as cargs
+import cmdint.common.argparse_types as atypes
+import cmdint.common.args as cargs
+import cmdint.common.dataset_args as dargs
 
 class cmd_interface():
 
@@ -16,10 +17,10 @@ class cmd_interface():
                                   'provided, output to stdout.'))
 
         # dataset input
-        atype = cargs.arg_type.INPUT
+        atype = dargs.arg_type.INPUT
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-        dset_args = cargs.dataset_args(input_aliases=in_aliases)
-        item_args = cargs.item_types_args()
+        dset_args = dargs.dataset_args(input_aliases=in_aliases)
+        item_args = dargs.item_types_args()
         group = parser.add_argument_group(title="Input dataset")
         dset_args.add_dataset_arg_double(group, atype)
         item_args.add_item_type_args(group, atype)
@@ -62,7 +63,7 @@ class cmd_interface():
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        atype = cargs.arg_type.INPUT
+        atype = dargs.arg_type.INPUT
         self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
         args.meta_order = self.meta_args.get_metafields_order(args)

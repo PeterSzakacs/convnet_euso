@@ -1,7 +1,8 @@
 import argparse
 
-import cmdint.argparse_types as atypes
-import cmdint.common_args as cargs
+import cmdint.common.argparse_types as atypes
+import cmdint.common.args as cargs
+import cmding.common.dataset_args as dargs
 
 class cmd_interface():
 
@@ -10,8 +11,8 @@ class cmd_interface():
             description="Create dataset containing simulated noise")
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
         packet_args = cargs.packet_args()
-        dset_args = cargs.dataset_args(output_aliases=out_aliases)
-        item_args = cargs.item_types_args()
+        dset_args = dargs.dataset_args(output_aliases=out_aliases)
+        item_args = dargs.item_types_args()
 
         group = parser.add_argument_group("Noise settings")
         cargs.add_number_range_arg(group, 'bg_lambda', required=True,
@@ -29,7 +30,7 @@ class cmd_interface():
         # packet dimensions
         packet_args.add_packet_arg(group, required=True)
         # output dataset
-        atype = cargs.arg_type.OUTPUT
+        atype = dargs.arg_type.OUTPUT
         dset_args.add_dataset_arg_double(group, atype)
         item_args.add_item_type_args(group, atype)
         group.add_argument('--num_items', required=True,
@@ -49,7 +50,7 @@ class cmd_interface():
         packet_templ = self.packet_args.packet_arg_to_template(args)
         args_dict['packet_shape'] = packet_templ.packet_shape
 
-        atype = cargs.arg_type.OUTPUT
+        atype = dargs.arg_type.OUTPUT
         name, outdir = self.dset_args.get_dataset_double(args, atype)
         args_dict['name'], args_dict['outdir'] = name, outdir
         self.item_args.check_item_type_args(args, atype)

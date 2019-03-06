@@ -2,8 +2,8 @@ import os
 import argparse
 
 import net.constants as net_cons
-import cmdint.argparse_types as atypes
-import cmdint.common_args as cargs
+import cmdint.common.argparse_types as atypes
+import cmdint.common.dataset_args as dargs
 
 class cmd_interface():
 
@@ -42,9 +42,9 @@ class cmd_interface():
 
         # dataset input
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-        dset_args = cargs.dataset_args(input_aliases=in_aliases)
-        item_args = cargs.item_types_args()
-        atype = cargs.arg_type.INPUT
+        dset_args = dargs.dataset_args(input_aliases=in_aliases)
+        item_args = dargs.item_types_args()
+        atype = dargs.arg_type.INPUT
         group = parser.add_argument_group(title="Input dataset")
         dset_args.add_dataset_arg_double(group, atype)
         item_args.add_item_type_args(group, atype)
@@ -68,7 +68,7 @@ class cmd_interface():
                               .format(logdir)))
 
         args_dict = {}
-        atype = cargs.arg_type.INPUT
+        atype = dargs.arg_type.INPUT
         self.item_args.check_item_type_args(args, atype)
         args_dict['item_types'] = self.item_args.get_item_types(args, atype)
         name, srcdir = self.dset_args.get_dataset_double(args, atype)

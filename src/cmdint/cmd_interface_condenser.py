@@ -1,9 +1,10 @@
 import os
 import argparse
 
-import cmdint.argparse_types as atypes
-import cmdint.common_args as cargs
-import cmdint.arparse_actions as actions
+import cmdint.common.arparse_actions as actions
+import cmdint.common.argparse_types as atypes
+import cmdint.common.args as cargs
+import cmdint.common.dataset_args as dargs
 import dataset.constants as cons
 import utils.common_utils as cutils
 
@@ -24,12 +25,12 @@ class cmd_interface():
 
         group = parser.add_argument_group(title='Output settings')
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
-        dset_args = cargs.dataset_args(output_aliases=out_aliases)
-        dset_args.add_dataset_arg_double(group, cargs.arg_type.OUTPUT,
+        dset_args = dargs.dataset_args(output_aliases=out_aliases)
+        dset_args.add_dataset_arg_double(group, dargs.arg_type.OUTPUT,
                                          dir_short_alias='d', dir_default='.',
                                          name_short_alias='n')
-        item_args = cargs.item_types_args()
-        item_args.add_item_type_args(group, cargs.arg_type.OUTPUT)
+        item_args = dargs.item_types_args()
+        item_args.add_item_type_args(group, dargs.arg_type.OUTPUT)
         group.add_argument('--target', required=True,
                            choices=cons.CLASSIFICATION_TARGETS.keys(),
                            help=('classification target value to use for all '
@@ -85,7 +86,7 @@ class cmd_interface():
 
         args.template = self.packet_args.packet_arg_to_template(args)
 
-        atype = cargs.arg_type.OUTPUT
+        atype = dargs.arg_type.OUTPUT
         self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
 

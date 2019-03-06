@@ -1,8 +1,9 @@
 import os
 import argparse
 
-import cmdint.argparse_types as atypes
-import cmdint.common_args as cargs
+import cmdint.common.argparse_types as atypes
+import cmdint.common.args as cargs
+import cmdint.common.dataset_args as dargs
 import utils.data_templates as templates
 
 class cmd_interface():
@@ -12,14 +13,14 @@ class cmd_interface():
             description="Create simulated air shower data as numpy arrays")
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
         self.packet_args = cargs.packet_args()
-        self.dset_args = cargs.dataset_args(output_aliases=out_aliases)
-        self.item_args = cargs.item_types_args()
+        self.dset_args = dargs.dataset_args(output_aliases=out_aliases)
+        self.item_args = dargs.item_types_args()
 
         ds_group = self.parser.add_argument_group('dataset configuration')
         # packet dimensions
         self.packet_args.add_packet_arg(ds_group, required=True)
         # output dataset
-        atype = cargs.arg_type.OUTPUT
+        atype = dargs.arg_type.OUTPUT
         self.dset_args.add_dataset_arg_double(ds_group, atype)
         self.item_args.add_item_type_args(ds_group, atype)
         ds_group.add_argument('--num_data', required=True,
@@ -87,7 +88,7 @@ class cmd_interface():
         if not os.path.isdir(args.outdir):
             raise ValueError("Invalid output directory {}".format(args.outdir))
 
-        atype = cargs.arg_type.OUTPUT
+        atype = dargs.arg_type.OUTPUT
         self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
 

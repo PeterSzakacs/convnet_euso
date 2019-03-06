@@ -1,8 +1,8 @@
 import os
 import argparse
 
-import cmdint.argparse_types as atypes
-import cmdint.common_args as cargs
+import cmdint.common.argparse_types as atypes
+import cmdint.common.dataset_args as dargs
 
 class cmd_interface():
 
@@ -12,12 +12,12 @@ class cmd_interface():
         # input dataset settings
         group = parser.add_argument_group(title="Input dataset")
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-        dset_args = cargs.dataset_args(input_aliases=in_aliases)
-        dset_args.add_dataset_arg_double(group, cargs.arg_type.INPUT,
+        dset_args = dargs.dataset_args(input_aliases=in_aliases)
+        dset_args.add_dataset_arg_double(group, dargs.arg_type.INPUT,
                                          required=True,
                                          dir_default=os.path.curdir)
-        item_args = cargs.item_types_args()
-        item_args.add_item_type_args(group, cargs.arg_type.INPUT)
+        item_args = dargs.item_types_args()
+        item_args.add_item_type_args(group, dargs.arg_type.INPUT)
         group.add_argument('--start_item', default=0, type=int,
                            help=('index of first item to visualize.'))
         group.add_argument('--stop_item', default=None, type=int,
@@ -56,7 +56,7 @@ class cmd_interface():
         if not os.path.isdir(args.outdir):
             raise ValueError("Invalid output directory {}".format(args.outdir))
 
-        atype = cargs.arg_type.INPUT
+        atype = dargs.arg_type.INPUT
         self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
 

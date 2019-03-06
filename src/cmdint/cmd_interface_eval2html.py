@@ -2,8 +2,9 @@ import os
 import sys
 import argparse
 
-import cmdint.argparse_types as atypes
-import cmdint.common_args as cargs
+import cmdint.common.argparse_types as atypes
+import cmdint.common.args as cargs
+import cmdint.common.dataset_args as dargs
 
 
 class cmd_interface():
@@ -28,10 +29,10 @@ class cmd_interface():
                            help=('Directory to store output logs. If a '
                                  'non-default directory is used, it must '
                                  'exist prior to calling this script.'))
-        item_args = cargs.item_types_args(out_item_prefix='add')
+        item_args = dargs.item_types_args(out_item_prefix='add')
         help = {k: 'add image placeholder for {}'.format(desc)
                 for k, desc in item_args.item_descriptions.items()}
-        item_args.add_item_type_args(group, cargs.arg_type.OUTPUT, help=help)
+        item_args.add_item_type_args(group, dargs.arg_type.OUTPUT, help=help)
 
         # meta-information to include in report headers
         g_title = "Meta-information to include in report headers"
@@ -41,8 +42,8 @@ class cmd_interface():
                            help=('name of network module used and '
                                  'corresponding trained model file.'))
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-        dset_args = cargs.dataset_args(input_aliases=in_aliases)
-        dset_args.add_dataset_arg_double(group, cargs.arg_type.INPUT,
+        dset_args = dargs.dataset_args(input_aliases=in_aliases)
+        dset_args.add_dataset_arg_double(group, dargs.arg_type.INPUT,
                                          required=False)
 
         # order of metadata columns in the report
@@ -57,11 +58,11 @@ class cmd_interface():
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        atype = cargs.arg_type.OUTPUT
+        atype = dargs.arg_type.OUTPUT
         self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
 
-        atype = cargs.arg_type.INPUT
+        atype = dargs.arg_type.INPUT
         args.name, args.srcdir = self.dset_args.get_dataset_double(args, atype)
 
         args.meta_order = self.meta_args.get_metafields_order(args)
