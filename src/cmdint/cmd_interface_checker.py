@@ -5,6 +5,7 @@ import argparse
 import cmdint.common.argparse_types as atypes
 import cmdint.common.args as cargs
 import cmdint.common.dataset_args as dargs
+import cmdint.common.network_args as net_args
 
 class cmd_interface():
 
@@ -33,11 +34,9 @@ class cmd_interface():
                                  'item to use for evaluation.'))
 
         # trained neural network model
-        group = parser.add_argument_group('Network model')
-        group.add_argument('-n', '--network', required=True, nargs=2,
-                           metavar=('NETWORK_NAME', 'MODEL_FILE'),
-                           help=('name of network module to use and a '
-                                 'corresponding trained model file.'))
+        group = parser.add_argument_group('Neural network settings')
+        net_args.add_network_arg(group, short_alias='n')
+        net_args.add_model_file_arg(group, short_alias='m', required=True)
 
         # misc
         parser.add_argument('--usecpu', action='store_true',
@@ -68,7 +67,7 @@ class cmd_interface():
         args.item_types = self.item_args.get_item_types(args, atype)
         args.meta_order = self.meta_args.get_metafields_order(args)
 
-        network_name, model_file = args.network[0:2]
+        network_name, model_file = args.network, args.model_file
         if not os.path.exists(model_file + ".meta"):
             raise ValueError('Model file {} for network {} does not exist: '
                              .format(model_file, network_name))

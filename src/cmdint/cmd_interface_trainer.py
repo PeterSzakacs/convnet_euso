@@ -3,6 +3,7 @@ import argparse
 
 import cmdint.common.argparse_types as atypes
 import cmdint.common.dataset_args as dargs
+import cmdint.common.network_args as net_args
 import net.constants as net_cons
 
 class cmd_interface():
@@ -31,33 +32,24 @@ class cmd_interface():
                            help='Method of splitting the test items subset '
                                 'from the input dataset.')
 
-        # network(s) to train
+        # network to train
         group = parser.add_argument_group(title="Network configuration")
-        group.add_argument('-n', '--networks', action='append', required=True,
-                           metavar='NETWORK_NAME',
-                           help='names of network modules to use')
-        group.add_argument('--logdir', default=self.default_logdir,
-                           help=('directory to store training logs. If a '
-                                 'non-default directory is used, it must '
-                                 'exist prior to calling this script'))
+        net_args.add_network_arg(group, short_alias='n')
+        net_args.add_model_file_arg(group, short_alias='m')
+        group.add_argument('--tb_dir', default=self.default_logdir,
+                           help=('directory to store training logs for '
+                                 'tensorboard.'))
         group.add_argument('--save', action='store_true',
                            help=('save the model after training. Model files '
-                                 'are saved under the logdir as net.network_'
-                                 'name/net.network_name.tflearn.*'))
+                                 'are saved under tb_dir as net.network_name/'
+                                 'net.network_name.tflearn.*'))
 
         # training settings
         group = parser.add_argument_group(title="Training parameters")
-        group.add_argument('-e', '--epochs', default=11,
-                                type=atypes.int_range(1),
-                                help='number of training epochs per network')
-        group.add_argument('--learning_rate', type=float,
-                           help='learning rate for all the tested networks')
-        group.add_argument('--optimizer',
-                           help=('gradient descent optimizer to use for all '
-                                 'the tested networks'))
-        group.add_argument('--loss',
-                           help=('loss function to use for all the tested '
-                                 'networks'))
+        net_args.add_training_settings_args(
+            group, num_epochs={'required': False, 'default': 11,
+                               'short_alias': 'e'})
+
         self.parser = parser
         self.dset_args = dset_args
         self.item_args = item_args
@@ -67,10 +59,28 @@ class cmd_interface():
 
         atype = dargs.arg_type.INPUT
         self.item_args.check_item_type_args(args, atype)
-        args.item_types = self.item_args.get_item_types(args, atype)
-        logdir = args.logdir
+        logdir = args.tb_dir
         if logdir != self.default_logdir and not os.path.isdir(logdir):
             raise ValueError(('Invalid non-default logging directory: {}'
                               .format(logdir)))
 
-        return args
+        args_dict = {}
+        args_dict['tb_dir'], args_dict['save'] = logdir, args.save
+
+        name, srcdir = self.dset_args.get_dataset_double(args, atype)
+        args_dict['name'], args_dict['srcdir'] = name, srcdir
+        args_dict['item_types'] = self.item_args.get_item_types(args, atype)
+        args_dict['test_items_count'] = args.test_items_count
+        args_dict['test_items_fraction'] = args.test_items_fraction
+        args_dict['split_mode'] = args.split_mode
+
+        network_args = ('network', 'model_file', )
+        for attr in network_args:
+            args_dict[attr] = getattr(args, attr)
+
+        for key in net_args.TRAIN_SETTINGS_ARGS.keys():
+            args_dict[key] = getattr(args, key)
+
+        args_dict['tb_dir'], args_dict['save'] = logdir, args.save
+
+        return args_dict

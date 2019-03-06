@@ -4,6 +4,7 @@ import argparse
 import net.constants as net_cons
 import cmdint.common.argparse_types as atypes
 import cmdint.common.dataset_args as dargs
+import cmdint.common.network_args as net_args
 
 class cmd_interface():
 
@@ -18,27 +19,20 @@ class cmd_interface():
         group.add_argument('--num_crossvals', type=atypes.int_range(1),
                            required=True,
                            help='number of cross validations to perform')
-        group.add_argument('-e', '--epochs', default=11,
-                           type=atypes.int_range(1),
-                           help='number of training epochs per cross-val run')
+
+        # network to train
+        group = parser.add_argument_group(title="Network to use")
+        net_args.add_network_arg(group, short_alias='n')
+        net_args.add_model_file_arg(group, short_alias='m')
+
+        # training_parameters
+        group = parser.add_argument_group(title="Training parameters to use")
+        net_args.add_training_settings_args(
+            group, num_epochs={'required': False, 'default': 11,
+                               'short_alias': 'e'})
         group.add_argument('--tb_dir', default=self.default_logdir,
                            help=('directory to store training logs for '
                                  'tensorboard.'))
-
-        # network to train
-        group = parser.add_argument_group(title="Network configuration")
-        group.add_argument('-n', '--network', required=True,
-                           metavar='NETWORK_NAME',
-                           help='name of network module to use')
-        group.add_argument('-m', '--model_file',
-                           help='(optional) file with trained model of the '
-                                'network')
-        group.add_argument('--learning_rate', type=float,
-                           help='learning rate to use')
-        group.add_argument('--optimizer',
-                           help='gradient descent optimizer to use')
-        group.add_argument('--loss_fn',
-                           help='loss function to use')
 
         # dataset input
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
@@ -76,12 +70,14 @@ class cmd_interface():
         args_dict['test_items_count'] = args.test_items_count
         args_dict['test_items_fraction'] = args.test_items_fraction
 
-        net_args = ('network', 'model_file', 'learning_rate', 'optimizer',
-                    'loss_fn', )
-        for attr in net_args:
+        network_args = ('network', 'model_file', )
+        for attr in network_args:
             args_dict[attr] = getattr(args, attr)
 
-        xval_args = ('num_crossvals', 'epochs', 'tb_dir', )
+        for key in net_args.TRAIN_SETTINGS_ARGS.keys():
+            args_dict[key] = getattr(args, key)
+
+        xval_args = ('num_crossvals', 'tb_dir', )
         for attr in xval_args:
             args_dict[attr] = getattr(args, attr)
 

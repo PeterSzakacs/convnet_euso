@@ -25,9 +25,9 @@ def main(**settings):
     model = netutils.import_model(net_module_name, shapes, **settings)
 
     # prepare network trainer
-    num_epochs = settings['epochs']
+    num_epochs = settings['num_epochs']
     trainer = netutils.TfModelTrainer(splitter.get_data_and_targets(dataset),
-                                      num_epochs=num_epochs, **settings)
+                                      **settings)
 
     # main loop
     weights = model.trainable_layer_weights

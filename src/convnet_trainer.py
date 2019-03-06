@@ -6,7 +6,6 @@ import os
 import tensorflow as tf
 
 import dataset.io.fs_io as io_utils
-import net.constants as net_cons
 import net.network_utils as netutils
 #import visualization.network.filters_visualizer as filtersViz
 #import visualization.network.conv_layer_visualizer as convViz
@@ -22,44 +21,37 @@ if __name__ == '__main__':
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 
-    name, srcdir = args.name, args.srcdir
-    item_types = args.item_types
-    mode = args.split_mode
-    fraction, num_items = args.test_items_fraction, args.test_items_count
-    optsettings = {'learning_rate': args.learning_rate, 'loss_fn': args.loss,
-                   'optimizer': args.optimizer}
-
+    # load dataset
+    name, srcdir, item_types = args['name'], args['srcdir'], args['item_types']
     input_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
     dataset = input_handler.load_dataset(name, item_types=item_types)
-    shapes = netutils.convert_item_shapes_to_convnet_input_shapes(dataset)
 
+    # create splitter and split dataset into train and test data
+    mode = args['split_mode']
+    fraction, num_items = args['test_items_fraction'], args['test_items_count']
     splitter = netutils.DatasetSplitter(mode, items_fraction=fraction,
                                         num_items=num_items)
+
+    # prepare network trainer
     data_dict = splitter.get_data_and_targets(dataset)
     data_dict['train_data'] = netutils.reshape_data_for_convnet(
         data_dict['train_data'])
     data_dict['test_data'] = netutils.reshape_data_for_convnet(
         data_dict['test_data'])
+    trainer = netutils.TfModelTrainer(data_dict, **args)
 
-    num_epochs = args.epochs
-    trainer = netutils.TfModelTrainer(data_dict, num_epochs=num_epochs,
-                                      **optsettings)
-    for network_name in args.networks:
-        network_module_name = 'net.' + network_name
-        run_id = netutils.get_default_run_id(network_module_name)
-        tb_dir = os.path.join(net_cons.DEFAULT_TRAIN_LOGDIR, run_id)
-        optsettings['tb_dir'] = tb_dir
-        graph = tf.Graph()
-        with graph.as_default():
-            model = netutils.import_model(network_module_name, shapes,
-                                          **optsettings)
-            epochs = args.epochs
-            trainer.train_model(model)
-            if args.save:
-                save_file = os.path.join(tb_dir, '{}.tflearn'.format(
-                    network_module_name
-                ))
-                netutils.save_model(model, save_file)
+    # import network model
+    network, model_file = 'net.' + args['network'], args['model_file']
+    tb_dir, run_id = args['tb_dir'], netutils.get_default_run_id(network)
+    args['tb_dir'] = os.path.join(tb_dir, run_id)
+    shapes = netutils.convert_item_shapes_to_convnet_input_shapes(dataset)
+    model = netutils.import_model(network, shapes, **args)
+
+    # train model and optionally save if requested
+    trainer.train_model(model)
+    if args['save']:
+        save_file = os.path.join(tb_dir, '{}.tflearn'.format(network))
+        netutils.save_model(model, save_file)
 
 # uncomment callbacks-related code if you want to see visually in generated images at each output what the outputs
 # of the convolutional (well, technically, max-pooling, and only first 10 filters) and FC layers are after each epoch

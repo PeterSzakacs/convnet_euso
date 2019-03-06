@@ -34,7 +34,7 @@ if __name__ == '__main__':
     logdir = net_cons.DEFAULT_CHECK_LOGDIR
     if not os.path.exists(logdir):
         os.mkdir(logdir)
-    network_module_name, model_file = args.network[0:2]
+    network_module_name, model_file = args.network, args.model_file
     network_module_name = "net." + network_module_name
     run_id = netutils.get_default_run_id(network_module_name)
     tb_dir = os.path.join(logdir, run_id)
