@@ -2,9 +2,8 @@ import argparse
 import collections as coll
 import unittest
 
-import utils.data_utils as dat
-import utils.metadata_utils as meta
 import cmdint.common_args as cargs
+import dataset.constants as cons
 
 
 class TestPacketArgs(unittest.TestCase):
@@ -271,7 +270,7 @@ class TestItemTypeArgs(unittest.TestCase):
     def setUp(self):
         self.in_prefix = 'in'
         self.out_prefix = 'out'
-        all_types = dat.ALL_ITEM_TYPES
+        all_types = cons.ALL_ITEM_TYPES
         self.required = {all_types[idx]: (True if idx % 2 == 0 else False)
                          for idx in range(len(all_types))}
         self.item_args = cargs.item_types_args(in_item_prefix=self.in_prefix,
@@ -285,7 +284,7 @@ class TestItemTypeArgs(unittest.TestCase):
                                           self.required)
         in_pref = self.in_prefix
         exp_attrs = {'{}_{}'.format(in_pref, k): True
-                     for k in dat.ALL_ITEM_TYPES}
+                     for k in cons.ALL_ITEM_TYPES}
         exp_args = argparse.Namespace(**exp_attrs)
         cmdline = ['--{}'.format(k) for k in exp_attrs.keys()]
         args = parser.parse_args(cmdline)
@@ -297,7 +296,7 @@ class TestItemTypeArgs(unittest.TestCase):
                                           self.required)
         in_pref = self.out_prefix
         exp_attrs = {'{}_{}'.format(in_pref, k): True
-                     for k in dat.ALL_ITEM_TYPES}
+                     for k in cons.ALL_ITEM_TYPES}
         exp_args = argparse.Namespace(**exp_attrs)
         cmdline = ['--{}'.format(k) for k in exp_attrs.keys()]
         args = parser.parse_args(cmdline)
@@ -305,42 +304,42 @@ class TestItemTypeArgs(unittest.TestCase):
 
     def test_get_item_type_args_input(self):
         attr_names = ['{}_{}'.format(self.in_prefix, item_type)
-                      for item_type in dat.ALL_ITEM_TYPES]
+                      for item_type in cons.ALL_ITEM_TYPES]
         attr_vals = [True if idx % 3 == 0 else False
-                     for idx in range(len(dat.ALL_ITEM_TYPES))]
+                     for idx in range(len(cons.ALL_ITEM_TYPES))]
         args = coll.namedtuple('args', attr_names)(*attr_vals)
         vals = self.item_args.get_item_types(args, cargs.arg_type.INPUT)
-        self.assertDictEqual(dict(zip(dat.ALL_ITEM_TYPES, attr_vals)), vals)
+        self.assertDictEqual(dict(zip(cons.ALL_ITEM_TYPES, attr_vals)), vals)
 
     def test_get_item_type_args_output(self):
         attr_names = ['{}_{}'.format(self.out_prefix, item_type)
-                      for item_type in dat.ALL_ITEM_TYPES]
+                      for item_type in cons.ALL_ITEM_TYPES]
         attr_vals = [True if idx % 3 == 0 else False
-                     for idx in range(len(dat.ALL_ITEM_TYPES))]
+                     for idx in range(len(cons.ALL_ITEM_TYPES))]
         args = coll.namedtuple('args', attr_names)(*attr_vals)
         vals = self.item_args.get_item_types(args, cargs.arg_type.OUTPUT)
-        self.assertDictEqual(dict(zip(dat.ALL_ITEM_TYPES, attr_vals)), vals)
+        self.assertDictEqual(dict(zip(cons.ALL_ITEM_TYPES, attr_vals)), vals)
 
     def test_check_item_type_args_input_no_exception(self):
         attr_names = ['{}_{}'.format(self.in_prefix, item_type)
-                      for item_type in dat.ALL_ITEM_TYPES]
+                      for item_type in cons.ALL_ITEM_TYPES]
         attr_vals = [True if idx % 3 == 0 else False
-                     for idx in range(len(dat.ALL_ITEM_TYPES))]
+                     for idx in range(len(cons.ALL_ITEM_TYPES))]
         args = coll.namedtuple('args', attr_names)(*attr_vals)
         self.item_args.check_item_type_args(args, cargs.arg_type.INPUT)
 
     def test_check_item_type_args_output_no_exception(self):
         attr_names = ['{}_{}'.format(self.out_prefix, item_type)
-                      for item_type in dat.ALL_ITEM_TYPES]
+                      for item_type in cons.ALL_ITEM_TYPES]
         attr_vals = [True if idx % 3 == 0 else False
-                     for idx in range(len(dat.ALL_ITEM_TYPES))]
+                     for idx in range(len(cons.ALL_ITEM_TYPES))]
         args = coll.namedtuple('args', attr_names)(*attr_vals)
         self.item_args.check_item_type_args(args, cargs.arg_type.OUTPUT)
 
     def test_check_item_type_args_input_exception(self):
         attr_names = ['{}_{}'.format(self.in_prefix, item_type)
-                      for item_type in dat.ALL_ITEM_TYPES]
-        attr_vals = [False] * len(dat.ALL_ITEM_TYPES)
+                      for item_type in cons.ALL_ITEM_TYPES]
+        attr_vals = [False] * len(cons.ALL_ITEM_TYPES)
         args = coll.namedtuple('args', attr_names)(*attr_vals)
         try:
             self.item_args.check_item_type_args(args, cargs.arg_type.INPUT)
@@ -350,8 +349,8 @@ class TestItemTypeArgs(unittest.TestCase):
 
     def test_check_item_type_args_output_exception(self):
         attr_names = ['{}_{}'.format(self.out_prefix, item_type)
-                      for item_type in dat.ALL_ITEM_TYPES]
-        attr_vals = [False] * len(dat.ALL_ITEM_TYPES)
+                      for item_type in cons.ALL_ITEM_TYPES]
+        attr_vals = [False] * len(cons.ALL_ITEM_TYPES)
         args = coll.namedtuple('args', attr_names)(*attr_vals)
         try:
             self.item_args.check_item_type_args(args, cargs.arg_type.OUTPUT)
@@ -386,7 +385,7 @@ class TestMetafieldsOrderArgs(unittest.TestCase):
         cmdline = '--simu_test'.split()
         args = self.parser.parse_args(cmdline)
         meta_order = self.meta_order_args.get_metafields_order(args)
-        exp_order = meta.METADATA_TYPES['simu']['field order']
+        exp_order = cons.METADATA_TYPES['simu']['field order']
         self.assertListEqual(meta_order, exp_order)
 
     def test_get_metafields_arg_multiple(self):
