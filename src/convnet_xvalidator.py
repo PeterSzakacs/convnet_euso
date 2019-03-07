@@ -31,6 +31,7 @@ def main(**settings):
 
     # main loop
     weights = model.trainable_layer_weights
+    biases = model.trainable_layer_biases
     run_id = 'cval_{}'.format(netutils.get_default_run_id(net_module_name))
     num_crossvals = settings['num_crossvals']
     for run_idx in range(num_crossvals):
@@ -42,6 +43,7 @@ def main(**settings):
             data_dict['test_data'])
         trainer.train_model(model, data_dict=data_dict, run_id=run_id)
         model.trainable_layer_weights = weights
+        model.trainable_layer_biases = biases
 
 
 if __name__ == '__main__':
