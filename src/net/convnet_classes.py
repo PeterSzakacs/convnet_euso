@@ -102,10 +102,10 @@ class Conv2DNetwork(bclasses.NeuralNetwork):
 
     def get_filter_size(self, conv_layer):
         tensor_shape = conv_layer.W.shape
-        return tuple(tensor_shape[idx].value for idx in range(0,3))
+        return tuple(int(tensor_shape[idx]) for idx in range(0,3))
 
     def get_num_filters(self, conv_layer):
-        return conv_layer.W.shape[3]
+        return int(conv_layer.W.shape[3])
 
     def get_num_neurons(self, fc_layer):
-        return fc_layer.W.shape[1]
+        return int(fc_layer.W.shape[1])
