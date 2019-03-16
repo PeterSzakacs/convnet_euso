@@ -82,9 +82,10 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
 
 class Conv2DNetwork(bclasses.NeuralNetwork):
 
-    def __init__(self, conv_layers, fc_layers, output_layer):
-        super(Conv2DNetwork, self).__init__(conv_layers + fc_layers,
-                                            output_layer)
+    def __init__(self, inputs, outputs, layers):
+        super(Conv2DNetwork, self).__init__(inputs, outputs, layers)
+        conv_layers = layers['conv2d']
+        fc_layers = layers['fc']
         self._conv = conv_layers
         self._fc = fc_layers
 

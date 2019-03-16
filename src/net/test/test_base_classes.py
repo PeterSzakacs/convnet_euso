@@ -22,19 +22,23 @@ class MockNeuralNetwork(bclasses.NeuralNetwork):
         return cls._the_net
 
     def __init__(self):
-        layers = []
+        hidden, trainable = [], []
+
         net = input_data(shape=(None, 3))
+        inputs = [net]
         net = fully_connected(net, 10, weights_init='zeros', bias_init='zeros')
-        layers.append(net)
+        hidden.append(net); trainable.append(net)
         net = fully_connected(net, 3, weights_init='zeros', bias_init='zeros')
-        layers.append(net)
+        trainable.append(net)
         net = regression(net)
-        self._exp_num_layers = len(layers)
-        self._exp_layers = layers
+        self._exp_inputs = inputs
         self._exp_output = net
+        self._exp_trainables = trainable
+        self._exp_hidden = hidden
         self.all_w = (np.zeros((3, 10)), np.zeros((10, 3)), )
         self.all_b = (np.zeros(10, ), np.zeros(3, ), )
-        super(MockNeuralNetwork, self).__init__(layers, net)
+        layers = {'trainable': trainable, 'hidden': hidden}
+        super(MockNeuralNetwork, self).__init__(inputs, net, layers)
 
     def network_type(self):
         return 'test'
@@ -42,9 +46,17 @@ class MockNeuralNetwork(bclasses.NeuralNetwork):
 
 class TestNeuralNetwork(unittest.TestCase):
 
+    def test_input_layer_order(self, network=None):
+        network = network or MockNeuralNetwork.get_instance()
+        self.assertEqual(network.input_layers, network._exp_inputs)
+
+    def test_hidden_layer_order(self, network=None):
+        network = network or MockNeuralNetwork.get_instance()
+        self.assertEqual(network.hidden_layers, network._exp_hidden)
+
     def test_trainable_layer_order(self, network=None):
         network = network or MockNeuralNetwork.get_instance()
-        self.assertEqual(network.trainable_layers, network._exp_layers)
+        self.assertEqual(network.trainable_layers, network._exp_trainables)
 
     def test_output_layer(self, network=None):
         network = network or MockNeuralNetwork.get_instance()

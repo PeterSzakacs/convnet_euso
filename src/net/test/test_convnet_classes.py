@@ -4,6 +4,7 @@ import numpy as np
 from tflearn.layers import regression
 from tflearn.layers.conv import conv_2d
 from tflearn.layers.core import input_data, fully_connected
+from tflearn.layers.normalization import local_response_normalization
 
 import net.test.test_base_classes as base_test
 import net.convnet_classes as conv_classes
@@ -24,25 +25,31 @@ class MockNeuralNetwork(conv_classes.Conv2DNetwork):
 
     def __init__(self):
         conv_layers, fc_layers, filter_sizes = [], [], []
-        net = input_data(shape=(None, 10, 10, 1))
+        hidden, trainable = [], []
 
+        net = input_data(shape=(None, 10, 10, 1))
+        inputs = [net]
         net = conv_2d(net, 2, filter_size=(2, 3), weights_init='zeros',
                       bias_init='zeros')
-        conv_layers.append(net)
+        conv_layers.append(net); hidden.append(net); trainable.append(net)
         filter_sizes.append((2, 3, 1))
         net = conv_2d(net, 2, filter_size=2, weights_init='zeros',
                       bias_init='zeros')
-        conv_layers.append(net)
+        conv_layers.append(net); hidden.append(net); trainable.append(net)
         filter_sizes.append((2, 2, 2))
+        net = local_response_normalization(net)
+        hidden.append(net)
 
         # num_connections per neuron in fc_layer: 2*10*10 -> 200
         net = fully_connected(net, 3, weights_init='zeros', bias_init='zeros')
-        fc_layers.append(net)
+        fc_layers.append(net); trainable.append(net)
         net = regression(net)
-        self._exp_layers = conv_layers + fc_layers
+        self._exp_inputs = inputs
+        self._exp_output = net
+        self._exp_trainables = trainable
+        self._exp_hidden = hidden
         self._exp_conv = conv_layers
         self._exp_fc = fc_layers
-        self._exp_output = net
         self._exp_filter_sizes = filter_sizes
         self.conv_w = (np.zeros((2, 1, 2, 3)), np.zeros((2, 2, 2, 2)), )
         self.conv_b = (np.zeros(2, ), np.zeros(2, ), )
@@ -50,10 +57,20 @@ class MockNeuralNetwork(conv_classes.Conv2DNetwork):
         self.fc_b = (np.zeros(3, ), )
         self.all_w = self.conv_w + self.fc_w
         self.all_b = self.conv_b + self.fc_b
-        super(MockNeuralNetwork, self).__init__(conv_layers, fc_layers, net)
+        layers = {'trainable': trainable, 'hidden': hidden,
+                  'conv2d': conv_layers, 'fc': fc_layers}
+        super(MockNeuralNetwork, self).__init__(inputs, net, layers)
 
 
 class TestConv2DNetwork(base_test.TestNeuralNetwork):
+
+    def test_input_layer_order(self):
+        super().test_input_layer_order(
+            network=MockNeuralNetwork.get_instance())
+
+    def test_hidden_layer_order(self):
+        super().test_hidden_layer_order(
+            network=MockNeuralNetwork.get_instance())
 
     def test_trainable_layer_order(self):
         super().test_trainable_layer_order(

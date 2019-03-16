@@ -72,9 +72,13 @@ class NetworkModel():
 
 class NeuralNetwork(abc.ABC):
 
-    def __init__(self, trainable_layers, output_layer):
-        self._train_layers = trainable_layers
-        self._out = output_layer
+    def __init__(self, inputs, outputs, layers):
+        trainable_layers = layers['trainable']
+        hidden_layers = layers['hidden']
+        self._inputs = inputs
+        self._out = outputs
+        self._trainable = trainable_layers
+        self._hidden = hidden_layers
 
     # properties
 
@@ -84,7 +88,15 @@ class NeuralNetwork(abc.ABC):
 
     @property
     def trainable_layers(self):
-        return self._train_layers
+        return self._trainable
+
+    @property
+    def hidden_layers(self):
+        return self._hidden
+
+    @property
+    def input_layers(self):
+        return self._inputs
 
     @property
     def output_layer(self):
