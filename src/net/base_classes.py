@@ -1,12 +1,24 @@
 import abc
 
+import numpy as np
 import tflearn
 
 class NetworkModel():
 
     def __init__(self, neural_network, **model_settings):
         self._net = neural_network
+        self._hidden_models = {}
         self.initialize_model(**model_settings)
+
+    def _update_hidden_models(self):
+        hidden_layers = self._net.hidden_layers
+        session = self._model.session
+        for layer in hidden_layers:
+            model = self._hidden_models[layer.name]
+            model.session.close()
+            model.session = session
+            model.trainer.session = session
+            model.predictor.session = session
 
     def _convert_weights_to_internal_form(self, layer, weights):
         return weights
@@ -58,16 +70,35 @@ class NetworkModel():
             layer = layers[idx]
             model.set_weights(layer.b, convert(layer, values[idx]))
 
-    def initialize_model(self, **model_settings):
-        tb_dir = model_settings.get('tb_dir', '/tmp/tflearn_logs/')
-        tb_verbosity = model_settings.get('tb_verbosity', 0)
-        model = tflearn.DNN(self._net.output_layer, tensorboard_dir=tb_dir,
-                            tensorboard_verbose=tb_verbosity)
+    def initialize_model(self, create_hidden_models=False, **model_settings):
+        settings = {}
+        settings['tensorboard_dir'] = model_settings.get('tb_dir',
+                                                         '/tmp/tflearn_logs/')
+        settings['tensorboard_verbose'] = tb_verbosity = model_settings.get(
+            'tb_verbosity', 0)
+        model = tflearn.DNN(self._net.output_layer, **settings)
         self._model = model
+        if create_hidden_models:
+            hidden_layers = self._net.hidden_layers
+            hidden_models = {layer.name: tflearn.DNN(layer)
+                             for layer in hidden_layers}
+            self._hidden_models = hidden_models
+
+    def get_hidden_layer_activations(self, input_data_seq):
+        if len(self._hidden_models) == 0:
+            raise Exception('Hidden layer activations not retrievable.')
+        hidden_layers = self._net.hidden_layers
+        hidden_models = [self._hidden_models[layer.name]
+                         for layer in hidden_layers]
+        return [[np.squeeze(model.predict([input_data]), axis=0)
+                 for model in hidden_models]
+                for input_data in input_data_seq]
 
     def load_from_file(self, model_file, **optargs):
         w_only = optargs.get('weights_only', False)
-        return self._model.load(model_file, weights_only=w_only)
+        self._model.load(model_file, weights_only=w_only)
+        if len(self._hidden_models) > 0:
+            self._update_hidden_models()
 
 
 class NeuralNetwork(abc.ABC):
