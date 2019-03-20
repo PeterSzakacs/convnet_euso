@@ -110,6 +110,29 @@ class NeuralNetwork(abc.ABC):
         self._out = outputs
         self._trainable = trainable_layers
         self._hidden = hidden_layers
+        self._paths = self._get_data_paths()
+
+    def _get_data_paths(self):
+        def _get_next_tensor(curr_tensor):
+            consumers = curr_tensor.consumers()
+            # 'Switch' is tensorflow Dropout
+            if consumers[0].type == 'Switch':
+                return consumers[1].outputs[0]
+            else:
+                return consumers[0].outputs[0]
+        input_layers, output_layer = self.input_layers, self.output_layer
+        hidden_layers = self.hidden_layers
+        paths = {input_layer.name: [] for input_layer in input_layers}
+        for input_layer in input_layers:
+            input_lst = paths[input_layer.name]
+            next_tensor = input_layer
+            while next_tensor is not output_layer:
+                next_tensor = _get_next_tensor(next_tensor)
+                while (next_tensor not in hidden_layers
+                    and next_tensor is not output_layer):
+                    next_tensor = _get_next_tensor(next_tensor)
+                input_lst.append(next_tensor)
+        return paths
 
     # properties
 
@@ -132,3 +155,7 @@ class NeuralNetwork(abc.ABC):
     @property
     def output_layer(self):
         return self._out
+
+    @property
+    def data_paths(self):
+        return self._paths
