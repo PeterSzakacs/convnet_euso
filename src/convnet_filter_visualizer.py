@@ -1,6 +1,5 @@
 import dataset.constants as cons
 import dataset.data_utils as dat
-import net.constants as net_cons
 import net.network_utils as netutils
 
 import matplotlib
