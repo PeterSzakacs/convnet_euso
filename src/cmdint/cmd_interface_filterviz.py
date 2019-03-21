@@ -9,7 +9,7 @@ class cmd_interface():
 
     def __init__(self):
         parser = argparse.ArgumentParser(
-            description="Evaluate trained network model(s) with given dataset")
+            description="Visualize convolutional filters of trained model")
         parser.add_argument('logdir',
                             help=('Directory to output visualized filter '
                                   'images to.'))
@@ -24,18 +24,11 @@ class cmd_interface():
 
         # visualization settings
         group = parser.add_argument_group('Visualization settings')
-        group.add_argument('--start_layer', default=0, type=int,
-                           help=('index of first layer to visualize.'))
-        group.add_argument('--stop_layer', default=None, type=int,
-                           help=('index of layer after the last layer to '
-                                 'visualize.'))
-
         group.add_argument('--start_filter', default=0, type=int,
                            help=('index of first filter to visualize.'))
         group.add_argument('--stop_filter', default=None, type=int,
                            help=('index of the filter after the last filter '
                                  'to visualize.'))
-
         group.add_argument('--start_depth', default=0, type=int,
                            help=('first depth index of filters to visualize.'))
         group.add_argument('--stop_depth', default=None, type=int,
@@ -66,7 +59,6 @@ class cmd_interface():
         args_dict['usecpu'] = args.usecpu
         args_dict['logdir'] = logdir
         args_dict['packet_shape'] = template.packet_shape
-        args_dict['layer_slice'] = slice(args.start_layer, args.stop_layer)
         args_dict['filter_slice'] = slice(args.start_filter, args.stop_filter)
         args_dict['depth_slice'] = slice(args.start_depth, args.stop_depth)
 

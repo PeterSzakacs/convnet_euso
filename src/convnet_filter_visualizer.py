@@ -1,5 +1,5 @@
 import dataset.constants as cons
-import dataset.dataset_utils as ds
+import dataset.data_utils as dat
 import net.constants as net_cons
 import net.network_utils as netutils
 
@@ -25,9 +25,7 @@ def visualize_conv_weights(conv_layer_weights):
     fig, axes = plt.subplots(nrows=f_count, ncols=f_depth)
     axes = axes.flatten()
     for filter_idx in range(f_count):
-        print('\tplotting filter {}'.format(filter_idx))
         for depth_idx in range(f_depth):
-            print('\t\tplotting depth slice {}'.format(depth_idx))
             img = conv_layer_weights[filter_idx, depth_idx]
             ax = axes[filter_idx*f_depth + depth_idx]
             ax.set_xticks([])
@@ -37,25 +35,25 @@ def visualize_conv_weights(conv_layer_weights):
 
 
 def main(**args):
-    network = 'net.' + args['network']
+    # disable access to the installed CUDA device
+    if args['usecpu']:
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     # a lil hacky way to get the model to restore properly
+    network = args['network']
     packet_shape = args['packet_shape']
     item_types = dict.fromkeys(cons.ALL_ITEM_TYPES, True)
-    dataset = ds.numpy_dataset('name', packet_shape, item_types=item_types)
-    shapes = netutils.convert_item_shapes_to_convnet_input_shapes(dataset)
-    model = netutils.import_model(network, shapes, **args)
+    item_shapes = dat.get_data_item_shapes(packet_shape, item_types)
+    model = netutils.import_model(network, item_shapes, **args)
 
-    layer_slice = args.get('layer_slice', slice(0, None))
     filter_slice = args.get('filter_slice', slice(0, None))
     depth_slice = args.get('depth_slice', slice(0, None))
-    conv_weights = model.conv_weights[layer_slice]
-    for layer_idx in range(len(conv_weights)):
-        print('plotting layer {}'.format(layer_idx))
-        weights = conv_weights[layer_idx][filter_slice, depth_slice]
-        fig = visualize_conv_weights(weights)
-        layer = layer_slice.start + layer_idx
-        fig.savefig('weights_of_layer_{}'.format(layer + 1))
+    conv_weights = model.conv_weights
+    for layer_name, weights in conv_weights.items():
+        weights_sliced = weights[filter_slice, depth_slice]
+        fig = visualize_conv_weights(weights_sliced)
+        fig.savefig('weights_of_layer_{}'.format(layer_name))
         plt.close(fig)
 
 
@@ -68,4 +66,5 @@ if __name__ == '__main__':
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 
+    args['network'] = 'net.' + args['network']
     main(**args)
