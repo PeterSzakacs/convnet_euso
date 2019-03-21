@@ -31,30 +31,24 @@ def get_default_run_id(network_module_name):
     return '{}_{}'.format(network_module_name, current_time)
 
 
-# dataset functions (reshape data, etc.)
+# dataset input functions (bind data to inputs, etc.)
 
 
-def reshape_data_for_convnet(net_graph, data, num_channels=1,
-                             create_getter=False):
-    data_reshaped = {}
-    item_type_to_input_mapping = net_graph.item_type_to_input_name_mapping
-    for item_type, data_items in data.items():
+def convert_dataset_items_to_model_inputs(model, data_dict,
+                                          create_getter=False):
+    inputs_dict = {}
+    graph = model.network_graph
+    item_type_to_input_mapping = graph.item_type_to_input_name_mapping
+    for item_type, data_items in data_dict.items():
         input_name = item_type_to_input_mapping[item_type]
         item_np = np.array(data_items)
-        shape = item_np[0].shape
-        data_reshaped[input_name] = item_np.reshape(-1, *shape, num_channels)
+        inputs_dict[input_name] = item_np
     item_getter = lambda data, i_slice: {k: d[i_slice]
                                          for k, d in data.items()}
     if create_getter:
-        return data_reshaped, item_getter
+        return inputs_dict, item_getter
     else:
-        return data_reshaped
-
-
-def convert_item_shapes_to_convnet_input_shapes(dataset, batch_size=None):
-    item_shapes = dataset.item_shapes
-    return {k:[batch_size, *v, 1] for k,v in item_shapes.items()
-            if v is not None}
+        return inputs_dict
 
 
 # model functions (import, train, evaluate, save, etc.)
@@ -74,8 +68,8 @@ def evaluate_classification_model(model, dataset, items_slice=None,
     data = dataset.get_data_as_dict(items_slice)
     targets = dataset.get_targets(items_slice)
     metadata = dataset.get_metadata(items_slice)
-    data, item_getter = reshape_data_for_convnet(model.network_graph, data,
-                                                 create_getter=True)
+    data, item_getter = convert_dataset_items_to_model_inputs(
+        model, data, create_getter=True)
     log_data = []
 
     # TODO: might want to simplify these indexes or at least give better names

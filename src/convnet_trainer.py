@@ -36,15 +36,14 @@ if __name__ == '__main__':
     network, model_file = 'net.' + args['network'], args['model_file']
     tb_dir, run_id = args['tb_dir'], netutils.get_default_run_id(network)
     args['tb_dir'] = os.path.join(tb_dir, run_id)
-    shapes = netutils.convert_item_shapes_to_convnet_input_shapes(dataset)
-    model = netutils.import_model(network, shapes, **args)
+    model = netutils.import_model(network, dataset.item_shapes, **args)
 
     # prepare network trainer
     data_dict = splitter.get_data_and_targets(dataset)
-    data_dict['train_data'] = netutils.reshape_data_for_convnet(
-        model.network_graph, data_dict['train_data'])
-    data_dict['test_data'] = netutils.reshape_data_for_convnet(
-        model.network_graph, data_dict['test_data'])
+    data_dict['train_data'] = netutils.convert_dataset_items_to_model_inputs(
+        model, data_dict['train_data'])
+    data_dict['test_data'] = netutils.convert_dataset_items_to_model_inputs(
+        model, data_dict['test_data'])
     trainer = netutils.TfModelTrainer(data_dict, **args)
 
     # train model and optionally save if requested

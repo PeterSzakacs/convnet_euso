@@ -21,8 +21,8 @@ def main(**settings):
 
     # import network
     net_module_name = settings['network']
-    shapes = netutils.convert_item_shapes_to_convnet_input_shapes(dataset)
-    model = netutils.import_model(net_module_name, shapes, **settings)
+    model = netutils.import_model(net_module_name, dataset.item_shapes,
+                                  **settings)
 
     # prepare network trainer
     num_epochs = settings['num_epochs']
@@ -36,12 +36,12 @@ def main(**settings):
     num_crossvals = settings['num_crossvals']
     for run_idx in range(num_crossvals):
         print('Starting run {}'.format(run_idx + 1))
-        data_dict = splitter.get_data_and_targets(dataset)
-        data_dict['train_data'] = netutils.reshape_data_for_convnet(
-            model.network_graph, data_dict['train_data'])
-        data_dict['test_data'] = netutils.reshape_data_for_convnet(
-            model.network_graph, data_dict['test_data'])
-        trainer.train_model(model, data_dict=data_dict, run_id=run_id)
+        data = splitter.get_data_and_targets(dataset)
+        data['train_data'] = netutils.convert_dataset_items_to_model_inputs(
+            model, data['train_data'])
+        data['test_data'] = netutils.convert_dataset_items_to_model_inputs(
+            model, data['test_data'])
+        trainer.train_model(model, data_dict=data, run_id=run_id)
         model.trainable_layer_weights = weights
         model.trainable_layer_biases = biases
 

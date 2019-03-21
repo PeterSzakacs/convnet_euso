@@ -9,7 +9,7 @@ Links:
     [MNIST Dataset] http://yann.lecun.com/exdb/mnist/
 """
 
-from tflearn.layers.core import input_data, dropout, fully_connected
+from tflearn.layers.core import input_data, dropout, fully_connected, reshape
 from tflearn.layers.conv import conv_2d, max_pool_2d
 from tflearn.layers.normalization import local_response_normalization
 from tflearn.layers.estimator import regression
@@ -17,25 +17,27 @@ from tflearn.layers.estimator import regression
 import net.convnet_classes as conv_classes
 
 
-def create(inputShape, **optsettings):
-    network = MNISTNet(inputShape, **optsettings)
+def create(input_shapes, **optsettings):
+    network = MNISTNet(input_shapes, **optsettings)
     return network.output_layer, network.conv_layers, network.fc_layers
 
 
-def create_model(inputShape, **optsettings):
-    network = MNISTNet(inputShape, **optsettings)
+def create_model(input_shapes, **optsettings):
+    network = MNISTNet(input_shapes, **optsettings)
     return conv_classes.Conv2DNetworkModel(network, **optsettings)
 
 
 class MNISTNet(conv_classes.Conv2DNetwork):
 
-    def __init__(self, inputShape, **optsettings):
+    def __init__(self, input_shapes, input_type='yx', **optsettings):
         lr = optsettings.get('learning_rate') or 0.01
         optimizer = optsettings.get('optimizer') or 'adam'
         loss_fn = optsettings.get('loss_fn') or 'categorical_crossentropy'
         hidden, trainable, conv, fc = [], [], [], []
-        network = input_data(shape=inputShape['yx'], name='input')
-        inputs = {'yx': network}
+        input_shape = input_shapes[input_type]
+        network = input_data(shape=input_shape, name='input')
+        inputs = {input_type: network}
+        network = reshape(network, [-1, *input_shape, 1])
         network = conv_2d(network, 32, 3, activation='relu', regularizer="L2")
         conv.append(network)
         network = max_pool_2d(network, 2)

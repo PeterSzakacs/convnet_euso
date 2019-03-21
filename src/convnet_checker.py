@@ -39,8 +39,7 @@ if __name__ == '__main__':
     run_id = netutils.get_default_run_id(network_module_name)
     tb_dir = os.path.join(logdir, run_id)
     os.mkdir(tb_dir)
-    shapes = netutils.convert_item_shapes_to_convnet_input_shapes(dataset)
-    model = netutils.import_model(network_module_name, shapes,
+    model = netutils.import_model(network_module_name, dataset.item_shapes,
                                   model_file=model_file, tb_dir=tb_dir)
 
     # check (evaluate) model
