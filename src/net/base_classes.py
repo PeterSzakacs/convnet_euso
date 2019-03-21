@@ -1,6 +1,6 @@
 import abc
+import re
 
-import numpy as np
 import tflearn
 
 class NetworkModel():
@@ -13,23 +13,23 @@ class NetworkModel():
     def _update_hidden_models(self):
         hidden_layers = self._net.hidden_layers
         session = self._model.session
-        for layer in hidden_layers:
-            model = self._hidden_models[layer.name]
+        for layer_name in hidden_layers.keys():
+            model = self._hidden_models[layer_name]
             model.session.close()
             model.session = session
             model.trainer.session = session
             model.predictor.session = session
 
-    def _convert_weights_to_internal_form(self, layer, weights):
+    def _convert_weights_to_internal_form(self, name, weights):
         return weights
 
-    def _convert_biases_to_internal_form(self, layer, biases):
+    def _convert_biases_to_internal_form(self, name, biases):
         return biases
 
-    def _convert_weights_to_external_form(self, layer, weights):
+    def _convert_weights_to_external_form(self, name, weights):
         return weights
 
-    def _convert_biases_to_external_form(self, layer, biases):
+    def _convert_biases_to_external_form(self, name, biases):
         return biases
 
     @property
@@ -44,31 +44,29 @@ class NetworkModel():
     def trainable_layer_weights(self):
         model, layers = self._model, self._net.trainable_layers
         convert = self._convert_weights_to_external_form
-        return tuple(convert(layer, model.get_weights(layer.W))
-                     for layer in layers)
+        return {name: convert(name, model.get_weights(layer.W))
+                for name, layer in layers.items()}
 
     @trainable_layer_weights.setter
     def trainable_layer_weights(self, values):
         model, layers = self._model, self._net.trainable_layers
         convert = self._convert_weights_to_internal_form
-        for idx in range(len(layers)):
-            layer = layers[idx]
-            model.set_weights(layer.W, convert(layer, values[idx]))
+        for name, layer in layers.items():
+            model.set_weights(layer.W, convert(name, values[name]))
 
     @property
     def trainable_layer_biases(self):
         model, layers = self._model, self._net.trainable_layers
         convert = self._convert_biases_to_external_form
-        return tuple(convert(layer, model.get_weights(layer.b))
-                     for layer in layers)
+        return {name: convert(name, model.get_weights(layer.b))
+                for name, layer in layers.items()}
 
     @trainable_layer_biases.setter
     def trainable_layer_biases(self, values):
         model, layers = self._model, self._net.trainable_layers
         convert = self._convert_biases_to_internal_form
-        for idx in range(len(layers)):
-            layer = layers[idx]
-            model.set_weights(layer.b, convert(layer, values[idx]))
+        for name, layer in layers.items():
+            model.set_weights(layer.b, convert(name, values[name]))
 
     def initialize_model(self, create_hidden_models=False, **model_settings):
         settings = {}
@@ -78,21 +76,20 @@ class NetworkModel():
             'tb_verbosity', 0)
         model = tflearn.DNN(self._net.output_layer, **settings)
         self._model = model
+        session = self._model.session
         if create_hidden_models:
             hidden_layers = self._net.hidden_layers
-            hidden_models = {layer.name: tflearn.DNN(layer)
-                             for layer in hidden_layers}
+            hidden_models = {name: tflearn.DNN(layer, session=session)
+                             for name, layer in hidden_layers.items()}
             self._hidden_models = hidden_models
 
     def get_hidden_layer_activations(self, input_data_seq):
         if len(self._hidden_models) == 0:
             raise Exception('Hidden layer activations not retrievable.')
-        hidden_layers = self._net.hidden_layers
-        hidden_models = [self._hidden_models[layer.name]
-                         for layer in hidden_layers]
-        return [[np.squeeze(model.predict([input_data]), axis=0)
-                 for model in hidden_models]
-                for input_data in input_data_seq]
+        hidden_models = self._hidden_models
+        return [{name: model.predict([input_data])[0]
+                 for name, model in hidden_models.items()}
+                 for input_data in input_data_seq]
 
     def load_from_file(self, model_file, **optargs):
         w_only = optargs.get('weights_only', False)
@@ -103,14 +100,30 @@ class NetworkModel():
 
 class NeuralNetwork(abc.ABC):
 
-    def __init__(self, inputs, outputs, layers):
+    # legal names contain alphanumeric characters, underscore, dash and dots
+    # (essentially, filesystem friendly)
+    __allowable_layer_name_regex__ = re.compile('[a-zA-Z0-9_\\-.]+')
+    __default_layer_name_regex__ = re.compile('([^/]+)/.+')
+
+    def __init__(self, inputs, output, layers):
         trainable_layers = layers['trainable']
         hidden_layers = layers['hidden']
-        self._inputs = inputs
-        self._out = outputs
-        self._trainable = trainable_layers
-        self._hidden = hidden_layers
+        self._inputs = {self._sanitize_layer_name(layer.name): layer
+                        for layer in inputs}
+        self._out = output
+        self._trainable = {self._sanitize_layer_name(layer.name): layer
+                           for layer in trainable_layers}
+        self._hidden = {self._sanitize_layer_name(layer.name): layer
+                        for layer in hidden_layers}
         self._paths = self._get_data_paths()
+
+    def _sanitize_layer_name(self, layer_name):
+        match = self.__default_layer_name_regex__.fullmatch(layer_name)
+        if match:
+            name = match.groups()[0]
+            if self.__allowable_layer_name_regex__.fullmatch(name):
+                return name
+        raise Exception('Illegal layer name: {}'.format(layer_name))
 
     def _get_data_paths(self):
         def _get_next_tensor(curr_tensor):
@@ -122,16 +135,20 @@ class NeuralNetwork(abc.ABC):
                 return consumers[0].outputs[0]
         input_layers, output_layer = self.input_layers, self.output_layer
         hidden_layers = self.hidden_layers
-        paths = {input_layer.name: [] for input_layer in input_layers}
-        for input_layer in input_layers:
-            input_lst = paths[input_layer.name]
+        paths = {}
+        for input_name, input_layer in input_layers.items():
+            paths[input_name] = []
+            input_lst = paths[input_name]
             next_tensor = input_layer
             while next_tensor is not output_layer:
                 next_tensor = _get_next_tensor(next_tensor)
-                while (next_tensor not in hidden_layers
+                while (next_tensor not in hidden_layers.values()
                     and next_tensor is not output_layer):
                     next_tensor = _get_next_tensor(next_tensor)
                 input_lst.append(next_tensor)
+        for input_name, input_layer in input_layers.items():
+            paths[input_name] = [self._sanitize_layer_name(layer.name)
+                                 for layer in paths[input_name]]
         return paths
 
     # properties

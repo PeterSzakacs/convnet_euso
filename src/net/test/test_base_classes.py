@@ -31,14 +31,17 @@ class MockNeuralNetwork(bclasses.NeuralNetwork):
         net = fully_connected(net, 3, weights_init='zeros', bias_init='zeros')
         trainable.append(net)
         net = regression(net)
-        self._exp_inputs = inputs
-        self._exp_output = net
-        self._exp_trainables = trainable
-        self._exp_hidden = hidden
-        self.all_w = (np.zeros((3, 10)), np.zeros((10, 3)), )
-        self.all_b = (np.zeros(10, ), np.zeros(3, ), )
         layers = {'trainable': trainable, 'hidden': hidden}
         super(MockNeuralNetwork, self).__init__(inputs, net, layers)
+        self.all_w = {'FullyConnected': np.zeros((3, 10)),
+                      'FullyConnected_1': np.zeros((10, 3))}
+        self.all_b = {'FullyConnected': np.zeros(10, ),
+                      'FullyConnected_1': np.zeros(3, )}
+        self._exp_inputs = {'InputData': inputs[0]}
+        self._exp_output = net
+        self._exp_trainables = {'FullyConnected': trainable[0],
+                                'FullyConnected_1': trainable[1]}
+        self._exp_hidden = {'FullyConnected': trainable[0]}
 
     def network_type(self):
         return 'test'
@@ -48,15 +51,15 @@ class TestNeuralNetwork(unittest.TestCase):
 
     def test_input_layer_order(self, network=None):
         network = network or MockNeuralNetwork.get_instance()
-        self.assertEqual(network.input_layers, network._exp_inputs)
+        self.assertDictEqual(network.input_layers, network._exp_inputs)
 
     def test_hidden_layer_order(self, network=None):
         network = network or MockNeuralNetwork.get_instance()
-        self.assertEqual(network.hidden_layers, network._exp_hidden)
+        self.assertDictEqual(network.hidden_layers, network._exp_hidden)
 
     def test_trainable_layer_order(self, network=None):
         network = network or MockNeuralNetwork.get_instance()
-        self.assertEqual(network.trainable_layers, network._exp_trainables)
+        self.assertDictEqual(network.trainable_layers, network._exp_trainables)
 
     def test_output_layer(self, network=None):
         network = network or MockNeuralNetwork.get_instance()
@@ -68,7 +71,8 @@ class TestNeuralNetworkModel(unittest.TestCase):
     # helper methods (general)
 
     def _fill_tensor_weights(self, weights, value=10):
-        return tuple(np.full(weight.shape, value) for weight in weights)
+        return {name: np.full(weight.shape, value)
+                for name, weight in weights.items()}
 
     def _create_static_weights(self, weights, value=10):
         return self._fill_tensor_weights(weights, value=value)
@@ -80,13 +84,21 @@ class TestNeuralNetworkModel(unittest.TestCase):
 
     def _assert_weights_equal(self, values, exp_values):
         self.assertEqual(len(values), len(exp_values))
-        for idx in range(len(values)):
-            assert_array_equal(values[idx], exp_values[idx])
+        self.assertSetEqual(set(values.keys()), set(exp_values.keys()))
+        for key in exp_values.keys():
+            assert_array_equal(
+                values[key],
+                exp_values[key],
+                err_msg='"{}" layer weights not equal.'.format(key))
 
     def _assert_biases_equal(self, values, exp_values):
         self.assertEqual(len(values), len(exp_values))
-        for idx in range(len(values)):
-            assert_array_equal(values[idx], exp_values[idx])
+        self.assertSetEqual(set(values.keys()), set(exp_values.keys()))
+        for key in exp_values.keys():
+            assert_array_equal(
+                values[key],
+                exp_values[key],
+                err_msg='"{}" layer weights not equal.'.format(key))
 
     # test methods
 
