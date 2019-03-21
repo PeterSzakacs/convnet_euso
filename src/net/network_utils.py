@@ -34,18 +34,17 @@ def get_default_run_id(network_module_name):
 # dataset functions (reshape data, etc.)
 
 
-def reshape_data_for_convnet(data, num_channels=1, create_getter=False):
-    data_reshaped = []
-    for item in data:
-        item_np = np.array(item)
-        item_shape = item_np[0].shape
-        data_reshaped.append(item_np.reshape(-1, *item_shape, num_channels))
-    item_getter = lambda data, i_slice: tuple(d[i_slice] for d in data)
-    # tflearn does not seem to like single element sequences,
-    # (the single element within is the actual input data).
-    if len(data_reshaped) == 1:
-        data_reshaped = data_reshaped[0]
-        item_getter = lambda data, i_slice: data[i_slice]
+def reshape_data_for_convnet(net_graph, data, num_channels=1,
+                             create_getter=False):
+    data_reshaped = {}
+    item_type_to_input_mapping = net_graph.item_type_to_input_name_mapping
+    for item_type, data_items in data.items():
+        input_name = item_type_to_input_mapping[item_type]
+        item_np = np.array(data_items)
+        shape = item_np[0].shape
+        data_reshaped[input_name] = item_np.reshape(-1, *shape, num_channels)
+    item_getter = lambda data, i_slice: {k: d[i_slice]
+                                         for k, d in data.items()}
     if create_getter:
         return data_reshaped, item_getter
     else:
@@ -72,20 +71,22 @@ def import_model(module_name, input_shapes, model_file=None, **optsettings):
 def evaluate_classification_model(model, dataset, items_slice=None,
                                   batch_size=128):
     items_slice = items_slice or slice(0, None)
-    data = dataset.get_data_as_arraylike(items_slice)
+    data = dataset.get_data_as_dict(items_slice)
     targets = dataset.get_targets(items_slice)
     metadata = dataset.get_metadata(items_slice)
-    data, item_getter = reshape_data_for_convnet(data, create_getter=True)
+    data, item_getter = reshape_data_for_convnet(model.network_graph, data,
+                                                 create_getter=True)
     log_data = []
 
     # TODO: might want to simplify these indexes or at least give better names
     start, stop = items_slice.start, items_slice.stop
     stop = stop or dataset.num_data
+    tf_model = model.network_model
     for idx in range(start, stop, batch_size):
         rel_idx = idx - start
         items_slice = slice(rel_idx, rel_idx + batch_size)
         data_batch = item_getter(data, items_slice)
-        predictions = model.predict(data_batch)
+        predictions = tf_model.predict(data_batch)
         for pred_idx in range(len(predictions)):
             prediction = predictions[pred_idx]
             abs_idx = rel_idx + pred_idx
@@ -174,9 +175,9 @@ class DatasetSplitter():
             test_dset = train_dset
             n_data = train_dset.num_data
             train_idx, test_idx = self.get_train_test_indices(n_data)
-        return {'train_data': train_dset.get_data_as_arraylike(train_idx),
+        return {'train_data': train_dset.get_data_as_dict(train_idx),
                 'train_targets': train_dset.get_targets(train_idx),
-                'test_data': test_dset.get_data_as_arraylike(test_idx),
+                'test_data': test_dset.get_data_as_dict(test_idx),
                 'test_targets': test_dset.get_targets(test_idx)}
 
 

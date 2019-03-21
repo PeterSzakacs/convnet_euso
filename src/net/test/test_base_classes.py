@@ -25,7 +25,7 @@ class MockNeuralNetwork(bclasses.NeuralNetwork):
         hidden, trainable = [], []
 
         net = input_data(shape=(None, 3))
-        inputs = [net]
+        inputs = {'test': net}
         net = fully_connected(net, 10, weights_init='zeros', bias_init='zeros')
         hidden.append(net); trainable.append(net)
         net = fully_connected(net, 3, weights_init='zeros', bias_init='zeros')
@@ -37,7 +37,8 @@ class MockNeuralNetwork(bclasses.NeuralNetwork):
                       'FullyConnected_1': np.zeros((10, 3))}
         self.all_b = {'FullyConnected': np.zeros(10, ),
                       'FullyConnected_1': np.zeros(3, )}
-        self._exp_inputs = {'InputData': inputs[0]}
+        self._exp_inputs = {'InputData': inputs['test']}
+        self._exp_input_mapping = {'test': 'InputData'}
         self._exp_output = net
         self._exp_trainables = {'FullyConnected': trainable[0],
                                 'FullyConnected_1': trainable[1]}
@@ -52,6 +53,11 @@ class TestNeuralNetwork(unittest.TestCase):
     def test_input_layer_order(self, network=None):
         network = network or MockNeuralNetwork.get_instance()
         self.assertDictEqual(network.input_layers, network._exp_inputs)
+
+    def test_input_mapping(self, network=None):
+        network = network or MockNeuralNetwork.get_instance()
+        self.assertDictEqual(network.item_type_to_input_name_mapping,
+                             network._exp_input_mapping)
 
     def test_hidden_layer_order(self, network=None):
         network = network or MockNeuralNetwork.get_instance()

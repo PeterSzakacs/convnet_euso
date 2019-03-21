@@ -28,9 +28,9 @@ class TripleNet(conv_classes.Conv2DNetwork):
         optimizer = optsettings.get('optimizer') or 'adam'
         loss_fn = optsettings.get('loss_fn') or 'categorical_crossentropy'
         hidden, trainable, conv, fc = [], [], [], []
-        inputs = []
-        conv_yx = input_data(shape=inputShape['yx'], name='yx')
-        inputs.append(conv_yx)
+        inputs = {}
+        conv_yx = input_data(shape=inputShape['yx'], name='input_yx')
+        inputs['yx'] = conv_yx
         conv_yx = conv_2d(conv_yx, 32, 3, strides=1, activation='relu',
                           regularizer='L2')
         conv.append(conv_yx); hidden.append(conv_yx); trainable.append(conv_yx)
@@ -48,8 +48,8 @@ class TripleNet(conv_classes.Conv2DNetwork):
         conv_yx = flatten(conv_yx)
         hidden.append(conv_yx)
 
-        conv_gtux = input_data(shape=inputShape['gtux'], name='gtux')
-        inputs.append(conv_gtux)
+        conv_gtux = input_data(shape=inputShape['gtux'], name='input_gtux')
+        inputs['gtux'] = conv_gtux
         conv_gtux = conv_2d(conv_gtux, 32, 3, strides=1, activation='relu',
                             regularizer='L2')
         conv.append(conv_gtux); hidden.append(conv_gtux); trainable.append(conv_gtux)
@@ -67,8 +67,8 @@ class TripleNet(conv_classes.Conv2DNetwork):
         conv_gtux = flatten(conv_gtux)
         hidden.append(conv_gtux)
 
-        conv_gtuy = input_data(shape=inputShape['gtuy'], name='gtuy')
-        inputs.append(conv_gtuy)
+        conv_gtuy = input_data(shape=inputShape['gtuy'], name='input_gtuy')
+        inputs['gtuy'] = conv_gtuy
         conv_gtuy = conv_2d(conv_gtuy, 32, 3, strides=1, activation='relu',
                             regularizer='L2')
         conv.append(conv_gtuy); hidden.append(conv_gtuy); trainable.append(conv_gtuy)

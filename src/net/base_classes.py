@@ -83,13 +83,12 @@ class NetworkModel():
                              for name, layer in hidden_layers.items()}
             self._hidden_models = hidden_models
 
-    def get_hidden_layer_activations(self, input_data_seq):
+    def get_hidden_layer_activations(self, input_data_dict):
         if len(self._hidden_models) == 0:
             raise Exception('Hidden layer activations not retrievable.')
         hidden_models = self._hidden_models
-        return [{name: model.predict([input_data])[0]
-                 for name, model in hidden_models.items()}
-                 for input_data in input_data_seq]
+        return {layer_name: model.predict(input_data_dict)
+                for layer_name, model in hidden_models.items()}
 
     def load_from_file(self, model_file, **optargs):
         w_only = optargs.get('weights_only', False)
@@ -108,8 +107,13 @@ class NeuralNetwork(abc.ABC):
     def __init__(self, inputs, output, layers):
         trainable_layers = layers['trainable']
         hidden_layers = layers['hidden']
-        self._inputs = {self._sanitize_layer_name(layer.name): layer
-                        for layer in inputs}
+        item_type_to_inputs, input_layers = {}, {}
+        for item_type_name, layer in inputs.items():
+            sanitized_name = self._sanitize_layer_name(layer.name)
+            item_type_to_inputs[item_type_name] = sanitized_name
+            input_layers[sanitized_name] = layer
+        self._item_type_to_input_mappings = item_type_to_inputs
+        self._inputs = input_layers
         self._out = output
         self._trainable = {self._sanitize_layer_name(layer.name): layer
                            for layer in trainable_layers}
@@ -176,3 +180,7 @@ class NeuralNetwork(abc.ABC):
     @property
     def data_paths(self):
         return self._paths
+
+    @property
+    def item_type_to_input_name_mapping(self):
+        return self._item_type_to_input_mappings

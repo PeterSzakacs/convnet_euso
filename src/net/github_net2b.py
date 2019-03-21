@@ -27,7 +27,7 @@ class GithubNet2b(conv_classes.Conv2DNetwork):
         loss_fn = optsettings.get('loss_fn') or 'categorical_crossentropy'
         hidden, trainable, conv, fc = [], [], [], []
         network = input_data(shape=inputShape['yx'], name='input')
-        inputs = [network]
+        inputs = {'yx': network}
         network = conv_2d(network, 64, 3, strides=1, activation='relu',
                           regularizer='L2')
         conv.append(network); hidden.append(network); trainable.append(network)

@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     # check (evaluate) model
     log_data = netutils.evaluate_classification_model(
-        model.network_model,
+        model,
         dataset,
         items_slice=slice(args.start_item, args.stop_item)
     )

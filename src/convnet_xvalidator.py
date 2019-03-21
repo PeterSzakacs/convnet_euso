@@ -38,9 +38,9 @@ def main(**settings):
         print('Starting run {}'.format(run_idx + 1))
         data_dict = splitter.get_data_and_targets(dataset)
         data_dict['train_data'] = netutils.reshape_data_for_convnet(
-            data_dict['train_data'])
+            model.network_graph, data_dict['train_data'])
         data_dict['test_data'] = netutils.reshape_data_for_convnet(
-            data_dict['test_data'])
+            model.network_graph, data_dict['test_data'])
         trainer.train_model(model, data_dict=data_dict, run_id=run_id)
         model.trainable_layer_weights = weights
         model.trainable_layer_biases = biases

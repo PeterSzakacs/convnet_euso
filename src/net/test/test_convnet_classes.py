@@ -28,7 +28,7 @@ class MockNeuralNetwork(conv_classes.Conv2DNetwork):
         hidden, trainable = [], []
 
         net = input_data(shape=(None, 10, 10, 1))
-        inputs = [net]
+        inputs = {'test': net}
         net = conv_2d(net, 2, filter_size=(2, 3), weights_init='zeros',
                       bias_init='zeros')
         conv_layers.append(net); hidden.append(net); trainable.append(net)
@@ -47,7 +47,8 @@ class MockNeuralNetwork(conv_classes.Conv2DNetwork):
         layers = {'trainable': trainable, 'hidden': hidden,
                   'conv2d': conv_layers, 'fc': fc_layers}
         super(MockNeuralNetwork, self).__init__(inputs, net, layers)
-        self._exp_inputs = {'InputData': inputs[0]}
+        self._exp_inputs = {'InputData': inputs['test']}
+        self._exp_input_mapping = {'test': 'InputData'}
         self._exp_output = net
         self._exp_trainables = {'Conv2D': trainable[0],
                                 'Conv2D_1': trainable[1],
@@ -73,6 +74,10 @@ class TestConv2DNetwork(base_test.TestNeuralNetwork):
 
     def test_input_layer_order(self):
         super().test_input_layer_order(
+            network=MockNeuralNetwork.get_instance())
+
+    def test_input_mapping(self):
+        super().test_input_mapping(
             network=MockNeuralNetwork.get_instance())
 
     def test_hidden_layer_order(self):
