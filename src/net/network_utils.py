@@ -92,7 +92,7 @@ def evaluate_classification_model(model, dataset, items_slice=None,
 
 
 def save_model(model, save_pathname):
-    model.save(save_pathname)
+    model.network_model.save(save_pathname)
 
 
 class DatasetSplitter():
