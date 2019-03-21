@@ -11,8 +11,8 @@ class cmd_interface():
     def __init__(self):
         self.default_logdir = net_cons.DEFAULT_XVAL_LOGDIR
         parser = argparse.ArgumentParser(
-            description="Perform Kfold cross-validation on the passed in "
-                        "convolutional neural network with the given dataset.")
+            description="Perform Kfold cross-validation on a given neural "
+                        "network with the given dataset.")
 
         # cross-validation settings
         group = parser.add_argument_group(title="Cross-validation parameters")

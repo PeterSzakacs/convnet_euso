@@ -1,9 +1,9 @@
 import os
 
-# default log directorites for tensorboard logs
-DEFAULT_CHECK_LOGDIR = '/run/user/{}/convnet_checker'.format(os.getuid())
-DEFAULT_TRAIN_LOGDIR = '/run/user/{}/convnet_trainer'.format(os.getuid())
-DEFAULT_XVAL_LOGDIR = '/run/user/{}/convnet_xvalidator'.format(os.getuid())
+# default log directorites for tensorboard logs and other logs
+DEFAULT_CHECK_LOGDIR = '/run/user/{}/model_checker'.format(os.getuid())
+DEFAULT_TRAIN_LOGDIR = '/run/user/{}/model_trainer'.format(os.getuid())
+DEFAULT_XVAL_LOGDIR = '/run/user/{}/model_xvalidator'.format(os.getuid())
 
 # well-defined modes to use when splitting dataset for training
 DATASET_SPLIT_MODES = ('FROM_START', 'FROM_END', 'RANDOM', )

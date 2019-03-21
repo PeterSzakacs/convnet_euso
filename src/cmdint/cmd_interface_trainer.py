@@ -11,7 +11,7 @@ class cmd_interface():
     def __init__(self):
         self.default_logdir = net_cons.DEFAULT_TRAIN_LOGDIR
         parser = argparse.ArgumentParser(
-            description="Train convolutional network(s) using provided dataset")
+            description="Train network using provided dataset")
 
         # dataset input
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}

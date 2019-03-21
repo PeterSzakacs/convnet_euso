@@ -11,7 +11,7 @@ class cmd_interface():
 
     def __init__(self):
         parser = argparse.ArgumentParser(
-            description="Evaluate trained network model(s) with given dataset")
+            description="Evaluate trained network model with given dataset")
         parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
                             default=sys.stdout,
                             help=('name of output TSV to write to. If not '
