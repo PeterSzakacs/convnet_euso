@@ -94,3 +94,7 @@ def visualize_3d_activations(activations, layer_name):
     fig.suptitle(layer_name, fontsize=32)
     return fig
 
+
+def save_figure(figure, save_pathname):
+    figure.savefig(save_pathname)
+    plt.close(figure)

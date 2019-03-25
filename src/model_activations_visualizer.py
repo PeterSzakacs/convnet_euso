@@ -46,8 +46,7 @@ def main(**settings):
             fig = fig_creator(layer_activations[idx], layer_name)
             savefile = os.path.join(out_dir, 'layer_{}_item_{}.svg'.format(
                                     layer_name, items_slice.start + idx))
-            fig.savefig(savefile)
-            acviz.plt.close('all')
+            acviz.save_figure(fig, savefile)
 
 
 if __name__ == '__main__':
