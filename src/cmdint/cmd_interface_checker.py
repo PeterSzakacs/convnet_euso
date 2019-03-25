@@ -63,7 +63,6 @@ class cmd_interface():
         args = self.parser.parse_args(argsToParse)
 
         atype = dargs.arg_type.INPUT
-        self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
         args.meta_order = self.meta_args.get_metafields_order(args)
 

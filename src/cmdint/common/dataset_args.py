@@ -224,19 +224,6 @@ class item_types_args:
                                 action='store_true', help=help_text)
         return parser
 
-    def check_item_type_args(self, args, atype):
-        if atype is arg_type.INPUT:
-            prefix = self.input_prefix
-        else:
-            prefix = self.output_prefix
-        types_selected = False
-        for k in cons.ALL_ITEM_TYPES:
-            arg_name = '{}_{}'.format(prefix, k)
-            types_selected = types_selected or getattr(args, arg_name)
-        if not types_selected:
-            raise Exception('Please select at least one item type: {}'.format(
-                cons.ALL_ITEM_TYPES))
-
     def get_item_types(self, args, atype):
         if atype is arg_type.INPUT:
             prefix = self.input_prefix

@@ -270,44 +270,6 @@ class TestItemTypeArgs(unittest.TestCase):
         vals = self.item_args.get_item_types(args, dargs.arg_type.OUTPUT)
         self.assertDictEqual(dict(zip(cons.ALL_ITEM_TYPES, attr_vals)), vals)
 
-    def test_check_item_type_args_input_no_exception(self):
-        attr_names = ['{}_{}'.format(self.in_prefix, item_type)
-                      for item_type in cons.ALL_ITEM_TYPES]
-        attr_vals = [True if idx % 3 == 0 else False
-                     for idx in range(len(cons.ALL_ITEM_TYPES))]
-        args = coll.namedtuple('args', attr_names)(*attr_vals)
-        self.item_args.check_item_type_args(args, dargs.arg_type.INPUT)
-
-    def test_check_item_type_args_output_no_exception(self):
-        attr_names = ['{}_{}'.format(self.out_prefix, item_type)
-                      for item_type in cons.ALL_ITEM_TYPES]
-        attr_vals = [True if idx % 3 == 0 else False
-                     for idx in range(len(cons.ALL_ITEM_TYPES))]
-        args = coll.namedtuple('args', attr_names)(*attr_vals)
-        self.item_args.check_item_type_args(args, dargs.arg_type.OUTPUT)
-
-    def test_check_item_type_args_input_exception(self):
-        attr_names = ['{}_{}'.format(self.in_prefix, item_type)
-                      for item_type in cons.ALL_ITEM_TYPES]
-        attr_vals = [False] * len(cons.ALL_ITEM_TYPES)
-        args = coll.namedtuple('args', attr_names)(*attr_vals)
-        try:
-            self.item_args.check_item_type_args(args, dargs.arg_type.INPUT)
-            self.fail('Item type checking did not throw an error')
-        except Exception:
-            pass
-
-    def test_check_item_type_args_output_exception(self):
-        attr_names = ['{}_{}'.format(self.out_prefix, item_type)
-                      for item_type in cons.ALL_ITEM_TYPES]
-        attr_vals = [False] * len(cons.ALL_ITEM_TYPES)
-        args = coll.namedtuple('args', attr_names)(*attr_vals)
-        try:
-            self.item_args.check_item_type_args(args, dargs.arg_type.OUTPUT)
-            self.fail('Item type checking did not throw an error')
-        except Exception:
-            pass
-
 
 if __name__ == '__main__':
     unittest.main()

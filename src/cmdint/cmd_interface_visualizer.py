@@ -57,7 +57,6 @@ class cmd_interface():
             raise ValueError("Invalid output directory {}".format(args.outdir))
 
         atype = dargs.arg_type.INPUT
-        self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
 
         args.meta_to_text_conv = args.simu or args.flight or args.synth

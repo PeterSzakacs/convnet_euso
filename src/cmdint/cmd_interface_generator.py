@@ -89,7 +89,6 @@ class cmd_interface():
             raise ValueError("Invalid output directory {}".format(args.outdir))
 
         atype = dargs.arg_type.OUTPUT
-        self.item_args.check_item_type_args(args, atype)
         args.item_types = self.item_args.get_item_types(args, atype)
 
         # TODO: Might want to use a better way to create dataset files (maybe keep metadata

@@ -63,7 +63,6 @@ class cmd_interface():
 
         args_dict = {}
         atype = dargs.arg_type.INPUT
-        self.item_args.check_item_type_args(args, atype)
         args_dict['item_types'] = self.item_args.get_item_types(args, atype)
         name, srcdir = self.dset_args.get_dataset_double(args, atype)
         args_dict['name'], args_dict['srcdir'] = name, srcdir

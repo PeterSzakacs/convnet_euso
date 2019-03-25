@@ -52,7 +52,6 @@ class cmd_interface():
         if not os.path.isdir(logdir):
             raise Exception('Invalid logdir: {}'.format(logdir))
         atype = dargs.arg_type.INPUT
-        self.item_args.check_item_type_args(args, atype)
         name, srcdir = self.dset_args.get_dataset_double(args, atype)
 
         args_dict = {}

@@ -57,8 +57,6 @@ class cmd_interface():
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
-        atype = dargs.arg_type.INPUT
-        self.item_args.check_item_type_args(args, atype)
         logdir = args.tb_dir
         if logdir != self.default_logdir and not os.path.isdir(logdir):
             raise ValueError(('Invalid non-default logging directory: {}'
@@ -67,6 +65,7 @@ class cmd_interface():
         args_dict = {}
         args_dict['tb_dir'], args_dict['save'] = logdir, args.save
 
+        atype = dargs.arg_type.INPUT
         name, srcdir = self.dset_args.get_dataset_double(args, atype)
         args_dict['name'], args_dict['srcdir'] = name, srcdir
         args_dict['item_types'] = self.item_args.get_item_types(args, atype)
