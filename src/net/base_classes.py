@@ -2,6 +2,14 @@ import abc
 import re
 
 import tflearn
+import tflearn.layers.core as core
+import tflearn.layers.conv as conv
+import tflearn.layers.normalization as norm
+import tflearn.layers.merge_ops as merge
+import tflearn.layers.estimator as est
+
+import net.constants as net_cons
+
 
 class NetworkModel():
 
@@ -184,3 +192,136 @@ class NeuralNetwork(abc.ABC):
     @property
     def item_type_to_input_name_mapping(self):
         return self._item_type_to_input_mappings
+
+
+class GraphBuilder():
+
+    # legal names contain alphanumeric characters, underscore, dash and dots
+    # (essentially, filesystem friendly)
+    #__allowable_layer_name_regex__ = re.compile('[a-zA-Z0-9_\\-.]+')
+    __default_layer_name_regex__ = re.compile('([^/]+)/.+')
+
+    def __init__(self):
+        self._layers = {}
+        self._layer_categories = {c: [] for c in net_cons.LAYER_CATEGORIES}
+        self._curr_layer_name = None
+        self._output = None
+
+    def _add_layer(self, layer, categories):
+        name = self._sanitize_layer_name(layer.name)
+        layers, layers_cat = self._layers, self._layer_categories
+        layers[name] = layer
+        for category_name in categories:
+            layers_cat[category_name].append(name)
+        self._curr_layer_name = name
+        return name
+
+    def _sanitize_layer_name(self, layer_name):
+        match = self.__default_layer_name_regex__.fullmatch(layer_name)
+        if match:
+            return match.groups()[0]
+        else:
+            raise Exception('Illegal layer name: {}'.format(layer_name))
+
+    @property
+    def layer_categories(self):
+        return self._layer_categories
+
+    @property
+    def layers_dict(self):
+        return self._layers
+
+    @property
+    def output_layer(self):
+        return self._output
+
+    def finalize(self, layer_name, trainable=True, **kwargs):
+        if self._output is not None:
+            raise Exception('Output layer already set')
+        try:
+            self._layer_categories['hidden'].remove(layer_name)
+        except ValueError:
+            raise Exception('Unknown layer "{}"'.format(layer_name))
+        layer = self._layers[layer_name]
+        if trainable:
+            layer = est.regression(layer, **kwargs)
+        self._output = {layer_name: layer}
+
+    def add_input_layer(self, input_shape, **kwargs):
+        layer = core.input_data(shape=input_shape, **kwargs)
+        return self._add_layer(layer, ('input', ))
+
+    # core layers (fully connected, dropout etc.)
+
+    def add_fc_layer(self, n_units, prev_layer_name=None, **kwargs):
+        prev_name = prev_layer_name or self._curr_layer_name
+        prev = self._layers[prev_name]
+        layer = core.fully_connected(prev, n_units, **kwargs)
+        categories = ['FC', 'hidden']
+        trainables = tflearn.get_all_trainable_variable()
+        if layer.W in trainables:
+            categories.append('trainable')
+        return self._add_layer(layer, categories)
+
+    def add_dropout_layer(self, dropout_rate, prev_layer_name=None, **kwargs):
+        prev_name = prev_layer_name or self._curr_layer_name
+        prev = self._layers[prev_name]
+        layer = core.dropout(prev, dropout_rate, **kwargs)
+        categories = ['Dropout', 'hidden']
+        return self._add_layer(layer, categories)
+
+    # convolutional layers
+
+    def add_conv2d_layer(self, n_filters, filter_size, filter_strides=1,
+                         prev_layer_name=None, **kwargs):
+        prev_name = prev_layer_name or self._curr_layer_name
+        prev = self._layers[prev_name]
+        layer = conv.conv_2d(prev, n_filters, filter_size,
+                             strides=filter_strides, **kwargs)
+        categories = ['Conv2D', 'hidden']
+        trainables = tflearn.get_all_trainable_variable()
+        if layer.W in trainables:
+            categories.append('trainable')
+        return self._add_layer(layer, categories)
+
+    # max pooling layers
+
+    def add_maxpool2d_layer(self, window_size, window_strides=None,
+                            prev_layer_name=None, **kwargs):
+        prev_name = prev_layer_name or self._curr_layer_name
+        prev = self._layers[prev_name]
+        layer = conv.max_pool_2d(prev, window_size, strides=window_strides,
+                                 **kwargs)
+        categories = ['MaxPool2D', 'hidden']
+        return self._add_layer(layer, categories)
+
+    # normalization layers
+
+    def add_lrn_layer(self, prev_layer_name=None, **kwargs):
+        prev_name = prev_layer_name or self._curr_layer_name
+        prev = self._layers[prev_name]
+        layer = norm.local_response_normalization(prev, **kwargs)
+        categories = ['LRN', 'hidden']
+        return self._add_layer(layer, categories)
+
+    # merge and reshape operations
+
+    def add_flatten_layer(self, prev_layer_name=None, **kwargs):
+        prev_name = prev_layer_name or self._curr_layer_name
+        prev = self._layers[prev_name]
+        layer = core.flatten(prev, **kwargs)
+        categories = ['Flatten', 'hidden']
+        return self._add_layer(layer, categories)
+
+    def add_reshape_layer(self, new_shape, prev_layer_name=None, **kwargs):
+        prev_name = prev_layer_name or self._curr_layer_name
+        prev = self._layers[prev_name]
+        layer = core.reshape(prev, [-1, *new_shape], **kwargs)
+        categories = ['Reshape', 'hidden']
+        return self._add_layer(layer, categories)
+
+    def add_merge_layer(self, prev_layer_names, merge_mode, **kwargs):
+        prev = [self._layers[name] for name in prev_layer_names]
+        layer = merge.merge(prev, merge_mode, **kwargs)
+        categories = ['Merge', 'hidden']
+        return self._add_layer(layer, categories)

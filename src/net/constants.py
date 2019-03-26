@@ -1,5 +1,8 @@
 import os
 
+LAYER_CATEGORIES = ('Conv2D', 'LRN', 'MaxPool2D', 'FC', 'Dropout', 'Merge',
+                    'Flatten', 'Reshape', 'input', 'hidden', 'trainable')
+
 # default log directorites for tensorboard logs and other logs
 DEFAULT_CHECK_LOGDIR = '/run/user/{}/model_checker'.format(os.getuid())
 DEFAULT_TRAIN_LOGDIR = '/run/user/{}/model_trainer'.format(os.getuid())
