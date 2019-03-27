@@ -205,6 +205,7 @@ class GraphBuilder():
         self._layers = {}
         self._layer_categories = {c: [] for c in net_cons.LAYER_CATEGORIES}
         self._curr_layer_name = None
+        self._inputs = {}
         self._output = None
 
     def _add_layer(self, layer, categories):
@@ -232,6 +233,10 @@ class GraphBuilder():
         return self._layers
 
     @property
+    def input_to_item_type_mapping(self):
+        return self._inputs
+
+    @property
     def output_layer(self):
         return self._output
 
@@ -244,12 +249,16 @@ class GraphBuilder():
             raise Exception('Unknown layer "{}"'.format(layer_name))
         layer = self._layers[layer_name]
         if trainable:
-            layer = est.regression(layer, **kwargs)
-        self._output = {layer_name: layer}
+            # the layer object does not change, only a trainer object is added,
+            # no need to reassign to the dict again
+            est.regression(layer, **kwargs)
+        self._output = layer_name
 
-    def add_input_layer(self, input_shape, **kwargs):
+    def add_input_layer(self, input_shape, input_item_type, **kwargs):
         layer = core.input_data(shape=input_shape, **kwargs)
-        return self._add_layer(layer, ('input', ))
+        name = self._add_layer(layer, ('input', ))
+        self._inputs[name] = input_item_type
+        return name
 
     # core layers (fully connected, dropout etc.)
 
