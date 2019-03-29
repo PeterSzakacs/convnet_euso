@@ -38,10 +38,8 @@ def convert_dataset_items_to_model_inputs(model, data_dict,
                                           create_getter=False):
     inputs_dict = {}
     graph = model.network_graph
-    item_type_to_input_mapping = graph.item_type_to_input_name_mapping
-    for item_type, data_items in data_dict.items():
-        input_name = item_type_to_input_mapping[item_type]
-        item_np = np.array(data_items)
+    for input_name, item_type in graph.input_item_types.items():
+        item_np = np.array(data_dict[item_type])
         inputs_dict[input_name] = item_np
     item_getter = lambda data, i_slice: {k: d[i_slice]
                                          for k, d in data.items()}

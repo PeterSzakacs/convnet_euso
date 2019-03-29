@@ -82,14 +82,13 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
 
 class Conv2DNetwork(bclasses.NeuralNetwork):
 
-    def __init__(self, inputs, outputs, layers):
-        super(Conv2DNetwork, self).__init__(inputs, outputs, layers)
-        conv_layers = layers['conv2d']
-        fc_layers = layers['fc']
-        self._conv = {self._sanitize_layer_name(layer.name): layer
-                      for layer in conv_layers}
-        self._fc = {self._sanitize_layer_name(layer.name): layer
-                    for layer in fc_layers}
+    def __init__(self, builder):
+        super(Conv2DNetwork, self).__init__(builder)
+        layers, categories = builder.layers_dict, builder.layer_categories
+        conv_layers = categories['Conv2D']
+        fc_layers = categories['FC']
+        self._conv = {name: layers[name] for name in conv_layers}
+        self._fc = {name: layers[name] for name in fc_layers}
 
     @property
     def network_type(self):

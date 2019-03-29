@@ -112,56 +112,17 @@ class NeuralNetwork(abc.ABC):
     __allowable_layer_name_regex__ = re.compile('[a-zA-Z0-9_\\-.]+')
     __default_layer_name_regex__ = re.compile('([^/]+)/.+')
 
-    def __init__(self, inputs, output, layers):
-        trainable_layers = layers['trainable']
-        hidden_layers = layers['hidden']
-        item_type_to_inputs, input_layers = {}, {}
-        for item_type_name, layer in inputs.items():
-            sanitized_name = self._sanitize_layer_name(layer.name)
-            item_type_to_inputs[item_type_name] = sanitized_name
-            input_layers[sanitized_name] = layer
-        self._item_type_to_input_mappings = item_type_to_inputs
-        self._inputs = input_layers
-        self._out = output
-        self._trainable = {self._sanitize_layer_name(layer.name): layer
-                           for layer in trainable_layers}
-        self._hidden = {self._sanitize_layer_name(layer.name): layer
-                        for layer in hidden_layers}
-        self._paths = self._get_data_paths()
-
-    def _sanitize_layer_name(self, layer_name):
-        match = self.__default_layer_name_regex__.fullmatch(layer_name)
-        if match:
-            name = match.groups()[0]
-            if self.__allowable_layer_name_regex__.fullmatch(name):
-                return name
-        raise Exception('Illegal layer name: {}'.format(layer_name))
-
-    def _get_data_paths(self):
-        def _get_next_tensor(curr_tensor):
-            consumers = curr_tensor.consumers()
-            # 'Switch' is tensorflow Dropout
-            if consumers[0].type == 'Switch':
-                return consumers[1].outputs[0]
-            else:
-                return consumers[0].outputs[0]
-        input_layers, output_layer = self.input_layers, self.output_layer
-        hidden_layers = self.hidden_layers
-        paths = {}
-        for input_name, input_layer in input_layers.items():
-            paths[input_name] = []
-            input_lst = paths[input_name]
-            next_tensor = input_layer
-            while next_tensor is not output_layer:
-                next_tensor = _get_next_tensor(next_tensor)
-                while (next_tensor not in hidden_layers.values()
-                    and next_tensor is not output_layer):
-                    next_tensor = _get_next_tensor(next_tensor)
-                input_lst.append(next_tensor)
-        for input_name, input_layer in input_layers.items():
-            paths[input_name] = [self._sanitize_layer_name(layer.name)
-                                 for layer in paths[input_name]]
-        return paths
+    def __init__(self, builder):
+        layers, categories = builder.layers_dict, builder.layer_categories
+        trainable_layers = categories['trainable']
+        hidden_layers = categories['hidden']
+        input_layers = categories['input']
+        self._out = layers[builder.output_layer]
+        self._inputs = {name: layers[name] for name in input_layers}
+        self._trainable = {name: layers[name] for name in trainable_layers}
+        self._hidden = {name: layers[name] for name in hidden_layers}
+        self._input_itype_map = builder.input_to_item_type_mapping
+        self._paths = builder.data_paths.copy()
 
     # properties
 
@@ -190,8 +151,8 @@ class NeuralNetwork(abc.ABC):
         return self._paths
 
     @property
-    def item_type_to_input_name_mapping(self):
-        return self._item_type_to_input_mappings
+    def input_item_types(self):
+        return self._input_itype_map
 
 
 class GraphBuilder():
