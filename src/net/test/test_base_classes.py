@@ -22,27 +22,22 @@ class MockNeuralNetwork(bclasses.NeuralNetwork):
         return cls._the_net
 
     def __init__(self):
-        hidden, trainable = [], []
+        builder = bclasses.GraphBuilder()
+        in_name = builder.add_input_layer((3, ), 'test')
+        fc1 = builder.add_fc_layer(10, weights_init='zeros', bias_init='zeros')
+        fc2 = builder.add_fc_layer(3, weights_init='zeros', bias_init='zeros')
+        builder.finalize(fc2)
+        super(MockNeuralNetwork, self).__init__(builder)
 
-        net = input_data(shape=(None, 3))
-        inputs = {'test': net}
-        net = fully_connected(net, 10, weights_init='zeros', bias_init='zeros')
-        hidden.append(net); trainable.append(net)
-        net = fully_connected(net, 3, weights_init='zeros', bias_init='zeros')
-        trainable.append(net)
-        net = regression(net)
-        layers = {'trainable': trainable, 'hidden': hidden}
-        super(MockNeuralNetwork, self).__init__(inputs, net, layers)
-        self.all_w = {'FullyConnected': np.zeros((3, 10)),
-                      'FullyConnected_1': np.zeros((10, 3))}
-        self.all_b = {'FullyConnected': np.zeros(10, ),
-                      'FullyConnected_1': np.zeros(3, )}
-        self._exp_inputs = {'InputData': inputs['test']}
-        self._exp_input_mapping = {'test': 'InputData'}
-        self._exp_output = net
-        self._exp_trainables = {'FullyConnected': trainable[0],
-                                'FullyConnected_1': trainable[1]}
-        self._exp_hidden = {'FullyConnected': trainable[0]}
+        layers = builder.layers_dict
+        self.all_w = {fc1: np.zeros((3, 10)), fc2: np.zeros((10, 3))}
+        self.all_b = {fc1: np.zeros(10, ), fc2: np.zeros(3, )}
+        self._exp_inputs = {in_name: layers[in_name]}
+        self._exp_input_mapping = {in_name: 'test'}
+        self._exp_output = layers[fc2]
+        self._exp_trainables = {fc1: layers[fc1],
+                                fc2: layers[fc2]}
+        self._exp_hidden = {fc1: layers[fc1]}
 
     def network_type(self):
         return 'test'
@@ -56,7 +51,7 @@ class TestNeuralNetwork(unittest.TestCase):
 
     def test_input_mapping(self, network=None):
         network = network or MockNeuralNetwork.get_instance()
-        self.assertDictEqual(network.item_type_to_input_name_mapping,
+        self.assertDictEqual(network.input_item_types,
                              network._exp_input_mapping)
 
     def test_hidden_layer_order(self, network=None):

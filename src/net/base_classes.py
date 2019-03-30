@@ -239,7 +239,7 @@ class GraphBuilder():
 
     def add_input_layer(self, input_shape, input_item_type,
                         exclude_from_path=False, **kwargs):
-        layer = core.input_data(shape=input_shape, **kwargs)
+        layer = core.input_data(shape=[None, *input_shape], **kwargs)
         name = self._add_layer(layer, ('input', ), exclude_from_path)
         self._inputs[name] = input_item_type
         return name

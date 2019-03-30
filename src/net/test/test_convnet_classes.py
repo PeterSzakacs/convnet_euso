@@ -1,12 +1,9 @@
 import unittest
 
 import numpy as np
-from tflearn.layers import regression
-from tflearn.layers.conv import conv_2d
-from tflearn.layers.core import input_data, fully_connected
-from tflearn.layers.normalization import local_response_normalization
 
 import net.test.test_base_classes as base_test
+import net.base_classes as base_classes
 import net.convnet_classes as conv_classes
 
 # NOTE: Since the classes under test here are 3rd party library wrappers, these
@@ -18,54 +15,46 @@ class MockNeuralNetwork(conv_classes.Conv2DNetwork):
     @classmethod
     def get_instance(cls):
         # creating a neural network graph is also expensive, so...
-        # just use a single instance (the graph is never changed anyway)
+        # just use a single instance per test process (the graph is
+        # never changed anyway)
         if not hasattr(cls, '_the_net'):
             cls._the_net = MockNeuralNetwork()
         return cls._the_net
 
     def __init__(self):
-        conv_layers, fc_layers, filter_sizes = [], [], []
-        hidden, trainable = [], []
-
-        net = input_data(shape=(None, 10, 10, 1))
-        inputs = {'test': net}
-        net = conv_2d(net, 2, filter_size=(2, 3), weights_init='zeros',
-                      bias_init='zeros')
-        conv_layers.append(net); hidden.append(net); trainable.append(net)
-        filter_sizes.append((2, 3, 1))
-        net = conv_2d(net, 2, filter_size=2, weights_init='zeros',
-                      bias_init='zeros')
-        conv_layers.append(net); hidden.append(net); trainable.append(net)
-        filter_sizes.append((2, 2, 2))
-        net = local_response_normalization(net)
-        hidden.append(net)
-
+        builder = base_classes.GraphBuilder()
+        in_name = builder.add_input_layer((10, 10, 1), 'test')
+        conv1 = builder.add_conv2d_layer(2, (2, 3), weights_init='zeros',
+                                         bias_init='zeros')
+        conv2 = builder.add_conv2d_layer(2, 2, weights_init='zeros',
+                                         bias_init='zeros')
+        lrn = builder.add_lrn_layer()
         # num_connections per neuron in fc_layer: 2*10*10 -> 200
-        net = fully_connected(net, 3, weights_init='zeros', bias_init='zeros')
-        fc_layers.append(net); trainable.append(net)
-        net = regression(net)
-        layers = {'trainable': trainable, 'hidden': hidden,
-                  'conv2d': conv_layers, 'fc': fc_layers}
-        super(MockNeuralNetwork, self).__init__(inputs, net, layers)
-        self._exp_inputs = {'InputData': inputs['test']}
-        self._exp_input_mapping = {'test': 'InputData'}
-        self._exp_output = net
-        self._exp_trainables = {'Conv2D': trainable[0],
-                                'Conv2D_1': trainable[1],
-                                'FullyConnected': trainable[2]}
-        self._exp_hidden = {'Conv2D': hidden[0],
-                            'Conv2D_1': hidden[1],
-                            'LocalResponseNormalization': hidden[2]}
-        self._exp_conv = {'Conv2D': conv_layers[0],
-                          'Conv2D_1': conv_layers[1]}
-        self._exp_fc = {'FullyConnected': fc_layers[0]}
-        self._exp_filter_sizes = {'Conv2D': filter_sizes[0],
-                                  'Conv2D_1': filter_sizes[1]}
-        self.conv_w = {'Conv2D': np.zeros((2, 1, 2, 3)),
-                       'Conv2D_1': np.zeros((2, 2, 2, 2))}
-        self.conv_b = {'Conv2D': np.zeros(2, ), 'Conv2D_1': np.zeros(2, )}
-        self.fc_w = {'FullyConnected': np.zeros((3, 200))}
-        self.fc_b = {'FullyConnected': np.zeros(3, )}
+        out = builder.add_fc_layer(3, weights_init='zeros', bias_init='zeros')
+        builder.finalize(out)
+        super(MockNeuralNetwork, self).__init__(builder)
+
+        layers = builder.layers_dict
+
+        self._exp_inputs = {in_name: layers[in_name]}
+        self._exp_input_mapping = {in_name: 'test'}
+        self._exp_output = layers[out]
+        self._exp_trainables = {conv1: layers[conv1],
+                                conv2: layers[conv2],
+                                out: layers[out]}
+        self._exp_hidden = {conv1: layers[conv1],
+                            conv2: layers[conv2],
+                            lrn: layers[lrn]}
+        self._exp_conv = {conv1: layers[conv1],
+                          conv2: layers[conv2]}
+        self._exp_fc = {out: layers[out]}
+        self._exp_filter_sizes = {conv1: (2, 3, 1),
+                                  conv2: (2, 2, 2)}
+        self.conv_w = {conv1: np.zeros((2, 1, 2, 3)),
+                       conv2: np.zeros((2, 2, 2, 2))}
+        self.conv_b = {conv1: np.zeros(2, ), conv2: np.zeros(2, )}
+        self.fc_w = {out: np.zeros((3, 200))}
+        self.fc_b = {out: np.zeros(3, )}
         self.all_w = {**self.conv_w, **self.fc_w}
         self.all_b = {**self.conv_b, **self.fc_b}
 
@@ -206,41 +195,40 @@ class TestConv2DNetworkModel(base_test.TestNeuralNetworkModel):
         self._assert_biases_equal(model.fc_biases, new_biases)
 
 
-# def divide_list_into_chunks(lst, n_chunks):
-#     list_len = len(method_list)
-#     chunk_sizes = [int(list_len/n_chunks) for idx in range(n_chunks)]
-#     chunk_remainder = list_len % n_chunks
-#     while chunk_remainder > 0:
-#         chunk_sizes[chunk_remainder] += 1
-#         chunk_remainder -= 1
-#     start_idx = 0
-#     lsts = []
-#     for chunk_size in chunk_sizes:
-#         lsts.append(lst[start_idx:(start_idx + chunk_size)])
-#         start_idx += chunk_size
-#     return lsts
+def divide_list_into_chunks(lst, n_chunks):
+    list_len = len(method_list)
+    chunk_sizes = [int(list_len/n_chunks) for idx in range(n_chunks)]
+    chunk_remainder = list_len % n_chunks
+    while chunk_remainder > 0:
+        chunk_sizes[chunk_remainder] += 1
+        chunk_remainder -= 1
+    start_idx = 0
+    lsts = []
+    for chunk_size in chunk_sizes:
+        lsts.append(lst[start_idx:(start_idx + chunk_size)])
+        start_idx += chunk_size
+    return lsts
 
 
-# def run_suite(methods_list):
-#     loader = unittest.TestLoader()
-#     suite = loader.loadTestsFromNames(methods_list)
-#     unittest.TextTestRunner().run(suite)
+def run_suite(methods_list):
+    loader = unittest.TestLoader()
+    suite = loader.loadTestsFromNames(methods_list)
+    unittest.TextTestRunner().run(suite)
 
 
 if __name__ == '__main__':
     import multiprocessing
-    unittest.main()
-    # suite = unittest.TestLoader().loadTestsFromTestCase(TestConv2DNetwork)
-    # runner = unittest.TextTestRunner().run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestConv2DNetwork)
+    runner = unittest.TextTestRunner().run(suite)
 
-    # module_class = 'net.test.test_convnet_classes.TestConv2DNetworkModel'
-    # method_list = [
-    #     '{}.{}'.format(module_class, func)
-    #     for func in dir(TestConv2DNetworkModel)
-    #     if func.startswith('test_') and
-    #     callable(getattr(TestConv2DNetworkModel, func))]
-    # n_cpu = multiprocessing.cpu_count()
-    # chunks = divide_list_into_chunks(method_list, n_cpu)
-    # for chunk in chunks:
-    #     p = multiprocessing.Process(target=run_suite, args=(chunk, ))
-    #     p.start()
+    module_class = 'net.test.test_convnet_classes.TestConv2DNetworkModel'
+    method_list = [
+        '{}.{}'.format(module_class, func)
+        for func in dir(TestConv2DNetworkModel)
+        if func.startswith('test_') and
+        callable(getattr(TestConv2DNetworkModel, func))]
+    n_cpu = multiprocessing.cpu_count()
+    chunks = divide_list_into_chunks(method_list, n_cpu)
+    for chunk in chunks:
+        p = multiprocessing.Process(target=run_suite, args=(chunk, ))
+        p.start()

@@ -80,9 +80,9 @@ class TestDatasetSplitter(setups.DatasetMixin, unittest.TestCase):
         #self.maxDiff = None
         dset = self.dset
         exp_res = {
-            'test_data': dset.get_data_as_arraylike(slice(2)),
+            'test_data': dset.get_data_as_dict(slice(2)),
             'test_targets': dset.get_targets(slice(2)),
-            'train_data': dset.get_data_as_arraylike(slice(2, None)),
+            'train_data': dset.get_data_as_dict(slice(2, None)),
             'train_targets': dset.get_targets(slice(2, None))}
         splitter = netutils.DatasetSplitter(split_mode='FROM_START',
                                             items_fraction=0.6,
@@ -93,9 +93,9 @@ class TestDatasetSplitter(setups.DatasetMixin, unittest.TestCase):
     def test_get_data_and_targets_test_dset_overrides_num_and_fraction(self):
         dset = self.dset
         exp_res = {
-            'test_data': dset.get_data_as_arraylike(),
+            'test_data': dset.get_data_as_dict(),
             'test_targets': dset.get_targets(),
-            'train_data': dset.get_data_as_arraylike(),
+            'train_data': dset.get_data_as_dict(),
             'train_targets': dset.get_targets()}
         splitter = netutils.DatasetSplitter(split_mode='FROM_START',
                                             items_fraction=0.3,
