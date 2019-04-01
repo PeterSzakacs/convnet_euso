@@ -16,6 +16,10 @@ class cmd_interface():
         parser.add_argument('--max_cache_size', default=40,
                             type=atypes.int_range(1),
                             help=('maximum size of parsed files cache'))
+        parser.add_argument('--num_evicted', default=10,
+                            type=atypes.int_range(1),
+                            help=('number of cache entires to evict when the '
+                                  'cache gets full'))
 
         group = parser.add_argument_group(title='Input settings')
         packet_args = cargs.packet_args()

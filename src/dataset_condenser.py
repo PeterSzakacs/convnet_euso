@@ -1,4 +1,4 @@
-import csv
+import collections
 
 import dataset.constants as cons
 import dataset.dataset_utils as ds
@@ -93,6 +93,42 @@ class gtu_in_packet_event_transformer:
                      'start_gtu': start, 'end_gtu': stop}
         return [(packet[start:stop], self._target, meta_dict), ]
 
+class PacketCache:
+
+    def __init__(self, max_size, packet_extractors, num_evict_on_full=10):
+        if max_size < num_evict_on_full:
+            raise ValueError('Number of evicted items must be less than the '
+                             'cache size')
+        self._maxsize = max_size
+        self._extractors = {}
+        for key in ('NPY', 'ROOT'):
+            self._extractors[key] = packet_extractors[key]
+        self._num_evict = num_evict_on_full
+        self._packets = {}
+        self._file_queue = collections.deque([], max_size)
+
+    def get(self, filename):
+        all_packets, queue = self._packets, self._file_queue
+        packets = all_packets.get(filename, None)
+        if packets is None:
+            extractors = self._extractors
+            if filename.endswith('.npy'):
+                extractor = extractors['NPY']
+            elif filename.endswith('.root'):
+                extractor = extractors['ROOT']
+            else:
+                raise Exception('Unknown file type: {}'.format(filename))
+            packets = extractor(filename)
+            all_packets[filename] = packets
+            queue.append(filename)
+            if len(queue) == self._maxsize:
+                for idx in range(self._num_evict):
+                    filename = queue.popleft()
+                    all_packets.pop(filename)
+            print(packets is None)
+        print(packets is None)
+        return packets
+
 
 # script to coallesce (simulated or real) data from several files
 # into a single larger .npy file to use as a dataset for training
@@ -111,6 +147,10 @@ if __name__ == "__main__":
 
     packet_template = args.template
     extractor = io_utils.packet_extractor(packet_template=packet_template)
+    extractors = {'NPY': extractor.extract_packets_from_npyfile,
+                  'ROOT': extractor.extract_packets_from_rootfile}
+    cache = PacketCache(args.max_cache_size, extractors,
+                        num_evict_on_full=args.num_evicted)
 
     target = cons.CLASSIFICATION_TARGETS[args.target]
     if args.converter == 'gtupack':
@@ -132,41 +172,24 @@ if __name__ == "__main__":
     output_handler = fs_io.dataset_fs_persistency_handler(save_dir=args.outdir)
     dataset = ds.numpy_dataset(args.name, extracted_packet_shape,
                                item_types=args.item_types, dtype=args.dtype)
-    input_tsv = args.filelist
-    total_num_data = 0
-    cache = {}
 
 
     # main loop
+    input_tsv = args.filelist
     rows = io_utils.load_TSV(input_tsv,
                              selected_columns=REQUIRED_FILELIST_COLUMNS)
     for row in rows:
-        srcfile, triggerfile = row[SRCFILE_KEY], None
+        srcfile = row[SRCFILE_KEY]
         print("Processing file {}".format(srcfile))
-        packets = cache.get(srcfile, None)
-        if packets is None:
-            if srcfile.endswith('.npy'):
-                packets = extractor.extract_packets_from_npyfile(
-                    srcfile, triggerfile=triggerfile)
-                cache[srcfile] = packets
-            elif srcfile.endswith('.root'):
-                packets = extractor.extract_packets_from_rootfile(
-                    srcfile, triggerfile=triggerfile)
-                cache[srcfile] = packets
-            else:
-                raise Exception('Unknown file type: {}'.format(srcfile))
+        packets = cache.get(srcfile)
         items = data_transformer.event_to_dataset_items(packets, row)
-        num_items = len(items)
-        print("Extracted: {} data items".format(num_items))
+        print("Extracted: {} data items".format(len(items)))
         for item in items:
             dataset.add_data_item(item[0], item[1], metadata=item[2])
-        total_num_data += num_items
         print("Dataset current total data items count: {}".format(
-            total_num_data
+            dataset.num_data
         ))
-        if len(cache.items()) == args.max_cache_size:
-            cache.popitem()
 
     print('Creating dataset "{}" containing {} items'.format(
-        args.name, total_num_data))
+        dataset.name, dataset.num_data))
     output_handler.save_dataset(dataset)
