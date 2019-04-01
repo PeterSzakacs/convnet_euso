@@ -41,6 +41,9 @@ class cmd_interface():
                                  'items'))
         group.add_argument('--dtype', default='float32',
                            help='(numeric) datatype of all dataset items')
+        group.add_argument('--extra_metafields', nargs='+', default=[],
+                           help=('additional fields in the event list to '
+                                 'include in dataset metadata'))
 
         subparsers = parser.add_subparsers(dest="converter",
             help='Packet to item conversion methods')
