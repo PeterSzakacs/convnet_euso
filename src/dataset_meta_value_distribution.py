@@ -61,7 +61,6 @@ if __name__ == "__main__":
                             'can be unset or set to None')
 
     args = parser.parse_args(sys.argv[1:])
-    print
     outfile = args.outfile
     attr = args.attribute
     name, srcdir = dset_args.get_dataset_double(args,dargs.arg_type.INPUT)
