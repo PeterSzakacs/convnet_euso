@@ -26,8 +26,7 @@ if __name__ == '__main__':
 
     # import network model
     network, model_file = 'net.' + args['network'], args['model_file']
-    tb_dir, run_id = args['tb_dir'], netutils.get_default_run_id(network)
-    args['tb_dir'] = os.path.join(tb_dir, run_id)
+    tb_dir = args['tb_dir']
     model = netutils.import_model(network, dataset.item_shapes, **args)
 
     # prepare network trainer
