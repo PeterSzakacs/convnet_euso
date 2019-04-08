@@ -24,13 +24,13 @@ def _get_synth_shower_text(metadata):
 
 def flight_metadata_to_text(metadata):
     src = metadata['source_file_acquisition_full']
-    idx = metadata['packet_idx']
+    idx = metadata['packet_id']
     return "From packet {} in source file {}".format(idx, src)
 
 
 def simu_metadata_to_text(metadata):
     src = metadata['source_file_acquisition_full']
-    idx = metadata['packet_idx']
+    idx = metadata['packet_id']
     return "From packet {} in source file {}".format(idx, src)
 
 
