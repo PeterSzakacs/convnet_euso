@@ -31,39 +31,70 @@ def get_target_stats(confusion_matrix, target_idx):
 
 
 def main(**args):
-    infile, logdir = args['infile'], args['logdir']
+    infiles, outfile = args['infiles'], args['outfile']
     column, column_type = args['column'], args['column_type']
-    fields = ['output', 'target', column]
     target, all_targets = args['class_target'], args['all_targets']
-    xscale = args['xscale']
 
-    log_data = io_utils.load_TSV(infile, selected_columns=fields)
-    log_data = [l for l in filter(lambda l: l['target'] == target, log_data)]
+    # set visualization settings
+    err_def = dutils.EFFICIENCY_STAT_ERRORBAR_DEFAULTS
+    fill_def = dutils.EFFICIENCY_STAT_FILL_BETWEEN_DEFAULTS
 
-    for log in log_data:
-        log[column] = column_type(log[column])
-    group_df = pd.DataFrame(log_data).groupby(column)
-    targ_idx = all_targets.index(target)
-    out_dict = collections.OrderedDict()
-    for val, rows in group_df:
-        cm = metrics.confusion_matrix(rows['target'], rows['output'],
-                                      labels=all_targets)
-        stats = get_target_stats(cm, targ_idx)
-        out_dict[val] = stats
-    fig, ax, err = dutils.plot_efficiency_stat(
-        out_dict,
-        plotted_stat='sensitivity',
-        plotted_yerr_stat='sensitivity_err_mario',
-        num_steps=20,
-        xscale=xscale,
-        xlabel=column,
-        ylabel='Sensitivity',
-        figsize=(10,6),
-        ylim=(0,1.2),
-        show=False)
-    filename = '{}_prediction_sensitivity_per_{}-{}.svg'.format(
-        target, column, xscale)
-    dutils.save_figure(fig, os.path.join(logdir, filename))
+    num_lines = len(infiles)
+    plot_labels = args['plot_labels']
+    if plot_labels is None:
+        plot_labels = [''] * num_lines
+        add_legend = False
+    else:
+        add_legend = True
+        legend_props = {'loc': 'center',
+                        'prop': {'size': (args['legend_fontsize'] or 6)}}
+    fill_colors = args['plot_colors'] or ([err_def['color']] * num_lines)
+
+    xscale, yerr = args['xscale'], args['plot_yerr']
+    if yerr:
+        sensitivity_err = 'sensitivity_err_mario'
+    else:
+        sensitivity_err = None
+
+    # main loop
+    ax=None
+    target_idx = all_targets.index(target)
+    fields = ['output', 'target', column]
+    for idx in range(num_lines):
+        # load data and get efficiency stats binned
+        filename = infiles[idx]
+        log_data = io_utils.load_TSV(filename, selected_columns=fields)
+        log_data = [l for l in filter(
+            lambda l: l['target'] == target, log_data)]
+        for log in log_data:
+            log[column] = column_type(log[column])
+
+        # get efficiency stats binned
+        group_df = pd.DataFrame(log_data).groupby(column)
+        out_dict = collections.OrderedDict()
+        for val, rows in group_df:
+            cm = metrics.confusion_matrix(rows['target'], rows['output'],
+                                        labels=all_targets)
+            stats = get_target_stats(cm, target_idx)
+            out_dict[val] = stats
+
+        # draw plot
+        err_attrs = err_def.copy()
+        err_attrs['color'] = fill_colors[idx]
+        fill_attrs = fill_def.copy()
+        # fill_attrs['edgecolor'] = fill_colors[idx]
+        fig, ax, err = dutils.plot_efficiency_stat(
+            out_dict, ax=ax, label=plot_labels[idx],
+            plotted_stat='sensitivity', plotted_yerr_stat=sensitivity_err,
+            errorbar_attrs=err_attrs, fill_between_attrs=fill_attrs,
+            xlabel=column, xscale=xscale,
+            ylabel='Sensitivity', ylim=(0,1.2),
+            num_steps=20, figsize=(10,6),
+            show=False)
+    if add_legend:
+        fig.legend(**legend_props)
+    filename = '{}.svg'.format(outfile)
+    dutils.save_figure(fig, filename)
 
 if __name__ == '__main__':
     import sys
