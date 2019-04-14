@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 
+import datetime
+from enum import Enum
 import numpy as np
 import ROOT
-from .eusotrees.exptree import ExpTree
-from enum import Enum
+
+from libs.eusotrees.exptree import ExpTree
 
 
 class GtuPdmData(object):
@@ -11,6 +13,7 @@ class GtuPdmData(object):
     gtu = -1
     gtu_time = -1
     # gtu_time1 = -1
+    gtu_datetime = datetime.datetime(1910, 1, 1)
 
     # gtu_global = -1         #  "gtuGlobal/I"
     trg_box_per_gtu = -1    #  "trgBoxPerGTU/I"
@@ -22,12 +25,23 @@ class GtuPdmData(object):
     sum_l1_ec = None                #  "sumL1EC[9]/I"
     sum_l1_pmt = None   #  "sumL1PMT[18][2]/I"
 
+    gps_datetime = datetime.datetime(1910, 1, 1)
+    gps_date__raw = -1
+    gps_time__raw = -1
+    gps_lat = -999.
+    gps_lon = -999.
+    gps_alt = -999.
+    gps_speed = -999.
+    gps_course = -999.
+
     l1trg_events = None
 
     def __init__(self, photon_count_data, gtu, gtu_time, #gtu_time1,
                  trg_box_per_gtu, trg_pmt_per_gtu, trg_ec_per_gtu,
                  n_persist, gtu_in_persist, sum_l1_pdm, sum_l1_ec, sum_l1_pmt,
-                 l1trg_events=[], use_raw_photon_count_data=False):
+                 l1trg_events=[], use_raw_photon_count_data=False,
+                 gps_date=-1, gps_time=-1, gps_lat=-999, gps_lon=-999, gps_alt=-999,
+                 gps_speed=-999, gps_course=-999):
 
         if not use_raw_photon_count_data:
             self.photon_count_data = np.zeros_like(photon_count_data, dtype=photon_count_data.dtype)
@@ -42,6 +56,9 @@ class GtuPdmData(object):
         self.gtu_time = np.asscalar(gtu_time) if isinstance(gtu_time, np.ndarray) else gtu_time
         # self.gtu_time1 = np.asscalar(gtu_time1) if isinstance(gtu_time1, np.ndarray) else gtu_time1
 
+        if self.gtu_time is not None:
+            self.gtu_datetime = datetime.datetime.utcfromtimestamp(self.gtu_time)
+
         self.trg_box_per_gtu = np.asscalar(trg_box_per_gtu) if isinstance(trg_box_per_gtu, np.ndarray) else trg_box_per_gtu 
         self.trg_pmt_per_gtu = np.asscalar(trg_pmt_per_gtu) if isinstance(trg_pmt_per_gtu, np.ndarray) else trg_pmt_per_gtu
         self.trg_ec_per_gtu = np.asscalar(trg_ec_per_gtu) if isinstance(trg_ec_per_gtu, np.ndarray) else trg_ec_per_gtu
@@ -51,6 +68,20 @@ class GtuPdmData(object):
         self.sum_l1_ec = sum_l1_ec
         self.sum_l1_pmt = sum_l1_pmt
 
+        self.gps_date__raw = np.asscalar(gps_date) if isinstance(gps_date, np.ndarray) else gps_date
+        self.gps_time__raw = np.asscalar(gps_time) if isinstance(gps_time, np.ndarray) else gps_time
+        self.gps_lat = np.asscalar(gps_lat) if isinstance(gps_lat, np.ndarray) else gps_lat
+        self.gps_lon = np.asscalar(gps_lon) if isinstance(gps_lon, np.ndarray) else gps_lon
+        self.gps_alt = np.asscalar(gps_alt) if isinstance(gps_alt, np.ndarray) else gps_alt
+        self.gps_speed = np.asscalar(gps_speed) if isinstance(gps_speed, np.ndarray) else gps_speed
+        self.gps_course = np.asscalar(gps_course) if isinstance(gps_course, np.ndarray) else gps_course
+
+        # based on ETOS' eusotrees/datatree.py
+        if gps_date is not None and gps_time is not None and gps_date > 0.1 and gps_time > 0.1:
+            self.gps_datetime = datetime.datetime(int(gps_date) % 100 + 2000, int((gps_date % 10000) / 100), int(gps_date / 10000),
+                                      int(gps_time / 10000), int((gps_time % 10000) / 100), int(gps_time) % 100)
+        else:
+            self.gps_datetime = datetime.datetime(1910, 1, 1)
 
         self.l1trg_events = l1trg_events
 
@@ -158,6 +189,12 @@ class L1EventReader(object):
         if br is None:
             raise Exception("{} > {} is missing branch \"{}\"".format(file, tree.GetName(), name))
         return br
+
+    @classmethod
+    def _get_leaf_or_raise(cls, file, tree, branch_name, leaf_name):
+        br = cls._get_branch_or_raise(file, tree, branch_name)
+        leaf = br.GetLeaf(leaf_name)
+        return leaf
 
     @classmethod
     def open_kenji_l1(cls, pathname):
@@ -335,6 +372,13 @@ class AcqL1EventReader(L1EventReader):
     _tevent_gtu_time = None # np.array([-1], dtype=np.double)
     #_tevent_gtu_time1 = None # np.array([-1], dtype=np.double)
     # ...
+    _tevent_gps_date = -1
+    _tevent_gps_time = -1
+    _tevent_gps_lat = -999.
+    _tevent_gps_lon = -999.
+    _tevent_gps_alt = -999.
+    _tevent_gps_speed = -999.
+    _tevent_gps_course = -999.
 
     last_gtu_pdm_data = None
 
@@ -342,10 +386,11 @@ class AcqL1EventReader(L1EventReader):
     first_gtu = None
     last_gtu = None
 
-    def __init__(self, acquisition_pathname, kenji_l1_pathname, first_gtu=None, last_gtu=None, entry_is_gtu_optimization=False):
-        super().__init__(kenji_l1_pathname)
+    def __init__(self, acquisition_pathname, kenji_l1_pathname, first_gtu=None, last_gtu=None,
+                 entry_is_gtu_optimization=False, load_texp=True):
+        super(AcqL1EventReader, self).__init__(kenji_l1_pathname)
 
-        self.acquisition_file, self.t_texp, self.t_tevent = self.open_acquisition(acquisition_pathname)
+        self.acquisition_file, self.t_texp, self.t_tevent = self.open_acquisition(acquisition_pathname, load_texp)
 
         self.exp_tree = ExpTree(self.t_texp, self.acquisition_file)
 
@@ -355,14 +400,32 @@ class AcqL1EventReader(L1EventReader):
 
         self._tevent_gtu = np.array([-1], dtype=np.int32)
         self._tevent_gtu_time = np.array([-1], dtype=np.double)
+
         #self._tevent_gtu_time1 = np.array([-1], dtype=np.double)
+
+        self._tevent_gps_date = np.array([-1], dtype=np.float32)
+        self._tevent_gps_time = np.array([-1], dtype=np.float32)
+        self._tevent_gps_lat = np.array([-1], dtype=np.float32)
+        self._tevent_gps_lon = np.array([-1], dtype=np.float32)
+        self._tevent_gps_alt = np.array([-1], dtype=np.float32)
+        self._tevent_gps_speed = np.array([-1], dtype=np.float32)
+        self._tevent_gps_course = np.array([-1], dtype=np.float32)
 
         self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "photon_count_data").SetAddress(self._tevent_photon_count_data)
         self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "gtu").SetAddress(self._tevent_gtu)
         self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "gtu_time").SetAddress(self._tevent_gtu_time)
         # self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "gtu_time1").SetAddress(self._tevent_gtu_time1)
+        self._get_leaf_or_raise(acquisition_pathname, self.t_tevent, "clkb_event_gps", "gps_date").SetAddress(self._tevent_gps_date)
+        self._get_leaf_or_raise(acquisition_pathname, self.t_tevent, "clkb_event_gps", "gps_time").SetAddress(self._tevent_gps_time)
+        self._get_leaf_or_raise(acquisition_pathname, self.t_tevent, "clkb_event_gps", "gps_lat").SetAddress(self._tevent_gps_lat)
+        self._get_leaf_or_raise(acquisition_pathname, self.t_tevent, "clkb_event_gps", "gps_lon").SetAddress(self._tevent_gps_lon)
+        self._get_leaf_or_raise(acquisition_pathname, self.t_tevent, "clkb_event_gps", "gps_alt").SetAddress(self._tevent_gps_alt)
+        self._get_leaf_or_raise(acquisition_pathname, self.t_tevent, "clkb_event_gps", "gps_speed").SetAddress(self._tevent_gps_speed)
+        self._get_leaf_or_raise(acquisition_pathname, self.t_tevent, "clkb_event_gps", "gps_course").SetAddress(self._tevent_gps_course)
 
-        self.texp_entries = self.t_texp.GetEntries()             # 1
+        if self.t_texp is not None:
+            self.texp_entries = self.t_texp.GetEntries()             # 1
+
         self.tevent_entries = self.t_tevent.GetEntries()         # 16512
 
         self.first_gtu = first_gtu
@@ -379,10 +442,13 @@ class AcqL1EventReader(L1EventReader):
         self.close_files()
 
     @classmethod
-    def open_acquisition(cls, pathname):
+    def open_acquisition(cls, pathname, load_texp=True):
         f = ROOT.TFile.Open(pathname, "read")
         if f:
-            t_texp = f.Get("texp")
+            if load_texp:
+                t_texp = f.Get("texp")
+            else:
+                t_texp = None
             t_tevent = f.Get("tevent")
             return f, t_texp, t_tevent
         else:
@@ -396,7 +462,7 @@ class AcqL1EventReader(L1EventReader):
     def close_files(self):
         if self.acquisition_file:
             self.acquisition_file.Close()
-        super().close_files()
+        super(AcqL1EventReader, self).close_files()
 
     # def get_tevent_entry(self, num = None):
     #     if num is None:
@@ -455,9 +521,13 @@ class AcqL1EventReader(L1EventReader):
                         raise Exception("GTU {} from trigger data file (tree l1trg) was not found in trigger data file (tree gtusry)".format(aer._l1trg_gtuGlobal))
 
                 aer.last_gtu_pdm_data = GtuPdmData(aer._tevent_photon_count_data, aer._tevent_gtu, aer._tevent_gtu_time, #aer._tevent_gtu_time1,
-                                                    aer._gtusry_trgBoxPerGTU, aer._gtusry_trgPMTPerGTU, aer._gtusry_trgECPerGTU,
-                                                    aer._gtusry_nPersist, aer._gtusry_gtuInPersist,
-                                                    aer._gtusry_sumL1PDM, aer._gtusry_sumL1EC, aer._gtusry_sumL1PMT)
+                                                   aer._gtusry_trgBoxPerGTU, aer._gtusry_trgPMTPerGTU, aer._gtusry_trgECPerGTU,
+                                                   aer._gtusry_nPersist, aer._gtusry_gtuInPersist,
+                                                   aer._gtusry_sumL1PDM, aer._gtusry_sumL1EC, aer._gtusry_sumL1PMT,
+                                                   [], False,
+                                                   aer._tevent_gps_date, aer._tevent_gps_time,
+                                                   aer._tevent_gps_lat, aer._tevent_gps_lon, aer._tevent_gps_alt,
+                                                   aer._tevent_gps_speed, aer._tevent_gps_course)
 
             l1trg_ev = L1TrgEvent.from_mario_format(aer.last_gtu_pdm_data, aer._l1trg_ecID,
                           aer._l1trg_pmtRow, aer._l1trg_pmtCol,
@@ -465,6 +535,9 @@ class AcqL1EventReader(L1EventReader):
             aer.last_gtu_pdm_data.l1trg_events.append(l1trg_ev) # not very correct in this form - not all events are going to be associated to the GTU
 
             return l1trg_ev
+
+        def next(self):
+            return self.__next__()
 
     class GtuPdmDataIterator(object):
         ack_ev_reader = None
@@ -519,7 +592,12 @@ class AcqL1EventReader(L1EventReader):
             gtu_pdm_data = GtuPdmData(aer._tevent_photon_count_data, aer._tevent_gtu, aer._tevent_gtu_time, #aer._tevent_gtu_time1,
                                         aer._gtusry_trgBoxPerGTU, aer._gtusry_trgPMTPerGTU, aer._gtusry_trgECPerGTU,
                                         aer._gtusry_nPersist, aer._gtusry_gtuInPersist,
-                                        aer._gtusry_sumL1PDM, aer._gtusry_sumL1EC, aer._gtusry_sumL1PMT)
+                                        aer._gtusry_sumL1PDM, aer._gtusry_sumL1EC, aer._gtusry_sumL1PMT,
+                                        None, False,
+                                        aer._tevent_gps_date, aer._tevent_gps_time,
+                                        aer._tevent_gps_lat, aer._tevent_gps_lon, aer._tevent_gps_alt,
+                                        aer._tevent_gps_speed, aer._tevent_gps_course
+                                      )
 
             if aer.kenji_l1_file:
                 l1trg_events = aer._search_for_l1trg_events_by_gtu(aer._tevent_gtu, gtu_pdm_data)
@@ -527,6 +605,9 @@ class AcqL1EventReader(L1EventReader):
                 gtu_pdm_data.l1trg_events = l1trg_events
 
             return gtu_pdm_data
+
+        def next(self):
+            return self.__next__()
 
     def iter_l1trg_events(self):
         return self.L1TrgEventIterator(self)
