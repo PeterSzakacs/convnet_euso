@@ -9,14 +9,14 @@ class cmd_interface():
 
     def __init__(self):
         parser = argparse.ArgumentParser(
-        description=('Evaluate model classification sensitivity as a function '
-                     'of given attributes from provided evaluation results in '
-                     'TSV format.'))
+            description='Evaluate model classification sensitivity for given '
+                        'target as function of a specific data attribute.')
 
         # input tsv
         parser.add_argument('infiles', nargs='+', metavar='INFILE',
-                            help=('Names of input TSVs to read from. If not '
-                                  'provided, read from stdin.'))
+                            help='Evaluation results in TSV format. Multiple '
+                                 'files can be specified, results from each '
+                                 'drawn as separate plot line')
 
         # input settings
         group = parser.add_argument_group(title="Evaluation settings")
@@ -38,7 +38,10 @@ class cmd_interface():
         # output settings
         group = parser.add_argument_group(title="Output settings")
         group.add_argument('--outfile', required=True,
-                           help=('Output filename (minus extension).'))
+                           help='Output filename (minus extension).')
+
+        # plot settings
+        group = parser.add_argument_group(title="Plot settings")
         group.add_argument('--xscale', choices=('linear', 'log'),
                            default='linear',
                            help='Scale of x-axis in generated plot to use '
@@ -49,8 +52,10 @@ class cmd_interface():
                            help='Color of each line in the plot. Must be same '
                                 'length as list of infiles if provided.')
         group.add_argument('--plot_labels', nargs='*', metavar='LABEL',
-                           help='Label of each line in the plot. Must be same '
-                                'length as list of infiles if provided.')
+                           help='Add plot legend using passed in labels for '
+                                'each plotline. Must be same length as list '
+                                'of infiles. If not provided, do not add plot '
+                                'legend.')
         group.add_argument('--legend_fontsize', type=atypes.int_range(1),
                            help='Font size of plot legend.')
         self.parser = parser

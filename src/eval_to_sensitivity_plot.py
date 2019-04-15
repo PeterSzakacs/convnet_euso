@@ -1,33 +1,14 @@
-import collections
-import os
-
-import numpy as np
 import pandas as pd
 import sklearn.metrics as metrics
 
 import libs.data_analysis as dutils
 dutils.use('svg')
-import utils.io_utils as io_utils
+import utils.analysis_utils as autils
 
 
-def get_target_stats(confusion_matrix, target_idx):
-    num_classes = len(confusion_matrix)
-    actual_targ_axis, predicted_targ_axis = 0, 1
-    # sum the whole matrix
-    total = np.sum(confusion_matrix)
-    # sum along the diagonal
-    hits = np.sum(confusion_matrix[x, x] for x in range(num_classes))
-
-    tp = confusion_matrix[target_idx, target_idx]
-    tn = hits - tp
-    fp = np.sum(confusion_matrix, axis=actual_targ_axis)[target_idx] - tp
-    fn = np.sum(confusion_matrix, axis=predicted_targ_axis)[target_idx] - tp
-
-    return {
-        'num_positive': tp + fn, 'num_negative': tn + fp,
-        'num_true_positive': tp, 'num_true_negative': tn,
-        'num_false_positive': fp, 'num_false_negative': fn,
-    }
+def _cm_iter(group_df, all_targets, cm_func=metrics.confusion_matrix):
+    for val, rows in group_df:
+        yield val, cm_func(rows['target'], rows['output'], labels=all_targets)
 
 
 def main(**args):
@@ -61,22 +42,16 @@ def main(**args):
     target_idx = all_targets.index(target)
     fields = ['output', 'target', column]
     for idx in range(num_lines):
-        # load data and get efficiency stats binned
-        filename = infiles[idx]
-        log_data = io_utils.load_TSV(filename, selected_columns=fields)
-        log_data = [l for l in filter(
-            lambda l: l['target'] == target, log_data)]
+        # load data
+        log_data = autils.get_classification_logs_from_file(
+            infiles[idx], fields=fields, target=target)
         for log in log_data:
             log[column] = column_type(log[column])
 
-        # get efficiency stats binned
+        # get classification stats binned
         group_df = pd.DataFrame(log_data).groupby(column)
-        out_dict = collections.OrderedDict()
-        for val, rows in group_df:
-            cm = metrics.confusion_matrix(rows['target'], rows['output'],
-                                        labels=all_targets)
-            stats = get_target_stats(cm, target_idx)
-            out_dict[val] = stats
+        cm_iter = _cm_iter(group_df, all_targets)
+        out_dict = autils.get_target_stats_binned(cm_iter, target_idx)
 
         # draw plot
         err_attrs = err_def.copy()
