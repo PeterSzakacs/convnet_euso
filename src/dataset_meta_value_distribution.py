@@ -6,24 +6,7 @@ import pandas as pd
 import cmdint.common.argparse_types as atypes
 import cmdint.common.dataset_args as dargs
 import dataset.io.fs_io as io_utils
-
-def get_cast_func(name, fp_precision=None, nullable=False):
-    if name == 'str':
-        fn = str
-    elif name == 'int':
-        fn = int
-    elif name == 'float':
-        if fp_precision is None:
-            fn = float
-        else:
-            fn = lambda val: round(float(val), fp_precision)
-    else:
-        raise ValueError('Unknown type name: {}'.format(name))
-    if nullable:
-        return lambda val: val if val == '' else fn(val)
-    else:
-        return fn
-
+import utils.common_utils as cutils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -71,8 +54,8 @@ if __name__ == "__main__":
 
     attr_ype = args.attribute_type,
     precision, nullable = args.fp_precision, args.nullable
-    cast_fn = get_cast_func(args.attribute_type, fp_precision=precision,
-                            nullable=nullable)
+    cast_fn = cutils.get_cast_func(args.attribute_type, fp_precision=precision,
+                                   nullable=nullable)
     for item in metadata:
         item[attr] = cast_fn(item[attr])
 

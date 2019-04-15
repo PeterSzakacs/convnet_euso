@@ -52,9 +52,37 @@ def check_interval_tuple(interval_tuple, property_name, lower_limit=None,
         raise ValueError('Upper bound of property {} must not be greater than'
                          ' {}'.format(property_name, upper_limit))
 
+# function to create a conversion/cast function from string to type 'typename',
+# optionally also applying rules for floating-point precision and handling null
+# values (defined as empty string '').
+#
+# Currently only supports string, int and float target types.
+
+
+SUPOORTED_CAST_TYPES=('str', 'int', 'float', )
+
+
+def get_cast_func(typename, fp_precision=None, nullable=False,
+                  default_value=''):
+    if typename == 'str':
+        fn = str
+    elif typename == 'int':
+        fn = int
+    elif typename == 'float':
+        if fp_precision is None:
+            fn = float
+        else:
+            fn = lambda val: round(float(val), fp_precision)
+    else:
+        raise ValueError('Unsupported type: {}'.format(typename))
+    if nullable:
+        return lambda val: default_value if val == '' else fn(val)
+    else:
+        return fn
 
 # equality implementation for classes primarily intended to hold simple values
 # (templates)
+
 
 class CommonEqualityMixin(object):
 
