@@ -63,24 +63,25 @@ def _create_sensitivity_ax(attr_name, **settings):
 def _add_plot_legend(ax, handles, **settings):
     labels = settings.get('plot_labels')
     if labels is not None:
+        loc = settings.get('legend_loc') or 'best'
         fontsize = settings.get('legend_fontsize') or settings['fontsize']
-        ax.legend(handles, labels, loc='center', fontsize=fontsize)
+        ax.legend(handles, labels, loc=loc, fontsize=fontsize)
 
 
 def main(**args):
     infiles, outfile = args['infiles'], args['outfile']
     column, column_type = args['column'], args['column_type']
     target, all_targets = args['class_target'], args['all_targets']
-    num_plotlines = len(infiles)
-
-    # set visualization settings
-    err_attrs = _get_err_attrs_list(num_plotlines, **args)
-    fill_attrs = _get_fill_attrs_list(num_plotlines, **args)
     yerr = args.get('add_yerr')
     if yerr:
         sensitivity_err = 'sensitivity_err_mario'
     else:
         sensitivity_err = None
+    num_plotlines = len(infiles)
+
+    # set visualization settings
+    err_attrs = _get_err_attrs_list(num_plotlines, **args)
+    fill_attrs = _get_fill_attrs_list(num_plotlines, **args)
     fontsizes = _get_fontsizes(**args)
     args = {**args, **fontsizes}
 

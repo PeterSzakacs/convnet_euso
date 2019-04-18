@@ -54,6 +54,10 @@ class cmd_interface():
         group.add_argument('--ylabel',
                            help='Custom label for the plot Y axis, defaults '
                                 'to "Sensitivity"')
+        group.add_argument('--legend_loc', type=atypes.float_range(0, 1),
+                           nargs=2, metavar=('X', 'Y'),
+                           help='Location of plot legend relative to the '
+                                'bottom-left of the plot.')
         group.add_argument('--plot_colors', nargs='*', metavar='COLOR',
                            help='Color of each line in the plot. Must be same '
                                 'length as list of infiles if provided.')
@@ -89,7 +93,8 @@ class cmd_interface():
 
         base_args = ('infiles', 'outfile', 'column', 'class_target',
                      'all_targets', 'add_yerr')
-        plt_args = ('xscale', 'xlabel', 'ylabel', *plot_settings_args)
+        plt_args = ('xscale', 'xlabel', 'ylabel', 'legend_loc',
+                    *plot_settings_args)
         font_args = ('fontsize', 'label_fontsize', 'legend_fontsize',
                      'ticks_fontsize')
         args_dict = {argname: getattr(args, argname)
