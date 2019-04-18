@@ -34,6 +34,8 @@ class cmd_interface():
                            default=list(cons.CLASSIFICATION_TARGETS.keys()),
                            help='All classification targets present in the '
                                 'evaluation results.')
+        group.add_argument('--add_yerr', action='store_true',
+                           help='Evaluate sensitivity error as well.')
 
         # output settings
         group = parser.add_argument_group(title="Output settings")
@@ -46,8 +48,12 @@ class cmd_interface():
                            default='linear',
                            help='Scale of x-axis in generated plot to use '
                                 '(linear or logarithmic, default: linear).')
-        group.add_argument('--plot_yerr', action='store_true',
-                           help='Plot sensitivity error.')
+        group.add_argument('--xlabel',
+                           help='Custom label for the plot X axis, defaults '
+                                'to the "column" arg')
+        group.add_argument('--ylabel',
+                           help='Custom label for the plot Y axis, defaults '
+                                'to "Sensitivity"')
         group.add_argument('--plot_colors', nargs='*', metavar='COLOR',
                            help='Color of each line in the plot. Must be same '
                                 'length as list of infiles if provided.')
@@ -71,9 +77,9 @@ class cmd_interface():
                 raise ValueError('Invalid number of entries for "{}", '
                                  'expected {}'.format(argname, exp_len))
 
-        arg_names = ('infiles', 'outfile', 'xscale', 'column', 'class_target',
-                     'all_targets', 'plot_yerr', 'legend_fontsize',
-                     *plot_settings_args)
+        arg_names = ('infiles', 'outfile', 'column', 'class_target',
+                     'all_targets', 'add_yerr', 'xscale', 'xlabel', 'ylabel',
+                     'legend_fontsize', *plot_settings_args)
         args_dict = {name: getattr(args, name) for name in arg_names}
         args_dict['column_type'] = cutils.get_cast_func(args.column_type)
 

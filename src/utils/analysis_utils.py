@@ -40,4 +40,3 @@ def get_classification_logs_from_file(filename, fields=None, target=None):
         log_data = [log for log in filter(
             lambda log: log['target'] == target, log_data)]
     return log_data
-

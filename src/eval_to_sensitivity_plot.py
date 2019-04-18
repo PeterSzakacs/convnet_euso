@@ -11,37 +11,62 @@ def _cm_iter(group_df, all_targets, cm_func=metrics.confusion_matrix):
         yield val, cm_func(rows['target'], rows['output'], labels=all_targets)
 
 
+def _get_fill_attrs_list(num_plots, **settings):
+    fill_def = dutils.EFFICIENCY_STAT_FILL_BETWEEN_DEFAULTS
+    plt_colors = args.get('plot_colors')
+    if plt_colors is None:
+        return [fill_def] * num_plots
+    else:
+        return [{**fill_def, 'edgecolor': color} for color in plt_colors]
+
+
+def _get_err_attrs_list(num_plots, **settings):
+    err_def = dutils.EFFICIENCY_STAT_ERRORBAR_DEFAULTS
+    plt_colors = args.get('plot_colors')
+    if plt_colors is None:
+        return [err_def] * num_lines
+    else:
+        return [{**err_def, 'color': color} for color in plt_colors]
+
+
+def _create_sensitivity_ax(attr_name, **settings):
+    xlabel = settings.get('xlabel') or attr_name
+    ylabel = settings.get('ylabel') or 'Sensitivity'
+    xscale = settings.get('xscale') or 'linear'
+    fig, ax = dutils.plt.subplots(figsize=(10, 6))
+    ax.set_xscale(xscale); ax.set_ylim((0, 1.2))
+    ax.set_ylabel(ylabel); ax.set_xlabel(xlabel)
+    return ax
+
+
+def _add_plot_legend(ax, handles, **settings):
+    labels = args.get('plot_labels')
+    if labels is not None:
+        legend_fontsize = args.get('legend_fontsize') or 6
+        ax.legend(handles, labels, loc='center', fontsize=legend_fontsize)
+
+
 def main(**args):
     infiles, outfile = args['infiles'], args['outfile']
     column, column_type = args['column'], args['column_type']
     target, all_targets = args['class_target'], args['all_targets']
+    num_plotlines = len(infiles)
 
     # set visualization settings
-    err_def = dutils.EFFICIENCY_STAT_ERRORBAR_DEFAULTS
-    fill_def = dutils.EFFICIENCY_STAT_FILL_BETWEEN_DEFAULTS
-
-    num_lines = len(infiles)
-    plot_labels = args['plot_labels']
-    if plot_labels is None:
-        plot_labels = [''] * num_lines
-        add_legend = False
-    else:
-        add_legend = True
-        legend_props = {'loc': 'center',
-                        'prop': {'size': (args['legend_fontsize'] or 6)}}
-    fill_colors = args['plot_colors'] or ([err_def['color']] * num_lines)
-
-    xscale, yerr = args['xscale'], args['plot_yerr']
+    err_attrs = _get_err_attrs_list(num_plotlines, **args)
+    fill_attrs = _get_fill_attrs_list(num_plotlines, **args)
+    yerr = args.get('add_yerr')
     if yerr:
         sensitivity_err = 'sensitivity_err_mario'
     else:
         sensitivity_err = None
 
     # main loop
-    ax=None
+    ax = _create_sensitivity_ax(column, **args)
+    errorbars = []
     target_idx = all_targets.index(target)
     fields = ['output', 'target', column]
-    for idx in range(num_lines):
+    for idx in range(num_plotlines):
         # load data
         log_data = autils.get_classification_logs_from_file(
             infiles[idx], fields=fields, target=target)
@@ -54,22 +79,17 @@ def main(**args):
         out_dict = autils.get_target_stats_binned(cm_iter, target_idx)
 
         # draw plot
-        err_attrs = err_def.copy()
-        err_attrs['color'] = fill_colors[idx]
-        fill_attrs = fill_def.copy()
         # fill_attrs['edgecolor'] = fill_colors[idx]
         fig, ax, err = dutils.plot_efficiency_stat(
-            out_dict, ax=ax, label=plot_labels[idx],
+            out_dict, ax=ax,
             plotted_stat='sensitivity', plotted_yerr_stat=sensitivity_err,
-            errorbar_attrs=err_attrs, fill_between_attrs=fill_attrs,
-            xlabel=column, xscale=xscale,
-            ylabel='Sensitivity', ylim=(0,1.2),
-            num_steps=20, figsize=(10,6),
-            show=False)
-    if add_legend:
-        fig.legend(**legend_props)
+            errorbar_attrs=err_attrs[idx], fill_between_attrs=fill_attrs[idx],
+            xscale=None, num_steps=20, show=False)
+        errorbars.append(err)
+    _add_plot_legend(ax, errorbars, **args)
     filename = '{}.svg'.format(outfile)
     dutils.save_figure(fig, filename)
+
 
 if __name__ == '__main__':
     import sys
