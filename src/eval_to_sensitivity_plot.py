@@ -29,21 +29,42 @@ def _get_err_attrs_list(num_plots, **settings):
         return [{**err_def, 'color': color} for color in plt_colors]
 
 
+def _get_fontsizes(**settings):
+    fs = {}
+    fontsize = settings.get('fontsize') or 20
+    fs['fontsize'] = fontsize
+    fs['label_fontsize'] = settings.get('label_fontsize') or fontsize
+    fs['legend_fontsize'] = settings.get('legend_fontsize') or fontsize
+    ticks_fs = settings.get('ticks_fontsize')
+    if ticks_fs is None:
+        fs['ticks_fontsize'] = (fontsize - 3, fontsize - 5)
+    else:
+        fs['ticks_fontsize'] = (int(ticks_fs[0]), int(ticks_fs[1]))
+    return fs
+
+
 def _create_sensitivity_ax(attr_name, **settings):
+    plt = dutils.plt
     xlabel = settings.get('xlabel') or attr_name
     ylabel = settings.get('ylabel') or 'Sensitivity'
     xscale = settings.get('xscale') or 'linear'
-    fig, ax = dutils.plt.subplots(figsize=(10, 6))
+    plt.rcParams.update({'font.size': settings['fontsize']})
+    fig, ax = plt.subplots(figsize=(10, 6))
     ax.set_xscale(xscale); ax.set_ylim((0, 1.2))
     ax.set_ylabel(ylabel); ax.set_xlabel(xlabel)
+    label_size = settings['label_fontsize']
+    ax.xaxis.label.set_size(label_size); ax.yaxis.label.set_size(label_size)
+    ticks_sizes = settings['ticks_fontsize']
+    ax.tick_params(axis='both', which='major', labelsize=ticks_sizes[0])
+    ax.tick_params(axis='both', which='minor', labelsize=ticks_sizes[1])
     return ax
 
 
 def _add_plot_legend(ax, handles, **settings):
-    labels = args.get('plot_labels')
+    labels = settings.get('plot_labels')
     if labels is not None:
-        legend_fontsize = args.get('legend_fontsize') or 6
-        ax.legend(handles, labels, loc='center', fontsize=legend_fontsize)
+        fontsize = settings.get('legend_fontsize') or settings['fontsize']
+        ax.legend(handles, labels, loc='center', fontsize=fontsize)
 
 
 def main(**args):
@@ -60,6 +81,8 @@ def main(**args):
         sensitivity_err = 'sensitivity_err_mario'
     else:
         sensitivity_err = None
+    fontsizes = _get_fontsizes(**args)
+    args = {**args, **fontsizes}
 
     # main loop
     ax = _create_sensitivity_ax(column, **args)

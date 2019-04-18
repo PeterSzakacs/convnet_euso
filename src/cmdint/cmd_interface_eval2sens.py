@@ -62,8 +62,18 @@ class cmd_interface():
                                 'each plotline. Must be same length as list '
                                 'of infiles. If not provided, do not add plot '
                                 'legend.')
+
+        # font size settings
+        group = parser.add_argument_group(title="Font size settings")
+        group.add_argument('--fontsize', type=atypes.int_range(1),
+                           help='Global default fontsize of plot elements.')
         group.add_argument('--legend_fontsize', type=atypes.int_range(1),
                            help='Font size of plot legend.')
+        group.add_argument('--label_fontsize', type=atypes.int_range(1),
+                           help='Font size of plot axes labels.')
+        group.add_argument('--ticks_fontsize', type=atypes.int_range(1),
+                           nargs=2, metavar=('MAJOR', 'MINOR'),
+                           help='Font size of plot axes tick markers.')
         self.parser = parser
 
     def get_cmd_args(self, argsToParse):
@@ -77,10 +87,13 @@ class cmd_interface():
                 raise ValueError('Invalid number of entries for "{}", '
                                  'expected {}'.format(argname, exp_len))
 
-        arg_names = ('infiles', 'outfile', 'column', 'class_target',
-                     'all_targets', 'add_yerr', 'xscale', 'xlabel', 'ylabel',
-                     'legend_fontsize', *plot_settings_args)
-        args_dict = {name: getattr(args, name) for name in arg_names}
+        base_args = ('infiles', 'outfile', 'column', 'class_target',
+                     'all_targets', 'add_yerr')
+        plt_args = ('xscale', 'xlabel', 'ylabel', *plot_settings_args)
+        font_args = ('fontsize', 'label_fontsize', 'legend_fontsize',
+                     'ticks_fontsize')
+        args_dict = {argname: getattr(args, argname)
+                     for argname in [*base_args, *plt_args, *font_args]}
         args_dict['column_type'] = cutils.get_cast_func(args.column_type)
 
         return args_dict
