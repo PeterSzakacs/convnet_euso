@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('svg')
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 # metadata to text conversion
@@ -23,15 +24,23 @@ def _get_synth_shower_text(metadata):
 
 
 def flight_metadata_to_text(metadata):
-    src = metadata['source_file_acquisition_full']
-    idx = metadata['packet_id']
-    return "From packet {} in source file {}".format(idx, src)
+    eid = metadata.get('event_id')
+    if eid is None:
+        src = metadata['source_file_acquisition_full']
+        idx = metadata['packet_id']
+        return "From packet {} in source file \n{}".format(idx, src)
+    else:
+        return 'event id: {}'.format(eid)
 
 
 def simu_metadata_to_text(metadata):
-    src = metadata['source_file_acquisition_full']
-    idx = metadata['packet_id']
-    return "From packet {} in source file {}".format(idx, src)
+    eid = metadata.get('event_id')
+    if eid is None:
+        src = metadata['source_file_acquisition_full']
+        idx = metadata['packet_id']
+        return "From packet {} in source file \n{}".format(idx, src)
+    else:
+        return 'event id: {}'.format(eid)
 
 
 def synth_metadata_to_text(metadata):
@@ -62,16 +71,16 @@ def create_yx_proj(frame):
 
 
 def create_gtux_proj(frame):
-    fig, ax = _create_projection_figure(frame)
-    ax.set_xlabel('x [pix]')
-    ax.set_ylabel('time [GTU]')
+    fig, ax = _create_projection_figure(np.transpose(frame))
+    ax.set_ylabel('x [pix]')
+    ax.set_xlabel('time [GTU]')
     return fig, ax
 
 
 def create_gtuy_proj(frame):
-    fig, ax = _create_projection_figure(frame)
-    ax.set_xlabel('y [pix]')
-    ax.set_ylabel('time [GTU]')
+    fig, ax = _create_projection_figure(np.transpose(frame))
+    ax.set_ylabel('y [pix]')
+    ax.set_xlabel('time [GTU]')
     return fig, ax
 
 
