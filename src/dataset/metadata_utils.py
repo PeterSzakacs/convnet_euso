@@ -1,3 +1,4 @@
+import collections
 import typing
 
 def extract_metafields(metadata):
@@ -17,7 +18,15 @@ class MetadataHolder:
         return len(self._metadata)
 
     def __getitem__(self, idx):
-        return self._metadata[idx]
+        if idx is None:
+            return self._metadata
+        elif isinstance(idx, (slice, int)):
+            return self._metadata[idx]
+        elif isinstance(idx, collections.Sequence):
+            # range, list, tuple, etc
+            return [self._metadata[index] for index in idx]
+        else:
+            raise Exception('Unsupported index type: {}'.format(type(idx)))
 
     @property
     def metadata_fields(self):
