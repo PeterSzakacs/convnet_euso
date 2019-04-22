@@ -19,10 +19,9 @@ class NetworkModel():
         self.initialize_model(**model_settings)
 
     def _update_hidden_models(self):
-        hidden_layers = self._net.hidden_layers
+        hidden_models = self._hidden_models
         session = self._model.session
-        for layer_name in hidden_layers.keys():
-            model = self._hidden_models[layer_name]
+        for layer_name, model in hidden_models.items():
             model.session.close()
             model.session = session
             model.trainer.session = session
@@ -86,9 +85,14 @@ class NetworkModel():
         self._model = model
         session = self._model.session
         if create_hidden_models:
+            layers = set()
+            for pathname, path in self._net.data_paths.items():
+                layers = layers.union(path)
+            layers.remove(self._net.output_layer_name)
             hidden_layers = self._net.hidden_layers
-            hidden_models = {name: tflearn.DNN(layer, session=session)
-                             for name, layer in hidden_layers.items()}
+            hidden_models = {name: tflearn.DNN(hidden_layers[name],
+                                               session=session)
+                             for name in layers}
             self._hidden_models = hidden_models
 
     def get_hidden_layer_activations(self, input_data_dict):
@@ -118,6 +122,7 @@ class NeuralNetwork(abc.ABC):
         hidden_layers = categories['hidden']
         input_layers = categories['input']
         self._out = layers[builder.output_layer]
+        self._out_name = builder.output_layer
         self._inputs = {name: layers[name] for name in input_layers}
         self._trainable = {name: layers[name] for name in trainable_layers}
         self._hidden = {name: layers[name] for name in hidden_layers}
@@ -145,6 +150,10 @@ class NeuralNetwork(abc.ABC):
     @property
     def output_layer(self):
         return self._out
+
+    @property
+    def output_layer_name(self):
+        return self._out_name
 
     @property
     def data_paths(self):
