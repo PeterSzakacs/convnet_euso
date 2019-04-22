@@ -38,6 +38,8 @@ if __name__ == '__main__':
     dataset = handler.load_dataset(name, item_types=item_types)
 
     start, stop = args.start_item, args.stop_item
+    if stop is None:
+        stop = dataset.num_data
     items_slice = slice(start, stop)
     data = dataset.get_data_as_dict(items_slice)
     targets = dataset.get_targets(items_slice)
