@@ -42,6 +42,7 @@ if __name__ == "__main__":
     for tup in persistency_handlers:
         name, handler = tup[:]
         dataset = handler.load_dataset(name)
-        dataset.add_metafield('orig_dataset', default_value=name)
+        if not 'orig_dataset' in dataset.metadata_fields:
+            dataset.add_metafield('orig_dataset', default_value=name)
         first_dataset.merge_with(dataset)
     output_handler.save_dataset(first_dataset)
