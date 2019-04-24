@@ -29,7 +29,7 @@ def save_TSV(filename, rows, column_order, file_exists_overwrite=False):
         writer.writerows(rows)
 
 
-class packet_extractor():
+class PacketExtractor():
 
     def __init__(self, packet_template=templates.packet_template(
                        16, 16, 48, 48, 128)):

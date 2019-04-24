@@ -169,7 +169,7 @@ if __name__ == "__main__":
     print(args)
 
     packet_template = args.template
-    extractor = io_utils.packet_extractor(packet_template=packet_template)
+    extractor = io_utils.PacketExtractor(packet_template=packet_template)
     extractors = {'NPY': extractor.extract_packets_from_npyfile,
                   'ROOT': extractor.extract_packets_from_rootfile}
     cache = PacketCache(args.max_cache_size, extractors,

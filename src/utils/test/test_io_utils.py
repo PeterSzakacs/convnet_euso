@@ -118,7 +118,7 @@ class TestPacketExtractor(unittest.TestCase):
         cls.expected_packets_shape = (n_packets, num_frames, height, width)
         cls.expected_packets = cls.packets.reshape(cls.expected_packets_shape)
         # the extractor object
-        cls.extractor = io_utils.packet_extractor(
+        cls.extractor = io_utils.PacketExtractor(
             packet_template=cls.template)
 
     # test methods
