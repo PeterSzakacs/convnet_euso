@@ -32,7 +32,7 @@ if __name__ == '__main__':
     savedir = os.path.join(outdir, 'img')
     os.makedirs(savedir, exist_ok=args.force_overwrite)
 
-    meta_adder = meta_to_text[args.meta_to_text_conv]
+    meta_text_adder = meta_to_text[args.meta_to_text_conv]
 
     handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
     dataset = handler.load_dataset(name, item_types=item_types)
@@ -51,6 +51,7 @@ if __name__ == '__main__':
         for idx in range(start, stop):
             rel_idx = idx - start
             frame = data_items[rel_idx]
-            fig, ax = frame_creator(frame)
-            meta_adder(fig, ax, item_type, metadata[rel_idx])
-            eviz.save_figure(fig, os.path.join(item_dir, 'frame-{}'.format(idx)))
+            ax = frame_creator(frame)
+            meta_text_adder(ax, item_type, metadata[rel_idx])
+            savename = os.path.join(item_dir, 'frame-{}'.format(idx))
+            eviz.save_item(ax, savename)

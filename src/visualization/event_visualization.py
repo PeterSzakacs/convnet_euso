@@ -59,40 +59,41 @@ def _create_projection_figure(frame):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     im = ax.imshow(frame)
-    plt.colorbar(im)
-    return fig, ax
+    fig.colorbar(im)
+    return ax
 
 
 def create_yx_proj(frame):
-    fig, ax = _create_projection_figure(frame)
+    ax = _create_projection_figure(frame)
     ax.set_xlabel('x [pix]')
     ax.set_ylabel('y [pix]')
-    return fig, ax
+    return ax
 
 
 def create_gtux_proj(frame):
-    fig, ax = _create_projection_figure(np.transpose(frame))
+    ax = _create_projection_figure(np.transpose(frame))
     ax.set_ylabel('x [pix]')
     ax.set_xlabel('time [GTU]')
-    return fig, ax
+    return ax
 
 
 def create_gtuy_proj(frame):
-    fig, ax = _create_projection_figure(np.transpose(frame))
+    ax = _create_projection_figure(np.transpose(frame))
     ax.set_ylabel('y [pix]')
     ax.set_xlabel('time [GTU]')
-    return fig, ax
+    return ax
 
 
-def add_flight_metadata(fig, ax, proj_type, metadata):
+def add_flight_metadata(ax, proj_type, metadata):
     ax.set_title(flight_metadata_to_text(metadata))
 
 
-def add_simu_metadata(fig, ax, proj_type, metadata):
+def add_simu_metadata(ax, proj_type, metadata):
     ax.set_title(simu_metadata_to_text(metadata))
 
 
-def add_synth_metadata(fig, ax, proj_type, metadata):
+def add_synth_metadata(ax, proj_type, metadata):
+    fig = ax.figure
     if metadata['shower'] == 'True':
         fig.suptitle("Shower")
         ax.set_title(_get_synth_shower_text(metadata) + "\n" +
@@ -112,17 +113,7 @@ def add_synth_metadata(fig, ax, proj_type, metadata):
         fig.suptitle("Pure noise")
         ax.set_title(_get_synth_bg_text(metadata))
 
-def save_figure(figure, save_pathname):
+def save_item(ax, save_pathname):
+    figure = ax.figure
     figure.savefig(save_pathname)
     plt.close(figure)
-
-# if __name__ == '__main__':
-#     import numpy as np
-
-#     print(matplotlib.matplotlib_fname())
-
-#     fig, ax = create_projection_figure(np.random.poisson(lam=1, size=(48, 48)), 'yx')
-#     add_synth_metadata(fig, ax, 'yx', {'shower': True, 'start_x': 10, 'start_y': 3, 'start_gtu': 6})
-
-#     plt.savefig("test")
-#     plt.close()
