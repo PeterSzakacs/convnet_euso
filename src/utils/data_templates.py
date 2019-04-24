@@ -124,7 +124,7 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
         self.start_y = start_y or (limit, p_template.frame_height - limit)
         self.start_x = start_x or (limit, p_template.frame_width - limit)
         self.values_generator = (values_generator or
-                                 gen.default_vals_generator(10, 10))
+                                 gen.DefaultValsGenerator(10, 10))
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):

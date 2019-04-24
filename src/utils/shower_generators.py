@@ -1,7 +1,7 @@
 # generator functions for shower line values
 
 
-class default_vals_generator():
+class DefaultValsGenerator():
 
     def __init__(self, maximum, duration):
         self.reset(maximum, duration)
@@ -23,7 +23,7 @@ class default_vals_generator():
             raise StopIteration()
 
 
-class flat_vals_generator():
+class FlatValsGenerator():
 
     def __init__(self, maximum, duration):
         self.reset(maximum, duration)

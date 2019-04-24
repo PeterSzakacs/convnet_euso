@@ -19,7 +19,7 @@ class TestModuleFunctions(unittest.TestCase):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20
         template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
-        generator = gen.flat_vals_generator(20, 10)
+        generator = gen.FlatValsGenerator(20, 10)
 
         angles         = [45, 135, 225, 315, 45, 135, 225, 315]
         start_xs       = [0, width-1, width-1, 0, width-3, 3, 3, width-3]

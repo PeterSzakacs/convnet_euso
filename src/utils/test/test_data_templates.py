@@ -178,7 +178,7 @@ class TestSimuShowerTemplate(unittest.TestCase):
         shower_template2.shower_max = (m[0], m[1] + 1)
         self.assertNotEqual(shower_template, shower_template2)
         shower_template2.shower_max = m
-        shower_template2.values_generator = gen.flat_vals_generator(10, 10)
+        shower_template2.values_generator = gen.FlatValsGenerator(10, 10)
         self.assertNotEqual(shower_template, shower_template2)
 
 
