@@ -3,7 +3,7 @@ import io
 # In-memory buffer for composing the resulting html file
 _buffer = None
 
-class file_writer:
+class HTMLWriter:
 
     def begin_html_file(self, title, css_rules=None):
         global _buffer
@@ -36,7 +36,7 @@ class file_writer:
         return '<div {}>{}</div>'.format(c, contents)
 
 
-class table_writer:
+class TableWriter:
     
     def begin_table(self, styleclass=None, table_headings=()):
         global _buffer
@@ -59,7 +59,7 @@ class table_writer:
         _buffer.write("</tbody>\n</table>")
 
 
-class image_writer:
+class ImageWriter:
     
     def add_image(self, src, alt=None, width=None, height=None, styleclass=None):
         global _buffer
@@ -74,7 +74,7 @@ class image_writer:
         return '<img src="{}"{}{}{}{}/>'.format(src, a, c, w, h)
 
 
-class text_writer:
+class TextWriter:
 
     # <h1>-<h6>
 

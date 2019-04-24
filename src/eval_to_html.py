@@ -43,6 +43,6 @@ if __name__ == "__main__":
     context = {'net_arch': network_module_name, 'model_file': model_file,
                'dataset': args.name, 'item_types': args.item_types}
 
-    writer = cwriter.report_writer(logdir, table_size=args.tablesize,
-                                   extra_fields=extra_fields)
+    writer = cwriter.ReportWriter(logdir, table_size=args.tablesize,
+                                  extra_fields=extra_fields)
     writer.write_reports(log_data, context)

@@ -11,7 +11,7 @@ import visualization.html_writers as html
 # writing the html reports reuires a lot of shared context, so a class with
 # methods to write parts of the report file, as opposed to standalone functions
 # is very much appropriate for this task.
-class report_writer:
+class ReportWriter:
 
 
     DEFAULT_MAX_TABLE_SIZE=2000
@@ -25,10 +25,10 @@ class report_writer:
         self.extra_fields = extra_fields
         self.css_rules = css_rules
         # html writers
-        self._fil = html.file_writer()
-        self._tbl = html.table_writer()
-        self._img = html.image_writer()
-        self._txt = html.text_writer()
+        self._fil = html.HTMLWriter()
+        self._tbl = html.TableWriter()
+        self._img = html.ImageWriter()
+        self._txt = html.TextWriter()
 
 
     @property
