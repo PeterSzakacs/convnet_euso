@@ -64,7 +64,7 @@ class TestMetafieldsOrderArgs(unittest.TestCase):
             'flight': 'flight_test',
             'synth': 'synth_test'
         }
-        self.meta_order_args = cargs.metafield_order_arg(
+        self.meta_order_args = cargs.MetafieldOrderArg(
             order_arg_aliases=self.aliases)
         self.parser = argparse.ArgumentParser()
         self.meta_order_args.add_metafields_order_arg(self.parser)

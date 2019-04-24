@@ -49,7 +49,7 @@ class cmd_interface():
         #                           'output'))
 
         # metafields order of the generated TSV
-        meta_args = cargs.metafield_order_arg()
+        meta_args = cargs.MetafieldOrderArg()
         g_title = "Order of metadata fields in the generated TSV"
         meta_args.add_metafields_order_arg(parser, group_title=g_title)
 

@@ -48,7 +48,7 @@ class cmd_interface():
 
         # order of metadata columns in the report
         g_title = 'Metadata column order of report files'
-        meta_args = cargs.metafield_order_arg()
+        meta_args = cargs.MetafieldOrderArg()
         meta_args.add_metafields_order_arg(parser, group_title=g_title)
         self.parser = parser
         self.dset_args = dset_args

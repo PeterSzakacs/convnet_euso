@@ -46,7 +46,7 @@ class PacketArgs:
 # metadata field order
 
 
-class metafield_order_arg:
+class MetafieldOrderArg:
 
     default_aliases = {k: k for k in cons.METADATA_TYPES.keys()}
 
