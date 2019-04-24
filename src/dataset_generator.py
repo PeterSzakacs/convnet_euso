@@ -10,7 +10,7 @@ import dataset.io.fs_io as io_utils
 import utils.synth_data_utils as sdutils
 
 
-class simulated_data_generator():
+class SimulatedDataGenerator():
 
     def __init__(self, shower_template, bg_template):
         if shower_template.packet_template != bg_template.packet_template:
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     args = ui.get_cmd_args(sys.argv[1:])
     print(args)
 
-    data_generator = simulated_data_generator(
+    data_generator = SimulatedDataGenerator(
         args.shower_template, args.bg_template
     )
     handler = io_utils.DatasetFsPersistencyHandler(save_dir=args.outdir)
