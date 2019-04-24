@@ -13,7 +13,7 @@ SRCFILE_KEY = 'source_file_acquisition_full'
 # for processing raw flight data:
 # - frames 27-47 are the rule of thumb
 
-class default_event_transformer:
+class DefaultEventTransformer:
 
     REQUIRED_FILELIST_COLUMNS = ('packet_id', )
 
@@ -34,7 +34,7 @@ class default_event_transformer:
         return [result, ]
 
 
-class all_packets_event_transformer():
+class AllPacketsEventTransformer():
 
     REQUIRED_FILELIST_COLUMNS = ()
 
@@ -57,7 +57,7 @@ class all_packets_event_transformer():
         return results
 
 
-class gtu_in_packet_event_transformer:
+class GtuInPacketEventTransformer:
 
     REQUIRED_FILELIST_COLUMNS = ('packet_id', 'gtu_in_packet')
 
@@ -177,15 +177,15 @@ if __name__ == "__main__":
 
     if args.converter == 'gtupack':
         before, after = args.num_gtu_around[0:2]
-        data_transformer = gtu_in_packet_event_transformer(
+        data_transformer = GtuInPacketEventTransformer(
             num_gtu_before=before, num_gtu_after=after,
             adjust_if_out_of_bounds=(not args.no_bounds_adjust))
     elif args.converter == 'allpack':
         start, stop = args.gtu_range[0:2]
-        data_transformer = all_packets_event_transformer(start, stop)
+        data_transformer = AllPacketsEventTransformer(start, stop)
     else:
         packet_id, (start, stop) = args.packet_idx, args.gtu_range
-        data_transformer = default_event_transformer(packet_id, start, stop)
+        data_transformer = DefaultEventTransformer(packet_id, start, stop)
     target = cons.CLASSIFICATION_TARGETS[args.target]
     meta_creator = MetadataCreator(args.extra_metafields)
 
