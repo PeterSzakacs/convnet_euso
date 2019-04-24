@@ -104,9 +104,9 @@ def add_synth_metadata(ax, proj_type, metadata):
         if proj_type == 'yx':
             plt.scatter([int(start_x)], [int(start_y)], color='red', s=40)
         elif proj_type == 'gtux':
-            plt.scatter([int(start_x)], [int(start_gtu)], color='red', s=40)
+            plt.scatter([int(start_gtu)], [int(start_x)], color='red', s=40)
         elif proj_type == 'gtuy':
-            plt.scatter([int(start_y)], [int(start_gtu)], color='red', s=40)
+            plt.scatter([int(start_gtu)], [int(start_y)], color='red', s=40)
         else:
             raise Exception("Illegal projection type: {}".format(proj_type))
     else:
