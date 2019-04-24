@@ -6,11 +6,6 @@ import net.base_classes as base_classes
 import net.convnet_classes as conv_classes
 
 
-def create(input_shapes, **optsettings):
-    network = GithubNet2(input_shapes, **optsettings)
-    return network.output_layer, network.conv_layers, network.fc_layers
-
-
 def create_model(input_shapes, **optsettings):
     network = GithubNet2(input_shapes, **optsettings)
     return conv_classes.Conv2DNetworkModel(network, **optsettings)
