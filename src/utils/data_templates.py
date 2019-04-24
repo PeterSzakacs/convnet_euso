@@ -102,7 +102,7 @@ class PacketTemplate(cutils.CommonEqualityMixin):
         return slice(x_start, x_stop), slice(y_start, y_stop)
 
 
-class simulated_shower_template(cutils.CommonEqualityMixin):
+class SimulatedShowerTemplate(cutils.CommonEqualityMixin):
     """Template for storing parameters of generated showers"""
 
     def __init__(self, p_template, shower_duration, shower_max, track_len,
@@ -281,7 +281,7 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
         return rand.randint(*(self._tlen))
 
 
-class synthetic_background_template(cutils.CommonEqualityMixin):
+class SyntheticBackgroundTemplate(cutils.CommonEqualityMixin):
     """
         Template for storing information about a synthetic (simulated)
         background

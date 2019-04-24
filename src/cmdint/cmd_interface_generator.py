@@ -69,7 +69,7 @@ class CmdInterface():
 
         sx, sy, sgtu = args.start_x, args.start_y, args.start_gtu
         smax, dur, length = args.shower_max, args.duration, args.track_length
-        shower_templ = templates.simulated_shower_template(
+        shower_templ = templates.SimulatedShowerTemplate(
             packet_templ, dur, smax, length, start_gtu=sgtu, start_y=sy, start_x=sx
         )
         sx, sy, sgtu = shower_templ.start_x, shower_templ.start_y, shower_templ.start_gtu
@@ -81,7 +81,7 @@ class CmdInterface():
         dataset_str = 'num_{}_bad_ecs_{}-{}_lam_{}-{}'.format(
             n_data, bec[0], bec[1], lam[0], lam[1]
         )
-        args.bg_template = templates.synthetic_background_template(
+        args.bg_template = templates.SyntheticBackgroundTemplate(
             packet_templ, bg_lambda=lam, bad_ECs_range=bec
         )
 
