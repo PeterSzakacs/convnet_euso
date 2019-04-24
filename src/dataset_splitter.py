@@ -59,8 +59,8 @@ if __name__ == "__main__":
     io_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir,
                                                          save_dir=outdir)
     old_dataset = io_handler.load_dataset(name)
-    new_dataset = ds.numpy_dataset(outname, old_dataset.accepted_packet_shape,
-                                   item_types=old_dataset.item_types,
-                                   dtype=old_dataset.dtype)
+    new_dataset = ds.NumpyDataset(outname, old_dataset.accepted_packet_shape,
+                                  item_types=old_dataset.item_types,
+                                  dtype=old_dataset.dtype)
     old_dataset = new_dataset.merge_with(old_dataset, items_slice)
     io_handler.save_dataset(new_dataset)

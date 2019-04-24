@@ -91,8 +91,8 @@ class DatasetMixin():
 
         if item_types is None:
             item_types = items_mixin.item_types
-        dset = ds.numpy_dataset(name, items_mixin.packet_shape,
-                                item_types=item_types)
+        dset = ds.NumpyDataset(name, items_mixin.packet_shape,
+                               item_types=item_types)
         for idx in range(num_items):
             dset.add_data_item(packets[idx], targets[idx], metadata[idx])
         cls.dset = dset

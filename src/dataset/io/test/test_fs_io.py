@@ -124,7 +124,7 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
         items = cls.items
         items['gtux'], items['gtuy'] = False, False
         # a mock dataset to use (also serves as value container)
-        m_dataset = mock.create_autospec(ds.numpy_dataset)
+        m_dataset = mock.create_autospec(ds.NumpyDataset)
         m_dataset.name = 'test'
         m_dataset.dtype = 'float32'
         m_dataset.num_data = n_data

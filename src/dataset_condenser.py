@@ -192,8 +192,8 @@ if __name__ == "__main__":
     extracted_packet_shape = list(packet_template.packet_shape)
     extracted_packet_shape[0] = data_transformer.num_frames
     output_handler = fs_io.dataset_fs_persistency_handler(save_dir=args.outdir)
-    dataset = ds.numpy_dataset(args.name, extracted_packet_shape,
-                               item_types=args.item_types, dtype=args.dtype)
+    dataset = ds.NumpyDataset(args.name, extracted_packet_shape,
+                              item_types=args.item_types, dtype=args.dtype)
 
 
     # main loop

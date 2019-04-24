@@ -51,8 +51,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
     # test dataset item addition
 
     def test_add_item(self):
-        dset = ds.numpy_dataset(self.name, self.packet_shape,
-                                item_types=self.item_types)
+        dset = ds.NumpyDataset(self.name, self.packet_shape,
+                               item_types=self.item_types)
         packet = self.items['raw'][0]
         exp_data = {k: [v[0]] for k, v in self.items.items()}
         num_data = dset.num_data
@@ -61,8 +61,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
         self.assertEqual(dset.num_data, num_data + 1)
 
     def test_add_item_non_resizable_dataset(self):
-        dset = ds.numpy_dataset(self.name, self.packet_shape,
-                                item_types=self.item_types)
+        dset = ds.NumpyDataset(self.name, self.packet_shape,
+                               item_types=self.item_types)
         dset.resizable = False
         packet = self.items['raw'][0]
         targ, meta = self.mock_targets[0], self.mock_meta[0]
@@ -70,8 +70,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
         self.assertRaises(Exception, dset.add_data_item, packet, targ, meta)
 
     def test_add_item_wrong_packet_shape(self):
-        dset = ds.numpy_dataset(self.name, self.packet_shape,
-                                item_types=self.item_types)
+        dset = ds.NumpyDataset(self.name, self.packet_shape,
+                               item_types=self.item_types)
         packet = np.ones((1, *self.packet_shape))
         targ, meta = self.mock_targets[0], self.mock_meta[0]
 
@@ -85,8 +85,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
         packet, target = self.items['raw'][0], self.mock_targets[0]
         meta = self.mock_meta[0]
 
-        dset = ds.numpy_dataset(self.name, self.packet_shape,
-                                item_types=item_types)
+        dset = ds.NumpyDataset(self.name, self.packet_shape,
+                               item_types=item_types)
         dset.add_data_item(packet, target, meta)
         items = dset.get_data_as_dict()
         self._assertDatasetData(items, exp_items, exp_items.keys())
@@ -98,8 +98,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
         packet, target = self.items['raw'][0], self.mock_targets[0]
         meta = self.mock_meta[0]
 
-        dset = ds.numpy_dataset(self.name, self.packet_shape,
-                                item_types=item_types)
+        dset = ds.NumpyDataset(self.name, self.packet_shape,
+                               item_types=item_types)
         dset.add_data_item(packet, target, meta)
         items = dset.get_data_as_arraylike()
         for idx in range(len(keys)):
@@ -111,7 +111,7 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
         meta = self.mock_meta[0]
         exp_targets = [self.mock_targets[0]]
 
-        dset = ds.numpy_dataset(self.name, self.packet_shape)
+        dset = ds.NumpyDataset(self.name, self.packet_shape)
         dset.add_data_item(packet, target, meta)
         targets = dset.get_targets()
         self._assertDatasetTargets(targets, exp_targets)
@@ -121,7 +121,7 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
         meta = self.mock_meta[0]
         exp_metadata = [self.mock_meta[0]]
 
-        dset = ds.numpy_dataset(self.name, self.packet_shape)
+        dset = ds.NumpyDataset(self.name, self.packet_shape)
         dset.add_data_item(packet, target, meta)
         metadata = dset.get_metadata()
         msg = "Metadata not equal: expected {}:, actual {}:".format(
@@ -131,10 +131,10 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
     # test merging datasets
 
     def test_merge_with(self):
-        dset1 = ds.numpy_dataset(self.name, self.packet_shape,
-                                 item_types=self.item_types)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape,
-                                 item_types=self.item_types)
+        dset1 = ds.NumpyDataset(self.name, self.packet_shape,
+                                item_types=self.item_types)
+        dset2 = ds.NumpyDataset(self.name, self.packet_shape,
+                                item_types=self.item_types)
         packet = self.items['raw'][0]
         dset1.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
         dset2.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
@@ -152,8 +152,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
                                  cons.ALL_ITEM_TYPES)
 
     def test_merge_with_new_metafields(self):
-        dset1 = ds.numpy_dataset(self.name, self.packet_shape)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape)
+        dset1 = ds.NumpyDataset(self.name, self.packet_shape)
+        dset2 = ds.NumpyDataset(self.name, self.packet_shape)
         packet = self.items['raw'][0]
         meta2 = self.mock_meta[0].copy()
         meta2['test'] = 'value'
@@ -164,8 +164,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
         self.assertSetEqual(dset1.metadata_fields, exp_metafields)
 
     def test_merge_with_only_subset_of_items(self):
-        dset1 = ds.numpy_dataset(self.name, self.packet_shape)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape)
+        dset1 = ds.NumpyDataset(self.name, self.packet_shape)
+        dset2 = ds.NumpyDataset(self.name, self.packet_shape)
         packet = self.items['raw'][0]
         meta2 = self.mock_meta[0].copy()
         meta2['test'] = 'value'
@@ -184,8 +184,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
         self.assertSetEqual(dset1.metadata_fields, exp_metafields)
 
     def test_merge_with_not_resizable(self):
-        dset1 = ds.numpy_dataset(self.name, self.packet_shape)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape)
+        dset1 = ds.NumpyDataset(self.name, self.packet_shape)
+        dset2 = ds.NumpyDataset(self.name, self.packet_shape)
         dset1.resizable = False
         packet = self.items['raw'][0]
         dset2.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
@@ -193,8 +193,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
 
     def test_merge_with_incompatible_dataset(self):
         bad_packet_shape = (self.n_f + 1, self.f_h, self.f_h)
-        dset1 = ds.numpy_dataset(self.name, bad_packet_shape)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape)
+        dset1 = ds.NumpyDataset(self.name, bad_packet_shape)
+        dset2 = ds.NumpyDataset(self.name, self.packet_shape)
         packet = self.items['raw'][0]
         dset2.add_data_item(packet, self.mock_targets[0], self.mock_meta[0])
         self.assertRaises(ValueError, dset1.merge_with, dset2)
@@ -202,29 +202,29 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
     # test dataset compatibility checking
 
     def test_is_compatible_with(self):
-        dset1 = ds.numpy_dataset(self.name, self.packet_shape)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape)
+        dset1 = ds.NumpyDataset(self.name, self.packet_shape)
+        dset2 = ds.NumpyDataset(self.name, self.packet_shape)
         self.assertTrue(dset1.is_compatible_with(dset2))
 
     def test_is_compatible_with_bad_packet_shape(self):
         bad_packet_shape = (self.n_f + 1, self.f_h, self.f_h)
-        dset1 = ds.numpy_dataset(self.name, bad_packet_shape)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape)
+        dset1 = ds.NumpyDataset(self.name, bad_packet_shape)
+        dset2 = ds.NumpyDataset(self.name, self.packet_shape)
         self.assertFalse(dset1.is_compatible_with(dset2))
 
     def test_is_compatible_with_bad_item_types(self):
         bad_item_types = self.item_types.copy()
         bad_item_types['raw'] = not bad_item_types['raw']
-        dset1 = ds.numpy_dataset(self.name, self.packet_shape,
-                                 item_types=bad_item_types)
-        dset2 = ds.numpy_dataset(self.name, self.packet_shape,
-                                 item_types=self.item_types)
+        dset1 = ds.NumpyDataset(self.name, self.packet_shape,
+                                item_types=bad_item_types)
+        dset2 = ds.NumpyDataset(self.name, self.packet_shape,
+                                item_types=self.item_types)
         self.assertFalse(dset1.is_compatible_with(dset2))
 
     # test adding new metafield with default value
 
     def test_add_metafield(self):
-        dset = ds.numpy_dataset(self.name, self.packet_shape)
+        dset = ds.NumpyDataset(self.name, self.packet_shape)
         packet = self.items['raw'][0]
         exp_meta = self.mock_meta.copy()
         exp_meta[0] = exp_meta[0].copy()
@@ -245,8 +245,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
     # dtype functionality
 
     def test_implicit_dtype_conversion_when_adding_items(self):
-        dset = ds.numpy_dataset(self.name, self.packet_shape, dtype='float16',
-                                item_types=self.item_types)
+        dset = ds.NumpyDataset(self.name, self.packet_shape, dtype='float16',
+                               item_types=self.item_types)
         dset.add_data_item(self.items['raw'][0], self.mock_targets[0],
                            self.mock_meta[0])
         items_dict = dset.get_data_as_dict()
@@ -255,8 +255,8 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
                 self.assertEqual(items_dict[itype][0].dtype.name, 'float16')
 
     def test_dtype_casting(self):
-        dset = ds.numpy_dataset(self.name, self.packet_shape,
-                                item_types=self.item_types)
+        dset = ds.NumpyDataset(self.name, self.packet_shape,
+                               item_types=self.item_types)
         dset.add_data_item(self.items['raw'][0], self.mock_targets[0],
                            self.mock_meta[0])
         dset.dtype = 'float16'

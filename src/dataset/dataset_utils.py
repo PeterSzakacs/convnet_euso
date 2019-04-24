@@ -8,7 +8,7 @@ import dataset.metadata_utils as meta
 import dataset.target_utils as targ
 
 
-class numpy_dataset:
+class NumpyDataset:
     """
         Class representing a dataset composed of data items of multiple types,
         all derived from packet data, and providing commonly used functionality
@@ -179,7 +179,7 @@ class numpy_dataset:
             Parameters
             ----------
             :param other_dataset:   the dataset to check compatibility of
-            :type other_dataset:    utils.dataset_utils.numpy_dataset
+            :type other_dataset:    utils.dataset_utils.NumpyDataset
         """
         if other_dataset.item_types != self.item_types:
             return False
@@ -194,7 +194,7 @@ class numpy_dataset:
             Parameters
             ----------
             :param other_dataset:   the dataset to merge into the current one.
-            :type other_dataset:    utils.dataset_utils.numpy_dataset
+            :type other_dataset:    utils.dataset_utils.NumpyDataset
             :param items_slice_or_idx:  the slice of items from the dataset tp
                                         merge into the current dataset. Can be
                                         a simple numeric index or a slice.

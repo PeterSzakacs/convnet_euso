@@ -125,14 +125,14 @@ class simulated_data_generator():
                                 module-level constant.
             Returns
             -------
-            dataset :   utils.dataset_utils.numpy_dataset
+            dataset :   utils.dataset_utils.NumpyDataset
                         A numpy dataset with capacity and num_items both equal
                         to num_data.
         """
         # create output data holders as needed
         template_shape = self._bg_template.packet_template.packet_shape
-        dataset = ds.numpy_dataset(name, template_shape, item_types=item_types,
-                                   dtype=dtype)
+        dataset = ds.NumpyDataset(name, template_shape, item_types=item_types,
+                                  dtype=dtype)
 
         # output and target generation
         ec_gen = self._bg_template.get_new_bad_ECs

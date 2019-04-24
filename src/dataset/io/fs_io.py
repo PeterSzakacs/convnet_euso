@@ -272,8 +272,8 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
         """
         attrs = self.load_dataset_config(name)
         itypes = item_types or attrs['item_types']
-        dataset = ds.numpy_dataset(name, attrs['packet_shape'],
-                                   item_types=itypes, dtype=attrs['dtype'])
+        dataset = ds.NumpyDataset(name, attrs['packet_shape'],
+                                  item_types=itypes, dtype=attrs['dtype'])
         return dataset
 
     def load_data(self, name, item_types):
@@ -318,13 +318,13 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
             :type item_types:   typing.Mapping[str, bool]
         """
         # TODO: Think of a way to load dataset with items that does not depend
-        # on knowledge of numpy_dataset internals
+        # on knowledge of NumpyDataset internals
         # currently excluded from unit tests for that very reason
         self._check_before_read()
         config = self.load_dataset_config(name)
         itypes = item_types or config['item_types']
-        dataset = ds.numpy_dataset(name, config['packet_shape'],
-                                   item_types=itypes)
+        dataset = ds.NumpyDataset(name, config['packet_shape'],
+                                  item_types=itypes)
         data = self.load_data(name, dataset.item_types)
         targets = self._target_handler.load_targets(name)
         metadata = self._meta_handler.load_metadata(name)
@@ -371,7 +371,7 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
             Parameters
             ----------
             :param dataset:        the dataset to save/persist.
-            :type dataset:         utils.dataset_utils.numpy_dataset
+            :type dataset:         utils.dataset_utils.NumpyDataset
             :param metafields_order:    (optional) ordering of fields (columns)
                                         in the created metadata TSV.
             :type metafields_order:     typing.Sequence[str]
