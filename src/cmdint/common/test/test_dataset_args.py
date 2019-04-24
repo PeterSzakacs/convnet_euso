@@ -20,8 +20,8 @@ class TestDatasetArgs(unittest.TestCase):
             'dataset name': 'out_name', 'dataset directory': 'out_dir',
             'dataset': 'out_dset'
         }
-        cls.dset_args = dargs.dataset_args(input_aliases=cls.in_alss,
-                                            output_aliases=cls.out_alss)
+        cls.dset_args = dargs.DatasetArgs(input_aliases=cls.in_alss,
+                                          output_aliases=cls.out_alss)
 
     # test methods
     # dataset single-argument input/output

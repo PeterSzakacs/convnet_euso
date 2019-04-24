@@ -23,7 +23,7 @@ class cmd_interface():
         # input dataset settings
         group = parser.add_argument_group(title="Input dataset")
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-        dset_args = dargs.dataset_args(input_aliases=in_aliases)
+        dset_args = dargs.DatasetArgs(input_aliases=in_aliases)
         dset_args.add_dataset_arg_double(group, dargs.arg_type.INPUT,
                                          required=True,
                                          dir_default=os.path.curdir)

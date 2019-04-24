@@ -11,8 +11,8 @@ class cmd_interface():
                          'concatenating them in the order they are passed'))
         in_aliases = {'dataset': 'dataset'}
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
-        dset_args = dargs.dataset_args(input_aliases=in_aliases,
-                                       output_aliases=out_aliases)
+        dset_args = dargs.DatasetArgs(input_aliases=in_aliases,
+                                      output_aliases=out_aliases)
 
         group = parser.add_argument_group(title="Input dataset settings")
         dset_args.add_dataset_arg_single(group, dargs.arg_type.INPUT,

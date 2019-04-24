@@ -29,7 +29,7 @@ class cmd_interface():
 
         group = parser.add_argument_group(title='Output settings')
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
-        dset_args = dargs.dataset_args(output_aliases=out_aliases)
+        dset_args = dargs.DatasetArgs(output_aliases=out_aliases)
         dset_args.add_dataset_arg_double(group, dargs.arg_type.OUTPUT,
                                          dir_short_alias='d', dir_default='.',
                                          name_short_alias='n')

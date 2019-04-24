@@ -42,7 +42,7 @@ class cmd_interface():
                            help=('name of network module used and '
                                  'corresponding trained model file.'))
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-        dset_args = dargs.dataset_args(input_aliases=in_aliases)
+        dset_args = dargs.DatasetArgs(input_aliases=in_aliases)
         dset_args.add_dataset_arg_double(group, dargs.arg_type.INPUT,
                                          required=False)
 

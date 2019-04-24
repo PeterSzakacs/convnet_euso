@@ -11,7 +11,7 @@ class arg_type(enum.Enum):
 # loading or storing of datasets
 
 
-class dataset_args:
+class DatasetArgs:
 
     input_arg_aliases = {
         'dataset name': 'input_name', 'dataset directory': 'srcdir',

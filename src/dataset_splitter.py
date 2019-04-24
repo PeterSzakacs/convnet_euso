@@ -30,8 +30,8 @@ if __name__ == "__main__":
                      'or shrink original dataset'))
     in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
     out_aliases = {'dataset name': 'out_name', 'dataset directory': 'outdir'}
-    dset_args = dargs.dataset_args(input_aliases=in_aliases,
-                                   output_aliases=out_aliases)
+    dset_args = dargs.DatasetArgs(input_aliases=in_aliases,
+                                  output_aliases=out_aliases)
 
     group = parser.add_argument_group(title='Input dataset settings')
     dset_args.add_dataset_arg_double(group, dargs.arg_type.INPUT)

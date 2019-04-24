@@ -10,7 +10,7 @@ if __name__ == "__main__":
         description=('Randomly shuffle dataset a given number of times'),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-    dset_args = dargs.dataset_args(input_aliases=in_aliases)
+    dset_args = dargs.DatasetArgs(input_aliases=in_aliases)
     dset_args.add_dataset_arg_double(parser, dargs.arg_type.INPUT)
     parser.add_argument('--num_shuffles', type=atypes.int_range(0), default=0,
                         help='Number of times the dataset should be shuffled.')

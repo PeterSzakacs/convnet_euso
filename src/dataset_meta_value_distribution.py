@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     group = parser.add_argument_group(title='Dataset settings')
     in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
-    dset_args = dargs.dataset_args(input_aliases=in_aliases)
+    dset_args = dargs.DatasetArgs(input_aliases=in_aliases)
     dset_args.add_dataset_arg_double(group, dargs.arg_type.INPUT)
     # slice of dataset items to use for evaluation
     group.add_argument('--start_item', default=0, type=int,
