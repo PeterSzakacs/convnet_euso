@@ -48,11 +48,9 @@ if __name__ == '__main__':
 
     # output results
     meta_fields = dataset.metadata_fields
-    meta_order = args.meta_order
-    extra_fields = meta_fields.difference(meta_order)
-    extra_fields = list(extra_fields)
+    extra_fields = list(meta_fields)
     extra_fields.sort()
-    headers = netutils.CLASSIFICATION_FIELDS + meta_order + extra_fields
+    headers = netutils.CLASSIFICATION_FIELDS + extra_fields
     writer = csv.DictWriter(args.outfile, headers, delimiter='\t')
     writer.writeheader()
     writer.writerows(log_data)

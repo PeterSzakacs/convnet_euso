@@ -44,17 +44,8 @@ class CmdInterface():
                                   'On systems without a dedicated CUDA device '
                                   'and no CUDA-enabled version  of tensorflow '
                                   'installed, this flag has no effect.'))
-        # parser.add_argument('--onlyerr', action='store_true',
-        #                     help=('Include only failed predictions in the '
-        #                           'output'))
-
-        # metafields order of the generated TSV
-        meta_args = cargs.MetafieldOrderArg()
-        g_title = "Order of metadata fields in the generated TSV"
-        meta_args.add_metafields_order_arg(parser, group_title=g_title)
 
         self.parser = parser
-        self.meta_args = meta_args
         self.dset_args = dset_args
         self.item_args = item_args
 
@@ -64,7 +55,6 @@ class CmdInterface():
 
         atype = dargs.arg_type.INPUT
         args.item_types = self.item_args.get_item_types(args, atype)
-        args.meta_order = self.meta_args.get_metafields_order(args)
 
         network_name, model_file = args.network, args.model_file
         if not os.path.exists(model_file + ".meta"):
