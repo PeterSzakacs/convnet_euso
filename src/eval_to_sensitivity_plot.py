@@ -13,7 +13,7 @@ def _cm_iter(group_df, all_targets, cm_func=metrics.confusion_matrix):
 
 def _get_fill_attrs_list(num_plots, **settings):
     fill_def = dutils.EFFICIENCY_STAT_FILL_BETWEEN_DEFAULTS
-    plt_colors = args.get('plot_colors')
+    plt_colors = settings.get('plot_colors')
     if plt_colors is None:
         return [fill_def] * num_plots
     else:
@@ -22,9 +22,9 @@ def _get_fill_attrs_list(num_plots, **settings):
 
 def _get_err_attrs_list(num_plots, **settings):
     err_def = dutils.EFFICIENCY_STAT_ERRORBAR_DEFAULTS
-    plt_colors = args.get('plot_colors')
+    plt_colors = settings.get('plot_colors')
     if plt_colors is None:
-        return [err_def] * num_lines
+        return [err_def] * num_plots
     else:
         return [{**err_def, 'color': color} for color in plt_colors]
 
@@ -83,10 +83,9 @@ def main(**args):
     err_attrs = _get_err_attrs_list(num_plotlines, **args)
     fill_attrs = _get_fill_attrs_list(num_plotlines, **args)
     fontsizes = _get_fontsizes(**args)
-    args = {**args, **fontsizes}
 
     # main loop
-    ax = _create_sensitivity_ax(column, **args)
+    ax = _create_sensitivity_ax(column, **{**args, **fontsizes})
     errorbars = []
     target_idx = all_targets.index(target)
     fields = ['output', 'target', column]
