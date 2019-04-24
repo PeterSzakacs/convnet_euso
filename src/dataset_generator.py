@@ -178,7 +178,7 @@ if __name__ == '__main__':
     data_generator = simulated_data_generator(
         args.shower_template, args.bg_template
     )
-    handler = io_utils.dataset_fs_persistency_handler(save_dir=args.outdir)
+    handler = io_utils.DatasetFsPersistencyHandler(save_dir=args.outdir)
     dataset = data_generator.create_dataset(args.name, args.num_data,
                                             item_types=args.item_types,
                                             dtype=args.dtype)

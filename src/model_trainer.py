@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     # load dataset
     name, srcdir, item_types = args['name'], args['srcdir'], args['item_types']
-    input_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+    input_handler = io_utils.DatasetFsPersistencyHandler(load_dir=srcdir)
     dataset = input_handler.load_dataset(name, item_types=item_types)
 
     # create splitter and split dataset into train and test data

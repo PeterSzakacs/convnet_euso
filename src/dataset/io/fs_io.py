@@ -182,7 +182,7 @@ class DatasetTargetsFsPersistencyHandler(FsPersistencyHandler):
         return filename
 
 
-class dataset_fs_persistency_handler(FsPersistencyHandler):
+class DatasetFsPersistencyHandler(FsPersistencyHandler):
 
     # static attributes and methods
 
@@ -193,7 +193,7 @@ class dataset_fs_persistency_handler(FsPersistencyHandler):
     def __init__(self, load_dir=None, save_dir=None, data_files_suffixes={},
                  configfile_suffix=None, targets_handler=None,
                  metadata_handler=None):
-        super(dataset_fs_persistency_handler, self).__init__(
+        super(DatasetFsPersistencyHandler, self).__init__(
             load_dir, save_dir)
         self._conf = configfile_suffix or self.DEFAULT_CONFIG_FILE_SUFFIX
         self._data = {}

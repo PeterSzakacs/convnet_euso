@@ -17,7 +17,7 @@ def main(**settings):
     # load dataset
     name, srcdir = settings['name'], settings['srcdir']
     item_types = settings['item_types']
-    input_handler = dset_io.dataset_fs_persistency_handler(load_dir=srcdir)
+    input_handler = dset_io.DatasetFsPersistencyHandler(load_dir=srcdir)
     dataset = input_handler.load_dataset(name, item_types=item_types)
     items_slice = settings.get('items_slice', slice(0, None))
     data = dataset.get_data_as_dict(items_slice)

@@ -164,7 +164,7 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
 
         with mock.patch('os.path.isdir', return_value=True),\
              mock.patch('os.path.exists', return_value=True):
-            cls.handler = io_utils.dataset_fs_persistency_handler(
+            cls.handler = io_utils.DatasetFsPersistencyHandler(
                 cls.loaddir,
                 cls.savedir,
                 data_files_suffixes=suffixes,

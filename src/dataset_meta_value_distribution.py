@@ -47,7 +47,7 @@ if __name__ == "__main__":
     outfile = args.outfile
     attr = args.attribute
     name, srcdir = dset_args.get_dataset_double(args,dargs.arg_type.INPUT)
-    io_handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+    io_handler = io_utils.DatasetFsPersistencyHandler(load_dir=srcdir)
     dset = io_handler.load_dataset(name)
     items_slice = slice(args.start_item, args.stop_item)
     metadata = dset.get_metadata(items_slice)

@@ -38,7 +38,7 @@ if __name__ == '__main__':
     else:
         meta_text_adder = meta_to_text[text_conv]
 
-    handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+    handler = io_utils.DatasetFsPersistencyHandler(load_dir=srcdir)
     dataset = handler.load_dataset(name, item_types=item_types)
 
     start, stop = args.start_item, args.stop_item

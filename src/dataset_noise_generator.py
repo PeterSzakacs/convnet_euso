@@ -63,7 +63,7 @@ def main(**kwargs):
     num_items, dtype = kwargs['num_items'], kwargs['dtype']
     dataset = ds.NumpyDataset(name, packet_shape, item_types=item_types,
                               dtype=dtype)
-    handler = io_utils.dataset_fs_persistency_handler(save_dir=outdir)
+    handler = io_utils.DatasetFsPersistencyHandler(save_dir=outdir)
 
     target = targ.get_target_name('noise')
     for idx in range(num_items):

@@ -19,14 +19,14 @@ if __name__ == "__main__":
     dtype = args.dtype
     persistency_handlers = []
     name, srcdir = in_dsets[0][:]
-    handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+    handler = io_utils.DatasetFsPersistencyHandler(load_dir=srcdir)
     first_dataset = handler.load_empty_dataset(name)
     if dtype:
         first_dataset.dtype = dtype
     persistency_handlers.append((name, handler))
     for idx in range(1, len(in_dsets)):
         name, srcdir = in_dsets[idx][:]
-        handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
+        handler = io_utils.DatasetFsPersistencyHandler(load_dir=srcdir)
         dataset = handler.load_empty_dataset(name)
         if first_dataset.is_compatible_with(dataset):
             persistency_handlers.append((name, handler))
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     # one and then save in the new directory
     outname, outdir = args.name, args.outdir
     first_dataset.name = outname
-    output_handler = io_utils.dataset_fs_persistency_handler(save_dir=outdir)
+    output_handler = io_utils.DatasetFsPersistencyHandler(save_dir=outdir)
     for tup in persistency_handlers:
         name, handler = tup[:]
         dataset = handler.load_dataset(name)
