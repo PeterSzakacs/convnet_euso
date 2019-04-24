@@ -46,14 +46,9 @@ class CmdInterface():
         dset_args.add_dataset_arg_double(group, dargs.arg_type.INPUT,
                                          required=False)
 
-        # order of metadata columns in the report
-        g_title = 'Metadata column order of report files'
-        meta_args = cargs.MetafieldOrderArg()
-        meta_args.add_metafields_order_arg(parser, group_title=g_title)
         self.parser = parser
         self.dset_args = dset_args
         self.item_args = item_args
-        self.meta_args = meta_args
 
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
@@ -63,7 +58,5 @@ class CmdInterface():
 
         atype = dargs.arg_type.INPUT
         args.name, args.srcdir = self.dset_args.get_dataset_double(args, atype)
-
-        args.meta_order = self.meta_args.get_metafields_order(args)
 
         return args

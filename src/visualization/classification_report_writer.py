@@ -17,12 +17,12 @@ class ReportWriter:
     DEFAULT_MAX_TABLE_SIZE=2000
 
 
-    def __init__(self, savedir, table_size=None, extra_fields=None,
+    def __init__(self, savedir, table_size=None, extra_fields_order=None,
                  css_rules=None):
         # properties
         self.savedir = savedir
         self.table_size = table_size
-        self.extra_fields = extra_fields
+        self.extra_fields = extra_fields_order
         self.css_rules = css_rules
         # html writers
         self._fil = html.HTMLWriter()

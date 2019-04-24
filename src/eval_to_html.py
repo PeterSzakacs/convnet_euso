@@ -28,15 +28,12 @@ if __name__ == "__main__":
     os.makedirs(logdir, exist_ok=True)
 
     in_reader = csv.DictReader(args.infile, delimiter='\t')
+    all_fields = in_reader.fieldnames
+    mandatory_fields = netutils.CLASSIFICATION_FIELDS
+    extra_fields = [field for field in all_fields
+                    if field not in mandatory_fields]
     log_data = []
 
-    fst_row = next(in_reader)
-    log_data.append(fst_row)
-    exp_fields = netutils.CLASSIFICATION_FIELDS + args.meta_order
-    extra_fields = fst_row.keys() - exp_fields
-    extra_fields = list(extra_fields)
-    extra_fields.sort()
-    extra_fields = args.meta_order + extra_fields
     for row in in_reader:
         log_data.append(row)
     args.infile.close()
@@ -44,5 +41,5 @@ if __name__ == "__main__":
                'dataset': args.name, 'item_types': args.item_types}
 
     writer = cwriter.ReportWriter(logdir, table_size=args.tablesize,
-                                  extra_fields=extra_fields)
+                                  extra_fields_order=extra_fields)
     writer.write_reports(log_data, context)
