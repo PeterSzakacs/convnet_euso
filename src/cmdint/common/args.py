@@ -9,8 +9,9 @@ import utils.data_templates as templates
 
 class PacketArgs:
 
-    def __init__(self, long_alias='packet_dims'):
+    def __init__(self, long_alias='packet_dims', no_EC_dims=False):
         self.long_alias = long_alias
+        self._no_EC = no_EC_dims
         self.metavar = ('NUM_GTU', 'HEIGHT', 'WIDTH', 'EC_HEIGHT', 'EC_WIDTH')
         self.helpstr = ('Dimensions of packet data. Width and height must be'
                         ' evenly divisible by EC width or height respectively')
@@ -28,10 +29,20 @@ class PacketArgs:
         if short_alias is not None:
             aliases.append('-{}'.format(short_alias))
         aliases.append('--{}'.format(self.long_alias))
-        parser.add_argument(*aliases, metavar=self.metavar, nargs=5,
+        if self._no_EC:
+            meta = self.metavar[:3]
+            nargs = 3
+        else:
+            meta = self.metavar
+            nargs = 5
+        parser.add_argument(*aliases, metavar=meta, nargs=nargs,
                             type=atypes.int_range(1), required=required,
                             help=self.helpstr)
         return parser
+
+    def packet_arg_to_packet_shape(self, args):
+        n_gtu, f_h, f_w = getattr(args, self.long_alias, None)[0:3]
+        return (n_gtu, f_h, f_w)
 
     def packet_arg_to_template(self, args):
         n_gtu, f_h, f_w, ec_h, ec_w = getattr(args, self.long_alias, None)[0:5]

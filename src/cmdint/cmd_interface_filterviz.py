@@ -18,7 +18,8 @@ class CmdInterface():
         group = parser.add_argument_group('Neural network settings')
         net_args.add_network_arg(group, short_alias='n')
         net_args.add_model_file_arg(group, short_alias='m', required=True)
-        packet_args = cargs.PacketArgs(long_alias='packet_dims')
+        packet_args = cargs.PacketArgs(long_alias='packet_dims',
+                                       no_EC_dims=True)
         packet_args.helpstr = 'Dimensions of packets used for input items'
         packet_args.add_packet_arg(group, short_alias='p')
 
@@ -51,14 +52,14 @@ class CmdInterface():
         logdir = args.logdir
         if not os.path.isdir(logdir):
             raise Exception('Invalid logdir: {}'.format(logdir))
-        template = self.packet_args.packet_arg_to_template(args)
+        packet_shape = self.packet_args.packet_arg_to_packet_shape(args)
 
         args_dict = {}
         args_dict['network'] = args.network
         args_dict['model_file'] = args.model_file
         args_dict['usecpu'] = args.usecpu
         args_dict['logdir'] = logdir
-        args_dict['packet_shape'] = template.packet_shape
+        args_dict['packet_shape'] = packet_shape
         args_dict['filter_slice'] = slice(args.start_filter, args.stop_filter)
         args_dict['depth_slice'] = slice(args.start_depth, args.stop_depth)
 
