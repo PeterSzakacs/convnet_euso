@@ -36,7 +36,7 @@ class PacketArgs:
 
     def packet_arg_to_template(self, args):
         n_gtu, f_h, f_w, ec_h, ec_w = getattr(args, self.long_alias, None)[0:5]
-        return templates.packet_template(ec_w, ec_h, f_w, f_h, n_gtu)
+        return templates.PacketTemplate(ec_w, ec_h, f_w, f_h, n_gtu)
 
     def packet_arg_to_string(self, args):
         n_gtu, f_h, f_w, ec_h, ec_w = getattr(args, self.long_alias, None)[0:5]

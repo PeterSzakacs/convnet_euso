@@ -31,7 +31,7 @@ def save_TSV(filename, rows, column_order, file_exists_overwrite=False):
 
 class PacketExtractor():
 
-    def __init__(self, packet_template=templates.packet_template(
+    def __init__(self, packet_template=templates.PacketTemplate(
                        16, 16, 48, 48, 128)):
         self.packet_template = packet_template
 
@@ -41,7 +41,7 @@ class PacketExtractor():
 
     @packet_template.setter
     def packet_template(self, value):
-        if (value is None or not isinstance(value, templates.packet_template)):
+        if (value is None or not isinstance(value, templates.PacketTemplate)):
             raise TypeError("Not a valid packet template object: {}".format(
                             value))
         self._template = value

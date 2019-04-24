@@ -4,7 +4,7 @@ import utils.common_utils as cutils
 import utils.shower_generators as gen
 
 
-class packet_template(cutils.CommonEqualityMixin):
+class PacketTemplate(cutils.CommonEqualityMixin):
     """Template for storing dimensions of packet data"""
 
     def __init__(self, EC_width, EC_height, frame_width, frame_height,
@@ -108,8 +108,8 @@ class simulated_shower_template(cutils.CommonEqualityMixin):
     def __init__(self, p_template, shower_duration, shower_max, track_len,
                  start_gtu=None, start_y=None, start_x=None,
                  values_generator=None):
-        if not isinstance(p_template, packet_template):
-            raise TypeError(('Required object of type packet_template as first'
+        if not isinstance(p_template, PacketTemplate):
+            raise TypeError(('Required object of type PacketTemplate as first'
                             ' argument, got {}').format(type(p_template)))
         self._template = p_template
         self.shower_duration = shower_duration
@@ -289,9 +289,9 @@ class synthetic_background_template(cutils.CommonEqualityMixin):
 
     def __init__(self, p_template, bg_lambda=(1.0, 1.0),
                  bad_ECs_range=(0, 0)):
-        if not isinstance(p_template, packet_template):
+        if not isinstance(p_template, PacketTemplate):
             raise TypeError(('First parameter must be an object of type'
-                            ' packet_template, instead got {}').format(
+                            ' PacketTemplate, instead got {}').format(
                             type(p_template)))
         self._template = p_template
         self.bg_lambda_range = bg_lambda

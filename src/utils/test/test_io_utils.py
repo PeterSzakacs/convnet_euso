@@ -107,8 +107,8 @@ class TestPacketExtractor(unittest.TestCase):
         # packet template for the functions
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20
-        cls.template = templates.packet_template(EC_width, EC_height,
-                                                 width, height, num_frames)
+        cls.template = templates.PacketTemplate(EC_width, EC_height,
+                                                width, height, num_frames)
         # the packets as used in the functions
         n_packets = 2
         cls.packets = np.ones((n_packets * num_frames, height, width),

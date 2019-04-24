@@ -18,7 +18,7 @@ class TestModuleFunctions(unittest.TestCase):
     def test_simu_shower(self):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 20
-        template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
+        template = templates.PacketTemplate(EC_width, EC_height, width, height, num_frames)
         generator = gen.FlatValsGenerator(20, 10)
 
         angles         = [45, 135, 225, 315, 45, 135, 225, 315]
@@ -66,7 +66,7 @@ class TestModuleFunctions(unittest.TestCase):
         width, height, num_frames = 48, 64, 20
         num_EC = int((width * height) / (EC_width * EC_height))
         shower_ec_indexes = [2, 5]
-        template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
+        template = templates.PacketTemplate(EC_width, EC_height, width, height, num_frames)
         packet = np.ones((num_frames, height, width))
 
         # case 1: method should terminate without selecting any ECs at all

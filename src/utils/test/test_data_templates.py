@@ -10,7 +10,7 @@ class TestPacketTemplate(unittest.TestCase):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 128
         num_EC = (width * height) / (EC_width * EC_height)
-        template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
+        template = templates.PacketTemplate(EC_width, EC_height, width, height, num_frames)
         self.assertEqual(EC_width, template.EC_width)
         self.assertEqual(EC_height, template.EC_height)
         self.assertEqual(width, template.frame_width)
@@ -23,20 +23,20 @@ class TestPacketTemplate(unittest.TestCase):
 
         # test creating a template from incosistent properties
         ## first: negative values
-        self.assertRaises(ValueError, templates.packet_template, -1, EC_height, width, height, num_frames)
-        self.assertRaises(ValueError, templates.packet_template, EC_width, -1, width, height, num_frames)
-        self.assertRaises(ValueError, templates.packet_template, EC_width, EC_height, -1, height, num_frames)
-        self.assertRaises(ValueError, templates.packet_template, EC_width, EC_height, width, -1, num_frames)
-        self.assertRaises(ValueError, templates.packet_template, EC_width, EC_height, width, height, -1)
+        self.assertRaises(ValueError, templates.PacketTemplate, -1, EC_height, width, height, num_frames)
+        self.assertRaises(ValueError, templates.PacketTemplate, EC_width, -1, width, height, num_frames)
+        self.assertRaises(ValueError, templates.PacketTemplate, EC_width, EC_height, -1, height, num_frames)
+        self.assertRaises(ValueError, templates.PacketTemplate, EC_width, EC_height, width, -1, num_frames)
+        self.assertRaises(ValueError, templates.PacketTemplate, EC_width, EC_height, width, height, -1)
 
         # second: width and height that are not evenly divisible by EC_width or EC_height respectively
-        self.assertRaises(ValueError, templates.packet_template, EC_height+1, EC_width, width, height, num_frames)
-        self.assertRaises(ValueError, templates.packet_template, EC_height, EC_width+1, width, height, num_frames)
+        self.assertRaises(ValueError, templates.PacketTemplate, EC_height + 1, EC_width, width, height, num_frames)
+        self.assertRaises(ValueError, templates.PacketTemplate, EC_height, EC_width + 1, width, height, num_frames)
 
     def test_unit_conversions(self):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 128
-        template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
+        template = templates.PacketTemplate(EC_width, EC_height, width, height, num_frames)
         xs      = [0,  10, 21, 30, 21, 40, 0]
         ys      = [10, 0,  1,  42, 10, 50, 0]
         ec_ids  = [0,  0,  1,  4,  1,  5,  0]
@@ -53,14 +53,14 @@ class TestPacketTemplate(unittest.TestCase):
     def test_equality_check(self):
         EC_width, EC_height = 16, 32
         width, height, num_frames = 48, 64, 128
-        template = templates.packet_template(EC_width, EC_height, width, height, num_frames)
-        template2 = templates.packet_template(EC_width, EC_height, width, height, num_frames)
+        template = templates.PacketTemplate(EC_width, EC_height, width, height, num_frames)
+        template2 = templates.PacketTemplate(EC_width, EC_height, width, height, num_frames)
         self.assertEqual(template, template2)
-        template2 = templates.packet_template(EC_width, EC_height, width + EC_width, height, num_frames)
+        template2 = templates.PacketTemplate(EC_width, EC_height, width + EC_width, height, num_frames)
         self.assertNotEqual(template, template2)
-        template2 = templates.packet_template(EC_width, EC_height, width, height + EC_height, num_frames)
+        template2 = templates.PacketTemplate(EC_width, EC_height, width, height + EC_height, num_frames)
         self.assertNotEqual(template, template2)
-        template2 = templates.packet_template(EC_width, EC_height, width, height, num_frames + 1)
+        template2 = templates.PacketTemplate(EC_width, EC_height, width, height, num_frames + 1)
         self.assertNotEqual(template, template2)
 
 
@@ -81,7 +81,7 @@ class TestSimuShowerTemplate(unittest.TestCase):
 
     def test_property_checking(self):
         gtu, w, h, ec_w, ec_h = 128, 64, 48, 32, 16
-        template = templates.packet_template(ec_w, ec_h, w, h, gtu)
+        template = templates.PacketTemplate(ec_w, ec_h, w, h, gtu)
         start_x, start_y, start_gtu = (3, 5), (1, 10), (2, 4)
         duration, shower_max = (2, 10), (7, 15)
         shower_template = templates.simulated_shower_template(template, duration, shower_max)
@@ -113,7 +113,7 @@ class TestSimuShowerTemplate(unittest.TestCase):
 
     def test_property_generators(self):
         gtu, w, h, ec_w, ec_h = 128, 64, 48, 32, 16
-        template = templates.packet_template(ec_w, ec_h, w, h, gtu)
+        template = templates.PacketTemplate(ec_w, ec_h, w, h, gtu)
         sx, sy, sg = 3, 10, 2
         d, m = 7, 15
         shower_template = templates.simulated_shower_template(template,
@@ -150,7 +150,7 @@ class TestSimuShowerTemplate(unittest.TestCase):
 
     def test_equality_check(self):
         gtu, w, h, ec_w, ec_h = 128, 64, 48, 32, 16
-        template = templates.packet_template(ec_w, ec_h, w, h, gtu)
+        template = templates.PacketTemplate(ec_w, ec_h, w, h, gtu)
         sx, sy, sg = (3, 5), (1, 10), (2, 4)
         d, m = (2, 10), (7, 15)
         shower_template = templates.simulated_shower_template(template, d, m,
@@ -186,7 +186,7 @@ class TestSimuShowerTemplate(unittest.TestCase):
 
     def test_equality_check(self):
         gtu, w, h, ec_w, ec_h = 128, 64, 48, 32, 16
-        t = templates.packet_template(ec_w, ec_h, w, h, gtu)
+        t = templates.PacketTemplate(ec_w, ec_h, w, h, gtu)
 
         lam, bec = (0.1, 0.6), (1, 2)
         bg_temp = templates.synthetic_background_template(t, bg_lambda=lam,

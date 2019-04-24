@@ -15,7 +15,7 @@ def create_simu_shower_line(yx_angle, start_coordinate, packet_template,
         every frame or GTU of am packet.
 
         The values and coordinates will be trimmed if necessary to conform
-        to the dimensions of a packet specified through the packet_template
+        to the dimensions of a packet specified through the PacketTemplate
         parameter (to prevent going outside the number of packet frames or
         frame width or height).
 
@@ -30,7 +30,7 @@ def create_simu_shower_line(yx_angle, start_coordinate, packet_template,
         yx_angle :          float.
                             angle in degrees under which the shower track
                             appears in the xy projection of the packet.
-        packet_template :   utils.data_templates.packet_template.
+        packet_template :   utils.data_templates.PacketTemplate.
                             template of the packet in which this simulated
                             shower occurs. This is to shave off any pixels
                             that are outside the packet boundaries.
@@ -117,8 +117,8 @@ def create_simu_shower_line_from_template(shower_template, yx_angle,
 #     vals_generator = shower_template.values_generator
 #     vals_generator.reset(shower_max, duration)
 
-#     packet_template = shower_template.packet_template
-#     GTU, Y, X, Vals = create_simu_shower_line(yx_angle, start, packet_template,
+#     PacketTemplate = shower_template.PacketTemplate
+#     GTU, Y, X, Vals = create_simu_shower_line(yx_angle, start, PacketTemplate,
 #                                               vals_generator)
 #     if return_metadata:
 #         angle = round(yx_angle % 360)
@@ -140,7 +140,7 @@ def select_random_ECs(packet_template, max_ECs, excluded_ECs=[]):
 
         Parameters
         ----------
-        packet_template :   utils.packets.packet_utils.packet_template
+        packet_template :   utils.packets.packet_utils.PacketTemplate
                             template of packet data
         max_errors :        int
                             maximum number of ECs to select.
