@@ -170,7 +170,7 @@ class DatasetArgs:
 # loading or storing of dataset items
 
 
-class item_types_args:
+class ItemTypeArgs:
 
     def __init__(self, in_item_prefix='load', out_item_prefix='store'):
         if in_item_prefix == out_item_prefix:

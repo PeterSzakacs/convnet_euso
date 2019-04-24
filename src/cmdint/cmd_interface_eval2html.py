@@ -29,7 +29,7 @@ class cmd_interface():
                            help=('Directory to store output logs. If a '
                                  'non-default directory is used, it must '
                                  'exist prior to calling this script.'))
-        item_args = dargs.item_types_args(out_item_prefix='add')
+        item_args = dargs.ItemTypeArgs(out_item_prefix='add')
         help = {k: 'add image placeholder for {}'.format(desc)
                 for k, desc in item_args.item_descriptions.items()}
         item_args.add_item_type_args(group, dargs.arg_type.OUTPUT, help=help)

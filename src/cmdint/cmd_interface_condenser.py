@@ -33,7 +33,7 @@ class cmd_interface():
         dset_args.add_dataset_arg_double(group, dargs.arg_type.OUTPUT,
                                          dir_short_alias='d', dir_default='.',
                                          name_short_alias='n')
-        item_args = dargs.item_types_args()
+        item_args = dargs.ItemTypeArgs()
         item_args.add_item_type_args(group, dargs.arg_type.OUTPUT)
         group.add_argument('--target', required=True,
                            choices=cons.CLASSIFICATION_TARGETS.keys(),

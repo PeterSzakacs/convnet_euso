@@ -223,8 +223,8 @@ class TestItemTypeArgs(unittest.TestCase):
         all_types = cons.ALL_ITEM_TYPES
         self.required = {all_types[idx]: (True if idx % 2 == 0 else False)
                          for idx in range(len(all_types))}
-        self.item_args = dargs.item_types_args(in_item_prefix=self.in_prefix,
-                                               out_item_prefix=self.out_prefix)
+        self.item_args = dargs.ItemTypeArgs(in_item_prefix=self.in_prefix,
+                                            out_item_prefix=self.out_prefix)
 
     # test methods
 

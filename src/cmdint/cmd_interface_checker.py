@@ -21,7 +21,7 @@ class cmd_interface():
         atype = dargs.arg_type.INPUT
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
         dset_args = dargs.DatasetArgs(input_aliases=in_aliases)
-        item_args = dargs.item_types_args()
+        item_args = dargs.ItemTypeArgs()
         group = parser.add_argument_group(title="Input dataset")
         dset_args.add_dataset_arg_double(group, atype)
         item_args.add_item_type_args(group, atype)

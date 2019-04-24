@@ -14,7 +14,7 @@ class cmd_interface():
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
         self.packet_args = cargs.PacketArgs()
         self.dset_args = dargs.DatasetArgs(output_aliases=out_aliases)
-        self.item_args = dargs.item_types_args()
+        self.item_args = dargs.ItemTypeArgs()
 
         ds_group = self.parser.add_argument_group('dataset configuration')
         # packet dimensions

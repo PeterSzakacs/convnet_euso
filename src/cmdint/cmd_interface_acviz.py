@@ -27,7 +27,7 @@ class cmd_interface():
         dset_args.add_dataset_arg_double(group, dargs.arg_type.INPUT,
                                          required=True,
                                          dir_default=os.path.curdir)
-        item_args = dargs.item_types_args()
+        item_args = dargs.ItemTypeArgs()
         item_args.add_item_type_args(group, dargs.arg_type.INPUT)
         group.add_argument('--start_item', default=0, type=int,
                            help=('index of first dataset item to use.'))
