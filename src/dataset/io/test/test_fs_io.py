@@ -22,7 +22,7 @@ class TestDatasetMetadataFsPersistencyManager(testset.DatasetMetadataMixin,
         cls.metafile = '{}{}.tsv'.format(cls.name, file_suffix)
         with mock.patch('os.path.isdir', return_value=True),\
              mock.patch('os.path.exists', return_value=True):
-            cls.handler = io_utils.dataset_metadata_fs_persistency_handler(
+            cls.handler = io_utils.DatasetMetadataFsPersistencyHandler(
                 cls.loaddir,
                 cls.savedir,
                 metafile_suffix=file_suffix
@@ -85,7 +85,7 @@ class TestDatasetTargetsFsPersistencyManager(testset.DatasetTargetsMixin,
         cls.targetsfile = '{}{}.npy'.format(cls.name, file_suffix)
         with mock.patch('os.path.isdir', return_value=True),\
              mock.patch('os.path.exists', return_value=True):
-            cls.handler = io_utils.dataset_targets_fs_persistency_handler(
+            cls.handler = io_utils.DatasetTargetsFsPersistencyHandler(
                 cls.loaddir,
                 cls.savedir,
                 classification_targets_file_suffix=file_suffix
@@ -170,10 +170,10 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
                 data_files_suffixes=suffixes,
                 configfile_suffix=conf_suffix,
                 targets_handler=mock.create_autospec(
-                    io_utils.dataset_targets_fs_persistency_handler
+                    io_utils.DatasetTargetsFsPersistencyHandler
                 ),
                 metadata_handler=mock.create_autospec(
-                    io_utils.dataset_metadata_fs_persistency_handler
+                    io_utils.DatasetMetadataFsPersistencyHandler
                 )
             )
 

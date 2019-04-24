@@ -11,10 +11,10 @@ import dataset.dataset_utils as ds
 import dataset.metadata_utils as meta
 import utils.io_utils as io_utils
 
-class fs_persistency_handler(abc.ABC):
+class FsPersistencyHandler(abc.ABC):
 
     def __init__(self, load_dir=None, save_dir=None):
-        super(fs_persistency_handler, self).__init__()
+        super(FsPersistencyHandler, self).__init__()
         self.loaddir = load_dir
         self.savedir = save_dir
 
@@ -53,14 +53,14 @@ class fs_persistency_handler(abc.ABC):
             return True
 
 
-class dataset_metadata_fs_persistency_handler(fs_persistency_handler):
+class DatasetMetadataFsPersistencyHandler(FsPersistencyHandler):
 
     # static attributes and methods
 
     DEFAULT_METADATA_FILE_SUFFIX = '_meta'
 
     def __init__(self, load_dir=None, save_dir=None, metafile_suffix=None):
-        super(dataset_metadata_fs_persistency_handler, self).__init__(
+        super(DatasetMetadataFsPersistencyHandler, self).__init__(
             load_dir, save_dir)
         self._meta = metafile_suffix or self.DEFAULT_METADATA_FILE_SUFFIX
 
@@ -138,7 +138,7 @@ class dataset_metadata_fs_persistency_handler(fs_persistency_handler):
         return filename
 
 
-class dataset_targets_fs_persistency_handler(fs_persistency_handler):
+class DatasetTargetsFsPersistencyHandler(FsPersistencyHandler):
 
     # static attributes and methods
 
@@ -146,7 +146,7 @@ class dataset_targets_fs_persistency_handler(fs_persistency_handler):
 
     def __init__(self, load_dir=None, save_dir=None,
                  classification_targets_file_suffix=None):
-        super(dataset_targets_fs_persistency_handler, self).__init__(
+        super(DatasetTargetsFsPersistencyHandler, self).__init__(
             load_dir, save_dir)
         self._targ = (classification_targets_file_suffix or
                       self.DEFAULT_CLASSIFICATION_TARGETS_FILE_SUFFIX)
@@ -182,7 +182,7 @@ class dataset_targets_fs_persistency_handler(fs_persistency_handler):
         return filename
 
 
-class dataset_fs_persistency_handler(fs_persistency_handler):
+class dataset_fs_persistency_handler(FsPersistencyHandler):
 
     # static attributes and methods
 
@@ -201,10 +201,10 @@ class dataset_fs_persistency_handler(fs_persistency_handler):
             self._data[k] = data_files_suffixes.get(
                 k, self.DEFAULT_DATA_FILES_SUFFIXES[k])
         self._target_handler = (targets_handler or
-                                dataset_targets_fs_persistency_handler(
+                                DatasetTargetsFsPersistencyHandler(
                                     load_dir=load_dir, save_dir=save_dir))
         self._meta_handler   = (metadata_handler or
-                                dataset_metadata_fs_persistency_handler(
+                                DatasetMetadataFsPersistencyHandler(
                                     load_dir=load_dir, save_dir=save_dir))
 
     # properties
