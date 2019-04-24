@@ -12,7 +12,7 @@ if __name__ == '__main__':
     import cmdint.cmd_interface_checker as cmd
 
     # command line argument parsing
-    cmd_int = cmd.cmd_interface()
+    cmd_int = cmd.CmdInterface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
 
     name, srcdir = args.name, args.srcdir

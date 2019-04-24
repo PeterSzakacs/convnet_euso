@@ -6,7 +6,7 @@ import cmdint.common.dataset_args as dargs
 import cmdint.common.network_args as net_args
 import net.constants as net_cons
 
-class cmd_interface():
+class CmdInterface():
 
     def __init__(self):
         self.default_logdir = net_cons.DEFAULT_TRAIN_LOGDIR

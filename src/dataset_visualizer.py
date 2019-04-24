@@ -21,7 +21,7 @@ if __name__ == '__main__':
     import cmdint.cmd_interface_visualizer as cmd
 
     # command line parsing
-    ui = cmd.cmd_interface()
+    ui = cmd.CmdInterface()
     args = ui.get_cmd_args(sys.argv[1:])
     print(args)
 

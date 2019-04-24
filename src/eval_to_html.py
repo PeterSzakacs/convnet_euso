@@ -14,7 +14,7 @@ if __name__ == "__main__":
     import cmdint.cmd_interface_eval2html as cmd
 
     # command line argument parsing
-    cmd_int = cmd.cmd_interface()
+    cmd_int = cmd.CmdInterface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 

@@ -2,9 +2,9 @@ import argparse
 
 import cmdint.common.argparse_types as atypes
 import cmdint.common.args as cargs
-import cmding.common.dataset_args as dargs
+import cmdint.common.dataset_args as dargs
 
-class cmd_interface():
+class CmdInterface():
 
     def __init__(self):
         parser = argparse.ArgumentParser(

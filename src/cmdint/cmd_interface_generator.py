@@ -6,7 +6,7 @@ import cmdint.common.args as cargs
 import cmdint.common.dataset_args as dargs
 import utils.data_templates as templates
 
-class cmd_interface():
+class CmdInterface():
 
     def __init__(self):
         self.parser = argparse.ArgumentParser(

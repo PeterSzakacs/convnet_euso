@@ -5,7 +5,7 @@ import cmdint.common.dataset_args as dargs
 import cmdint.common.network_args as net_args
 
 
-class cmd_interface():
+class CmdInterface():
 
     def __init__(self):
         parser = argparse.ArgumentParser(

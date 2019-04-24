@@ -8,7 +8,7 @@ import cmdint.common.dataset_args as dargs
 import dataset.constants as cons
 import utils.common_utils as cutils
 
-class cmd_interface():
+class CmdInterface():
 
     def __init__(self):
         parser = argparse.ArgumentParser(
