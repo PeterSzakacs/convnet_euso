@@ -38,7 +38,7 @@ class cmd_interface():
 
         # metadat to text converter
         group = parser.add_argument_group(title="Metadata to text converter")
-        m_conv = group.add_mutually_exclusive_group(required=True)
+        m_conv = group.add_mutually_exclusive_group(required=False)
         m_conv.add_argument('--simu', action='store_const', const='simu',
                             help=('Simu metadata converter'))
         m_conv.add_argument('--synth', action='store_const', const='synth',

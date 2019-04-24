@@ -32,7 +32,11 @@ if __name__ == '__main__':
     savedir = os.path.join(outdir, 'img')
     os.makedirs(savedir, exist_ok=args.force_overwrite)
 
-    meta_text_adder = meta_to_text[args.meta_to_text_conv]
+    text_conv = args.meta_to_text_conv
+    if text_conv not in meta_to_text:
+        meta_text_adder = lambda ax, itype, meta: None
+    else:
+        meta_text_adder = meta_to_text[text_conv]
 
     handler = io_utils.dataset_fs_persistency_handler(load_dir=srcdir)
     dataset = handler.load_dataset(name, item_types=item_types)
