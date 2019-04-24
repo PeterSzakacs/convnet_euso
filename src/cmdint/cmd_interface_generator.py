@@ -12,7 +12,7 @@ class cmd_interface():
         self.parser = argparse.ArgumentParser(
             description="Create simulated air shower data as numpy arrays")
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
-        self.packet_args = cargs.packet_args()
+        self.packet_args = cargs.PacketArgs()
         self.dset_args = dargs.dataset_args(output_aliases=out_aliases)
         self.item_args = dargs.item_types_args()
 

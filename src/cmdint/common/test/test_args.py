@@ -13,7 +13,7 @@ class TestPacketArgs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.long_alias = 'packet'
-        cls.packet_args = cargs.packet_args(long_alias=cls.long_alias)
+        cls.packet_args = cargs.PacketArgs(long_alias=cls.long_alias)
 
     # test methods
 

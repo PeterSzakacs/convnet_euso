@@ -10,7 +10,7 @@ class cmd_interface():
         parser = argparse.ArgumentParser(
             description="Create dataset containing simulated noise")
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
-        packet_args = cargs.packet_args()
+        packet_args = cargs.PacketArgs()
         dset_args = dargs.dataset_args(output_aliases=out_aliases)
         item_args = dargs.item_types_args()
 

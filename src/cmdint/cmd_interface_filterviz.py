@@ -18,7 +18,7 @@ class cmd_interface():
         group = parser.add_argument_group('Neural network settings')
         net_args.add_network_arg(group, short_alias='n')
         net_args.add_model_file_arg(group, short_alias='m', required=True)
-        packet_args = cargs.packet_args(long_alias='packet_dims')
+        packet_args = cargs.PacketArgs(long_alias='packet_dims')
         packet_args.helpstr = 'Dimensions of packets used for input items'
         packet_args.add_packet_arg(group, short_alias='p')
 

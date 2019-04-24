@@ -8,7 +8,7 @@ import utils.data_templates as templates
 # packet dimensions (directly required to create a packet template)
 
 
-class packet_args:
+class PacketArgs:
 
     def __init__(self, long_alias='packet_dims'):
         self.long_alias = long_alias

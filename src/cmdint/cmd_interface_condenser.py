@@ -22,7 +22,7 @@ class cmd_interface():
                                   'cache gets full'))
 
         group = parser.add_argument_group(title='Input settings')
-        packet_args = cargs.packet_args()
+        packet_args = cargs.PacketArgs()
         packet_args.add_packet_arg(group)
         group.add_argument('-f', '--filelist', required=True,
                            help=('input files list in TSV format'))
