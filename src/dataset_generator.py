@@ -80,7 +80,6 @@ class simulated_data_generator():
                                                   excluded_ECs=[maxval_EC])
         num_bad_ECs = len(indices)
         meta['bg_lambda'] = lam
-        meta['shower'] = True
         meta['num_bad_ECs'] = num_bad_ECs
         for idx in range(num_bad_ECs):
             final_packet[:, Y[idx], X[idx]] = 0
@@ -95,7 +94,6 @@ class simulated_data_generator():
         num_bad_ECs = len(indices)
         meta = {}
         meta['bg_lambda'] = lam
-        meta['shower'] = False
         meta['num_bad_ECs'] = num_bad_ECs
         for idx in range(len(indices)):
             packet[:, Y[idx], X[idx]] = 0

@@ -16,7 +16,7 @@ def _get_synth_bg_text(metadata):
 
 def _get_synth_shower_text(metadata):
     angle = metadata.get('yx_angle', None)
-    maximum = metadata.get('max', None)
+    maximum = metadata.get('shower_max', None)
     duration = metadata.get('duration', None)
     return "inclination {}°, lasting {} GTUs, peak {} PE counts".format(
         angle, duration, maximum
@@ -93,11 +93,11 @@ def add_simu_metadata(ax, proj_type, metadata):
 
 
 def add_synth_metadata(ax, proj_type, metadata):
-    fig = ax.figure
-    if metadata['shower'] == 'True':
-        fig.suptitle("Shower")
+    # any attribute other than bg_labmda will do
+    if metadata['start_gtu'] != '':
         ax.set_title(_get_synth_shower_text(metadata) + "\n" +
                      "({})".format(_get_synth_bg_text(metadata)))
+        # mark start position of shower with a red dot
         start_x = metadata.get('start_x', None)
         start_y = metadata.get('start_y', None)
         start_gtu = metadata.get('start_gtu', None)
@@ -110,7 +110,6 @@ def add_synth_metadata(ax, proj_type, metadata):
         else:
             raise Exception("Illegal projection type: {}".format(proj_type))
     else:
-        fig.suptitle("Pure noise")
         ax.set_title(_get_synth_bg_text(metadata))
 
 def save_item(ax, save_pathname):

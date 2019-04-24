@@ -15,10 +15,9 @@ CLASSIFICATION_TARGETS = {
 
 # metadata
 
-SYNTH_METADATA      = ['bg_lambda', 'num_bad_ECs', 'shower', 'yx_angle', 'max',
-                       'duration', 'length', 'start_gtu', 'start_y', 'start_x']
-# COMMON_METADATA     = ['source_file_acquisition_full', 'start_gtu', 'end_gtu',
-#                        'packet_id']
+SYNTH_METADATA      = ['bg_lambda', 'num_bad_ECs', 'yx_angle', 'shower_max',
+                       'start_gtu', 'start_y', 'start_x', 'track_length',
+                       'duration']
 FLIGHT_METADATA     = ['source_file_acquisition_full', 'start_gtu', 'end_gtu',
                        'packet_id']
 SIMU_METADATA       = ['source_file_acquisition_full', 'start_gtu', 'end_gtu',

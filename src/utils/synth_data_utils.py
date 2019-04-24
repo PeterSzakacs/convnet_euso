@@ -103,30 +103,30 @@ def create_simu_shower_line_from_template(shower_template, yx_angle,
         angle = round(yx_angle % 360)
         return GTU, Y, X, Vals, {"start_gtu": start[0], "start_y": start[1],
                                  "start_x": start[2], "duration": len(Vals),
-                                 "max": max(Vals), "yx_angle": angle,
-                                 "length": length}
+                                 "shower_max": max(Vals), "yx_angle": angle,
+                                 "track_length": length}
     else:
         return GTU, Y, X, Vals
 
 
-def create_simu_shower_line_from_template_old(shower_template, yx_angle,
-                                              return_metadata=False):
-    start = shower_template.get_new_start_coordinate()
-    shower_max = shower_template.get_new_shower_max()
-    duration = shower_template.get_new_shower_duration()
-    vals_generator = shower_template.values_generator
-    vals_generator.reset(shower_max, duration)
+# def create_simu_shower_line_from_template_old(shower_template, yx_angle,
+#                                               return_metadata=False):
+#     start = shower_template.get_new_start_coordinate()
+#     shower_max = shower_template.get_new_shower_max()
+#     duration = shower_template.get_new_shower_duration()
+#     vals_generator = shower_template.values_generator
+#     vals_generator.reset(shower_max, duration)
 
-    packet_template = shower_template.packet_template
-    GTU, Y, X, Vals = create_simu_shower_line(yx_angle, start, packet_template,
-                                              vals_generator)
-    if return_metadata:
-        angle = round(yx_angle % 360)
-        return GTU, Y, X, Vals, {"start_gtu": start[0], "start_y": start[1],
-                                 "start_x": start[2], "duration": len(Vals),
-                                 "max": max(Vals), "yx_angle": angle}
-    else:
-        return GTU, Y, X, Vals
+#     packet_template = shower_template.packet_template
+#     GTU, Y, X, Vals = create_simu_shower_line(yx_angle, start, packet_template,
+#                                               vals_generator)
+#     if return_metadata:
+#         angle = round(yx_angle % 360)
+#         return GTU, Y, X, Vals, {"start_gtu": start[0], "start_y": start[1],
+#                                  "start_x": start[2], "duration": len(Vals),
+#                                  "max": max(Vals), "yx_angle": angle}
+#     else:
+#         return GTU, Y, X, Vals
 
 
 def select_random_ECs(packet_template, max_ECs, excluded_ECs=[]):
