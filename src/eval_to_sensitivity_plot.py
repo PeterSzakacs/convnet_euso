@@ -5,6 +5,17 @@ import dataset.constants as cons
 import libs.data_analysis as dutils
 dutils.use('svg')
 import utils.analysis_utils as autils
+import utils.io_utils as io_utils
+
+
+def _get_classification_logs_from_file(filename, fields=None, target=None):
+    # wrapper around io_utils.load_TSV, which filters only logs containing
+    # the given target
+    log_data = io_utils.load_TSV(filename, selected_columns=fields)
+    if target is not None:
+        log_data = [log for log in filter(
+            lambda log: log['target'] == target, log_data)]
+    return log_data
 
 
 def _cm_iter(group_df, all_targets, cm_func=metrics.confusion_matrix):
@@ -93,7 +104,7 @@ def main(**args):
     fields = ['output', 'target', column]
     for idx in range(num_plotlines):
         # load data
-        log_data = autils.get_classification_logs_from_file(
+        log_data = _get_classification_logs_from_file(
             infiles[idx], fields=fields, target=target)
         for log in log_data:
             log[column] = column_type(log[column])

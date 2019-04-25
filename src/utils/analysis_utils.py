@@ -31,12 +31,3 @@ def get_target_stats(confusion_matrix, target_idx):
         'num_true_positive': tp, 'num_true_negative': tn,
         'num_false_positive': fp, 'num_false_negative': fn,
     }
-
-
-def get_classification_logs_from_file(filename, fields=None, target=None):
-    # load data and get efficiency stats binned
-    log_data = io_utils.load_TSV(filename, selected_columns=fields)
-    if target is not None:
-        log_data = [log for log in filter(
-            lambda log: log['target'] == target, log_data)]
-    return log_data
