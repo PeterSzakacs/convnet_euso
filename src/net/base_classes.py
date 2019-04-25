@@ -102,11 +102,14 @@ class NetworkModel():
         return {layer_name: model.predict(input_data_dict)
                 for layer_name, model in hidden_models.items()}
 
-    def load_from_file(self, model_file, **optargs):
+    def load_from_file(self, model_filename, **optargs):
         w_only = optargs.get('weights_only', False)
-        self._model.load(model_file, weights_only=w_only)
+        self._model.load(model_filename, weights_only=w_only)
         if len(self._hidden_models) > 0:
             self._update_hidden_models()
+
+    def save_to_file(self, model_filename):
+        self._model.save(model_filename)
 
 
 class NeuralNetwork(abc.ABC):

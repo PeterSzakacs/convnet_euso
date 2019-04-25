@@ -89,10 +89,6 @@ def evaluate_classification_model(model, dataset, items_slice=None,
     return log_data
 
 
-def save_model(model, save_pathname):
-    model.network_model.save(save_pathname)
-
-
 class DatasetSplitter():
 
     def __init__(self, split_mode, items_fraction=0.1, num_items=None):

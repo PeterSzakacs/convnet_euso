@@ -41,4 +41,4 @@ if __name__ == '__main__':
     trainer.train_model(model)
     if args['save']:
         save_file = os.path.join(tb_dir, '{}.tflearn'.format(network))
-        netutils.save_model(model, save_file)
+        model.save_to_file(save_file)
