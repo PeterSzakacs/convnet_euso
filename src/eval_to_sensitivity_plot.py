@@ -1,6 +1,7 @@
 import pandas as pd
 import sklearn.metrics as metrics
 
+import dataset.constants as cons
 import libs.data_analysis as dutils
 dutils.use('svg')
 import utils.analysis_utils as autils
@@ -71,7 +72,7 @@ def _add_plot_legend(ax, handles, **settings):
 def main(**args):
     infiles, outfile = args['infiles'], args['outfile']
     column, column_type = args['column'], args['column_type']
-    target, all_targets = args['class_target'], args['all_targets']
+    target = args['class_target']
     yerr = args.get('add_yerr')
     if yerr:
         sensitivity_err = 'sensitivity_err_mario'
@@ -87,6 +88,7 @@ def main(**args):
     # main loop
     ax = _create_sensitivity_ax(column, **{**args, **fontsizes})
     errorbars = []
+    all_targets = list(cons.CLASSIFICATION_TARGETS)
     target_idx = all_targets.index(target)
     fields = ['output', 'target', column]
     for idx in range(num_plotlines):
