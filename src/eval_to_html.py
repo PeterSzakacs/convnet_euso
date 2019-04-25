@@ -18,8 +18,9 @@ if __name__ == "__main__":
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 
-    network_module_name, model_file = args.network[0:2]
+    network_module_name = args.network
     network_module_name = "net." + network_module_name
+    model_file = args.model_file
     model_file = os.path.abspath(model_file)
 
     run_id = netutils.get_default_run_id(network_module_name)

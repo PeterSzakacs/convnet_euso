@@ -5,6 +5,7 @@ import argparse
 import cmdint.common.argparse_types as atypes
 import cmdint.common.args as cargs
 import cmdint.common.dataset_args as dargs
+import cmdint.common.network_args as nargs
 
 
 class CmdInterface():
@@ -37,10 +38,8 @@ class CmdInterface():
         # meta-information to include in report headers
         g_title = "Meta-information to include in report headers"
         group = parser.add_argument_group(title=g_title)
-        group.add_argument('-n', '--network', required=True, nargs=2,
-                           metavar=('NETWORK_NAME', 'MODEL_FILE'),
-                           help=('name of network module used and '
-                                 'corresponding trained model file.'))
+        nargs.add_network_arg(group, required=False)
+        nargs.add_model_file_arg(group, required=False)
         in_aliases = {'dataset name': 'name', 'dataset directory': 'srcdir'}
         dset_args = dargs.DatasetArgs(input_aliases=in_aliases)
         dset_args.add_dataset_arg_double(group, dargs.arg_type.INPUT,
