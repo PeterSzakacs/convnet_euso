@@ -85,22 +85,24 @@ class ReportWriter:
                              """
 
 
-    def _get_file_header(self, logs, context):
+    def _get_file_header(self, logs, **context):
         num_items = len(logs)
         hits = sum(1 if log['output'] == log['target'] else 0 for log in logs)
         misses = num_items - hits
         acc = (hits * 100 / num_items)
         err = 100 - acc
 
-        name = context['dataset'] or 'unknown'
+        name = context.get('dataset') or 'unknown'
+        net_arch = context.get('network') or 'unknown'
+        model_file = context.get('model_file') or 'unknown'
         buffer = io.StringIO()
         buffer.write(self._txt.get_list_start())
         buffer.write(self._txt.get_heading("Statistics", level=2))
         buffer.write(self._txt.get_list_item("Used dataset: {}".format(name)))
         buffer.write(self._txt.get_list_item("Network architecture: {}"
-                                             .format(context['net_arch'])))
+                                             .format(net_arch)))
         buffer.write(self._txt.get_list_item("Trained model file: {}"
-                                             .format(context['model_file'])))
+                                             .format(model_file)))
         buffer.write(self._txt.get_list_item("Number of items checked: {}"
                                              .format(num_items)))
         buffer.write(self._txt.get_list_item("Correct predictions: {}"
@@ -145,16 +147,17 @@ class ReportWriter:
         )
 
 
-    def write_reports(self, logs, context):
+    def write_reports(self, logs, item_types, **context):
         num_records = len(logs)
         num_reports = math.ceil(num_records / self._tbl_size)
-        item_types = context['item_types']
         image_headings = ["{} proj".format(k) for k in cons.ALL_ITEM_TYPES
                           if item_types[k]]
         table_headings = [*image_headings, "Shower %", "Noise %", "Output",
                           "Target", *self._extra_fields]
-        file_header = self._get_file_header(logs, context)
+        file_header = self._get_file_header(logs, **context)
 
+        network = context.get('network') or 'unknown'
+        title='Report for {} network'.format(network)
         # for every self._tbl_size records of logs create a separate report
         for report_idx in range(num_reports):
             first_record = report_idx * self._tbl_size
@@ -162,10 +165,7 @@ class ReportWriter:
             if last_record > num_records:
                 last_record = num_records
             save_filename = 'report_{}.html'.format(report_idx)
-            self._fil.begin_html_file(
-                title="Report for network {}".format(context['net_arch']),
-                css_rules=self._css
-            )
+            self._fil.begin_html_file(title=title, css_rules=self._css)
             self._fil.add_raw_html(file_header)
             self._write_table_header(report_idx, num_reports)
             self._tbl.begin_table(table_headings=table_headings)

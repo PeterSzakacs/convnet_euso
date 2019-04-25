@@ -38,9 +38,10 @@ if __name__ == "__main__":
     for row in in_reader:
         log_data.append(row)
     args.infile.close()
-    context = {'net_arch': network_module_name, 'model_file': model_file,
-               'dataset': args.name, 'item_types': args.item_types}
+    item_types = args.item_types
+    context = {'network': network_module_name, 'model_file': model_file,
+               'dataset': args.name}
 
     writer = cwriter.ReportWriter(logdir, table_size=args.tablesize,
                                   extra_fields_order=extra_fields)
-    writer.write_reports(log_data, context)
+    writer.write_reports(log_data, item_types, **context)
