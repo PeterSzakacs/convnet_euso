@@ -2,7 +2,7 @@ import os
 
 import dataset.io.fs_io as dset_io
 import net.network_utils as netutils
-import visualization.network.activations as acviz
+import visualization.activations_visualization as acviz
 acviz.use('svg')
 
 
