@@ -112,5 +112,5 @@ class Conv2DNetwork(bclasses.NeuralNetwork):
         return int(conv_layer.W.shape[3])
 
     def get_num_neurons(self, fc_layer_name):
-        conv_layer = self._conv[conv_layer_name]
+        fc_layer = self._conv[fc_layer_name]
         return int(fc_layer.W.shape[1])
