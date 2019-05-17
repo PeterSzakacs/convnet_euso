@@ -113,6 +113,9 @@ def main(**args):
         group_df = pd.DataFrame(log_data).groupby(column)
         cm_iter = _cm_iter(group_df, all_targets)
         out_dict = autils.get_target_stats_binned(cm_iter, target_idx)
+        if len(out_dict) < 2:
+            raise ValueError("Less than 2 values are present for attribute {}"
+                             " in input file {}".format(column, infiles[idx]))
 
         # draw plot
         # fill_attrs['edgecolor'] = fill_colors[idx]
