@@ -2,7 +2,7 @@ Tools for working with EUSO-SPB mission data and training neural networks for cl
 
 Tested on Python 3.5/Ubuntu 16.04 and Python 3.6/Ubuntu 18.04.
 
-#Project Setup
+# Project Setup
 
 To get started, create a new Python virtual environment using [`virtualenv`](https://virtualenv.pypa.io/en/latest/) 
 or the [`venv`](https://docs.python.org/3/library/venv.html) module of Python 3.5+. Although all dependencies can be 
