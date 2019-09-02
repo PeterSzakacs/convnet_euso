@@ -1,6 +1,7 @@
 import collections
 
 import dataset.constants as cons
+import dataset.dataset_tck as tck
 import dataset.dataset_utils as ds
 import dataset.io.fs_io as fs_io
 import utils.io_utils as io_utils
@@ -12,6 +13,7 @@ SRCFILE_KEY = 'source_file_acquisition_full'
 # - frames 27-47 typically contain the shower
 # for processing raw flight data:
 # - frames 27-47 are the rule of thumb
+
 
 class DefaultEventTransformer:
 
@@ -34,7 +36,7 @@ class DefaultEventTransformer:
         return [result, ]
 
 
-class AllPacketsEventTransformer():
+class AllPacketsEventTransformer:
 
     REQUIRED_FILELIST_COLUMNS = ()
 
@@ -169,7 +171,7 @@ if __name__ == "__main__":
     print(args)
 
     packet_template = args.template
-    extractor = io_utils.PacketExtractor(packet_template=packet_template)
+    extractor = tck.PacketExtractor(packet_template=packet_template)
     extractors = {'NPY': extractor.extract_packets_from_npyfile,
                   'ROOT': extractor.extract_packets_from_rootfile}
     cache = PacketCache(args.max_cache_size, extractors,
