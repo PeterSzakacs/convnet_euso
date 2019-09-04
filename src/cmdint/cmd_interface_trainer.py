@@ -1,15 +1,17 @@
-import os
 import argparse
+import os
 
 import cmdint.common.argparse_types as atypes
 import cmdint.common.dataset_args as dargs
 import cmdint.common.network_args as net_args
 import net.constants as net_cons
+import utils.config_utils as cutils
 
-class CmdInterface():
+
+class CmdInterface:
 
     def __init__(self):
-        self.default_logdir = net_cons.DEFAULT_TRAIN_LOGDIR
+        self.default_logdir = cutils.get_config_for_module("model_trainer")['default']['logdir']
         parser = argparse.ArgumentParser(
             description="Train network using provided dataset")
 

@@ -1,15 +1,17 @@
-import os
 import argparse
+import os
 
-import net.constants as net_cons
 import cmdint.common.argparse_types as atypes
 import cmdint.common.dataset_args as dargs
 import cmdint.common.network_args as net_args
+import utils.config_utils as cutils
 
-class CmdInterface():
+
+class CmdInterface:
 
     def __init__(self):
-        self.default_logdir = net_cons.DEFAULT_XVAL_LOGDIR
+        self.default_logdir = cutils.get_config_for_module("model_xvalidator")['default']['logdir']
+        print("default logdir set to {}".format(self.default_logdir))
         parser = argparse.ArgumentParser(
             description="Perform Kfold cross-validation on a given neural "
                         "network with the given dataset.")

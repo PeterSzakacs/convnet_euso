@@ -1,9 +1,9 @@
-import os
 import csv
+import os
 
 import dataset.io.fs_io as io_utils
-import net.constants as net_cons
 import net.network_utils as netutils
+import utils.config_utils as cutils
 
 
 if __name__ == '__main__':
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     dataset = input_handler.load_dataset(name, item_types=item_types)
 
     #load trained network model
-    logdir = net_cons.DEFAULT_CHECK_LOGDIR
+    logdir = cutils.get_config_for_module("model_chacker")['default']['logdir']
     if not os.path.exists(logdir):
         os.mkdir(logdir)
     network_module_name, model_file = args.network, args.model_file
