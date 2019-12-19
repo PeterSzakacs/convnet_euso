@@ -10,3 +10,4 @@ for SCRIPT in "${SCRIPTS[@]}"; do
 	chmod +x "/usr/bin/$BASENAME"
 done
 
+cp $INSTALL_DIR/config/unix/* $HOME
