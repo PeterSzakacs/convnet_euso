@@ -12,4 +12,4 @@ ARG OUTPUT_DIR=/opt/convnet_euso
 COPY . $OUTPUT_DIR
 
 # setup wrappers in /usr/bin for all python scripts/tools
-RUN $OUTPUT_DIR/docker_setup.sh $OUTPUT_DIR
+RUN $OUTPUT_DIR/docker/internal/docker_setup.sh $OUTPUT_DIR
