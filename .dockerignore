@@ -27,6 +27,7 @@ src/libs/event_viz/*.c
 #Misc
 .vscode/
 .idea/
+.git/
 logs/
 res/
 out/
