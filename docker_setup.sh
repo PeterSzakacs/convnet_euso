@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# setup script to run within the image during build
+
 INSTALL_DIR=$1
 
 # get all python scripts in the src directory
