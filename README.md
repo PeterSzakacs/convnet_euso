@@ -82,3 +82,7 @@ After the build finishes, the ROOT binaries and libraries can be imported into t
 ```
 
 In this configuration, the build directory is effectively also the install directory.
+
+# Docker
+
+We also support docker images for a more convenient install and usage experience. Images are currently not hosted on public repositories, so you will have to build them yourself. Instructions for building and running images can be found in the [docker directory](docker/README.md).
