@@ -1,15 +1,21 @@
 FROM rootproject/root-fedora
 
-# install additional required packages
-RUN pip3 install --upgrade scikit-learn scikit-image tflearn
+# setup install directory (to support tensorflow installs also from wheel files under docker/ directory)
+ARG install_dir=/opt/convnet_euso
+RUN mkdir $install_dir
+WORKDIR $install_dir
 
-# by default, use the latest CPU version of tensorflow
+# install required packages
+RUN pip3 install scikit-learn scikit-image tflearn
+
+# install tensorflow (default: latest CPU-only version)
 ARG tf_version=tensorflow
-RUN pip3 install --upgrade $tf_version
+COPY ./docker $install_dir/docker
+RUN pip3 install $tf_version
 
-# copy all sources to /opt
-ARG OUTPUT_DIR=/opt/convnet_euso
-COPY . $OUTPUT_DIR
+# copy all sources and configurations to /opt
+COPY ./src $install_dir/src
+COPY ./config $install_dir/config
 
 # setup wrappers in /usr/bin for all python scripts/tools
-RUN $OUTPUT_DIR/docker/internal/setup.sh $OUTPUT_DIR
+RUN docker/internal/setup.sh $install_dir
