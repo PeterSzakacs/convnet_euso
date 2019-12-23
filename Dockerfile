@@ -10,12 +10,13 @@ RUN pip3 install scikit-learn scikit-image tflearn
 
 # install tensorflow (default: latest CPU-only version)
 ARG tf_version=tensorflow
-COPY ./docker $install_dir/docker
+COPY ./wheels $install_dir/wheels
 RUN pip3 install $tf_version
 
 # copy all sources and configurations to /opt
-COPY ./src $install_dir/src
+COPY ./docker $install_dir/docker
 COPY ./config $install_dir/config
+COPY ./src $install_dir/src
 
 # setup wrappers in /usr/bin for all python scripts/tools
 RUN docker/internal/setup.sh $install_dir

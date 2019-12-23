@@ -26,9 +26,9 @@ where `tf_version` must be of the form:
 
 - `tensorfow==<version_number>` for prebuilt CPU-only Tensorflow packages
 - `tensorfow-gpu==<version_number>` for prebuilt GPU-enabled Tensorflow packages
-- `docker/path/to/your/wheel/file` for custom Tensorflow builds from source (wheel file must be located under this directory)
+- `wheels/path/to/your/wheel/file` for custom Tensorflow builds from source (note that the wheel file to install must be located under the `wheels/` directory)
 
-Do note that any custom Tensorflow builds must be built against the parameters of the image (Python 3.6 on latest Fedora).
+Do note that any custom Tensorflow builds must be built against the parameters of the image (Python 3.6 on latest Fedora image).
 
 # Using the created images
 
