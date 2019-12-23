@@ -21,3 +21,8 @@ for CONFIGFILE in "$INSTALL_DIR"/config/unix/*.ini; do
   # $XDG_RUNTIME_DIR is not set within image, just use /tmp for tensorflow logs
   sed -e "s&logdir=.*&logdir=/tmp&g" "$CONFIGFILE" > "/etc/convnet_euso/$CONFIG_FILENAME"
 done
+
+# make internal scripts executable
+for SCRIPT in "$INSTALL_DIR"/docker/internal/*.sh; do
+  chmod +x "$SCRIPT"
+done

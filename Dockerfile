@@ -20,3 +20,5 @@ COPY ./src $install_dir/src
 
 # setup wrappers in /usr/bin for all python scripts/tools
 RUN docker/internal/setup.sh $install_dir
+ENV install_location=$install_dir
+ENTRYPOINT ["bash", "-c", "${install_location}/docker/internal/entrypoint.sh"]
