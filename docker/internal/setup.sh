@@ -14,9 +14,10 @@ for SCRIPT in "${SCRIPTS[@]}"; do
 	chmod +x "/usr/bin/$BASENAME"
 done
 
-# copy configs from config/unix to the user home directory
+# copy configs from config/unix to /etc
+mkdir /etc/convnet_euso
 for CONFIGFILE in "$INSTALL_DIR"/config/unix/*.ini; do
   CONFIG_FILENAME=$(basename "$CONFIGFILE")
   # $XDG_RUNTIME_DIR is not set within image, just use /tmp for tensorflow logs
-  sed -e "s&logdir=.*&logdir=/tmp&g" "$CONFIGFILE" > "$HOME/$CONFIG_FILENAME"
+  sed -e "s&logdir=.*&logdir=/tmp&g" "$CONFIGFILE" > "/etc/convnet_euso/$CONFIG_FILENAME"
 done

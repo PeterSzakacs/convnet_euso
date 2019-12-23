@@ -4,8 +4,12 @@ import pathlib
 
 
 def get_config_for_module(module_name):
+    parser = configparser.ConfigParser(os.environ)
     filename = "{}.config.ini".format(module_name)
-    config_pathname = os.path.join(str(pathlib.Path.home()), filename)
-    cparser = configparser.ConfigParser(os.environ)
-    cparser.read(config_pathname)
-    return cparser
+    # system config
+    config_path = os.path.join("/etc/convnet_euso/", filename)
+    parser.read(config_path)
+    # user config
+    config_path = os.path.join(str(pathlib.Path.home()), filename)
+    parser.read(config_path)
+    return parser
