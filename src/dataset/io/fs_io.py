@@ -11,6 +11,7 @@ import dataset.dataset_utils as ds
 import dataset.metadata_utils as meta
 import utils.io_utils as io_utils
 
+
 class FsPersistencyHandler(abc.ABC):
 
     def __init__(self, load_dir=None, save_dir=None):
@@ -182,24 +183,91 @@ class DatasetTargetsFsPersistencyHandler(FsPersistencyHandler):
         return filename
 
 
+class DatasetDataFsPersistencyHandler(FsPersistencyHandler):
+
+    # static attributes and methods
+
+    DEFAULT_DATA_FILES_SUFFIXES = {k: '_{}'.format(k)
+                                   for k in cons.ALL_ITEM_TYPES}
+
+    def __init__(self, load_dir=None, save_dir=None, data_files_suffixes={}):
+        super(DatasetDataFsPersistencyHandler, self).__init__(
+            load_dir, save_dir)
+        self._data = {}
+        for k in cons.ALL_ITEM_TYPES:
+            self._data[k] = data_files_suffixes.get(
+                k, self.DEFAULT_DATA_FILES_SUFFIXES[k])
+
+    def load_data(self, name, item_types):
+        """
+            Load dataset data from secondary storage as a dictionary of string
+            to numpy.ndarray.
+
+            If a particular item type is not present or should not be loaded,
+            it is substituted with an empty list.
+
+            Parameters
+            ----------
+            :param name:        the dataset name/data filenames prefix.
+            :type name:         str
+            :param item_types:  types of dataset items to load.
+            :type item_types:   typing.Mapping[str, bool]
+        """
+        self._check_before_read()
+        dat.check_item_types(item_types)
+        data = {}
+        for item_type in cons.ALL_ITEM_TYPES:
+            if item_types[item_type]:
+                filename = os.path.join(self.loaddir, '{}{}.npy'.format(
+                    name, self._data[item_type]))
+                data[item_type] = np.load(filename)
+            else:
+                data[item_type] = []
+        return data
+
+    def save_data(self, name, data_items_dict, dtype=np.uint8):
+        """
+            Persist the dataset data into secondary storage as a set of npy
+            files with a common prefix (the dataset name) stored in outdir.
+
+            Parameters
+            ----------
+            :param name:        the dataset name.
+            :type name:         str
+            :param data_items_dict: data items to save/persist.
+            :type data_items_dict:  typing.Mapping[
+                                        str, typing.Sequence[numpy.ndarray]]
+            :param dtype:           data type of all items.
+            :type data_items_dict:  str or numpy.dtype
+        """
+        self._check_before_write()
+        savefiles = {}
+        # save data
+        keys = set(cons.ALL_ITEM_TYPES).intersection(data_items_dict.keys())
+        for k in keys:
+            filename = os.path.join(self.savedir, '{}{}.npy'.format(
+                name, self._data[k]))
+            data = np.array(data_items_dict[k], dtype=dtype)
+            np.save(filename, data)
+            savefiles[k] = filename
+        return savefiles
+
+
 class DatasetFsPersistencyHandler(FsPersistencyHandler):
 
     # static attributes and methods
 
     DEFAULT_CONFIG_FILE_SUFFIX = '_config'
-    DEFAULT_DATA_FILES_SUFFIXES = {k: '_{}'.format(k)
-                                   for k in cons.ALL_ITEM_TYPES}
 
-    def __init__(self, load_dir=None, save_dir=None, data_files_suffixes={},
-                 configfile_suffix=None, targets_handler=None,
+    def __init__(self, load_dir=None, save_dir=None, configfile_suffix=None,
+                 data_handler=None, targets_handler=None,
                  metadata_handler=None):
         super(DatasetFsPersistencyHandler, self).__init__(
             load_dir, save_dir)
         self._conf = configfile_suffix or self.DEFAULT_CONFIG_FILE_SUFFIX
-        self._data = {}
-        for k in cons.ALL_ITEM_TYPES:
-            self._data[k] = data_files_suffixes.get(
-                k, self.DEFAULT_DATA_FILES_SUFFIXES[k])
+        self._data_handler   = (data_handler or
+                                DatasetDataFsPersistencyHandler(
+                                    load_dir=load_dir, save_dir=save_dir))
         self._target_handler = (targets_handler or
                                 DatasetTargetsFsPersistencyHandler(
                                     load_dir=load_dir, save_dir=save_dir))
@@ -208,6 +276,10 @@ class DatasetFsPersistencyHandler(FsPersistencyHandler):
                                     load_dir=load_dir, save_dir=save_dir))
 
     # properties
+
+    @property
+    def data_persistency_handler(self):
+        return self._data_handler
 
     @property
     def targets_persistency_handler(self):
@@ -220,8 +292,6 @@ class DatasetFsPersistencyHandler(FsPersistencyHandler):
     # dataset load
 
     def load_dataset_config(self, name):
-        # TODO: make preload dataset return an actual empty dataset?
-        # what about num data though?
         """
             Loads the configuration of a dataset from secondary storage.
 
@@ -276,33 +346,6 @@ class DatasetFsPersistencyHandler(FsPersistencyHandler):
                                   item_types=itypes, dtype=attrs['dtype'])
         return dataset
 
-    def load_data(self, name, item_types):
-        """
-            Load dataset data from secondary storage as a dictionary of string
-            to numpy.ndarray.
-
-            If a particular item type is not present or should not be loaded,
-            it is substituted with an empty list.
-
-            Parameters
-            ----------
-            :param name:        the dataset name/data filenames prefix.
-            :type name:         str
-            :param item_types:  types of dataset items to load.
-            :type item_types:   typing.Mapping[str, bool]
-        """
-        self._check_before_read()
-        dat.check_item_types(item_types)
-        data = {}
-        for item_type in cons.ALL_ITEM_TYPES:
-            if item_types[item_type]:
-                filename = os.path.join(self.loaddir, '{}{}.npy'.format(
-                    name, self._data[item_type]))
-                data[item_type] = np.load(filename)
-            else:
-                data[item_type] = []
-        return data
-
     def load_dataset(self, name, item_types=None):
         """
             Load a dataset from secondary storage.
@@ -325,7 +368,7 @@ class DatasetFsPersistencyHandler(FsPersistencyHandler):
         itypes = item_types or config['item_types']
         dataset = ds.NumpyDataset(name, config['packet_shape'],
                                   item_types=itypes)
-        data = self.load_data(name, dataset.item_types)
+        data = self._data_handler.load_data(name, dataset.item_types)
         targets = self._target_handler.load_targets(name)
         metadata = self._meta_handler.load_metadata(name)
         dataset._data.extend(data)
@@ -335,33 +378,6 @@ class DatasetFsPersistencyHandler(FsPersistencyHandler):
         return dataset
 
     # dataset save/persist
-
-    def save_data(self, name, data_items_dict, dtype=np.uint8):
-        """
-            Persist the dataset data into secondary storage as a set of npy
-            files with a common prefix (the dataset name) stored in outdir.
-
-            Parameters
-            ----------
-            :param name:        the dataset name.
-            :type name:         str
-            :param data_items_dict: data items to save/persist.
-            :type data_items_dict:  typing.Mapping[
-                                        str, typing.Sequence[numpy.ndarray]]
-            :param dtype:           data type of all items.
-            :type data_items_dict:  str or numpy.dtype
-        """
-        self._check_before_write()
-        savefiles = {}
-        # save data
-        keys = set(cons.ALL_ITEM_TYPES).intersection(data_items_dict.keys())
-        for k in keys:
-            filename = os.path.join(self.savedir, '{}{}.npy'.format(
-                name, self._data[k]))
-            data = np.array(data_items_dict[k], dtype=dtype)
-            np.save(filename, data)
-            savefiles[k] = filename
-        return savefiles
 
     def save_dataset(self, dataset, metafields_order=None):
         """
@@ -384,7 +400,7 @@ class DatasetFsPersistencyHandler(FsPersistencyHandler):
         targets = dataset.get_targets()
         self._target_handler.save_targets(name, targets)
         data = dataset.get_data_as_dict()
-        self.save_data(name, data, dtype=dataset.dtype)
+        self._data_handler.save_data(name, data, dtype=dataset.dtype)
 
         # save configuration file
         filename = os.path.join(self.savedir, '{}{}.ini'.format(

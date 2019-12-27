@@ -11,6 +11,7 @@ import dataset.dataset_utils as ds
 import dataset.io.fs_io as io_utils
 import test.test_setups as testset
 
+
 class TestDatasetMetadataFsPersistencyManager(testset.DatasetMetadataMixin,
                                               unittest.TestCase):
 
@@ -107,6 +108,55 @@ class TestDatasetTargetsFsPersistencyManager(testset.DatasetTargetsMixin,
         m_save.assert_called_once_with(exp_filename, self.mock_targets)
 
 
+class TestDatasetDataFsPersistencyManager(testset.DatasetItemsMixin,
+                                          unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestDatasetDataFsPersistencyManager, cls).setUpClass()
+        cls.name = 'test_name'
+        cls.loaddir, cls.savedir = '/dsets', '/test'
+        suffixes = {k: '_{}_test'.format(k) for k in cons.ALL_ITEM_TYPES}
+        cls.datafiles = {k: '{}{}.npy'.format(cls.name, suffixes[k])
+                         for k in cons.ALL_ITEM_TYPES}
+        with mock.patch('os.path.isdir', return_value=True),\
+             mock.patch('os.path.exists', return_value=True):
+            cls.handler = io_utils.DatasetDataFsPersistencyHandler(
+                cls.loaddir,
+                cls.savedir,
+                data_files_suffixes=suffixes
+            )
+
+    @mock.patch('numpy.load')
+    def test_load_data(self, m_load):
+        name, items, itypes = self.name, self.items, self.item_types
+        pattern = '_(raw|gtux|gtuy|yx)_test.npy'
+        i_getter = (lambda filename:
+            items[re.search(pattern, filename).group(1)])
+        m_load.side_effect = i_getter
+        exp_items = {k: ([] if not v else items[k]) for k, v in itypes.items()}
+
+        dset_data = self.handler.load_data(name, itypes)
+        self.assertDictEqual(dset_data, exp_items)
+
+    @mock.patch('numpy.save')
+    def test_save_data(self, m_save):
+        name, items = self.name, self.items
+        exp_filenames = {k: os.path.join(self.savedir, self.datafiles[k])
+                         for k in items.keys()}
+
+        filenames = self.handler.save_data(name, items)
+        # assert save was not called for any type in item_types being False
+        self.assertDictEqual(filenames, exp_filenames)
+        self.assertEqual(m_save.call_count, len(items))
+        pattern = '_(raw|gtux|gtuy|yx)_test.npy'
+        for cal in m_save.call_args_list:
+            filename = cal[0][0]
+            itype = re.search(pattern, filename).group(1)
+            self.assertEqual(filename, exp_filenames[itype])
+            nptest.assert_array_equal(cal[0][1], items[itype])
+
+
 class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
                                       testset.DatasetTargetsMixin,
                                       testset.DatasetMetadataMixin,
@@ -167,8 +217,10 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
             cls.handler = io_utils.DatasetFsPersistencyHandler(
                 cls.loaddir,
                 cls.savedir,
-                data_files_suffixes=suffixes,
                 configfile_suffix=conf_suffix,
+                data_handler = mock.create_autospec(
+                    io_utils.DatasetDataFsPersistencyHandler
+                ),
                 targets_handler=mock.create_autospec(
                     io_utils.DatasetTargetsFsPersistencyHandler
                 ),
@@ -178,20 +230,6 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
             )
 
     # test dataset loading methods
-
-    @mock.patch('numpy.load')
-    def test_load_data(self, m_load):
-        m_dataset = self.m_dataset
-        items = m_dataset.get_data_as_dict()
-        itypes = m_dataset.item_types
-        pattern = '_(raw|gtux|gtuy|yx)_test.npy'
-        i_getter = (lambda filename:
-            items[re.search(pattern, filename).group(1)])
-        m_load.side_effect = i_getter
-        exp_items = {k: ([] if not v else items[k]) for k, v in itypes.items()}
-
-        dset_data = self.handler.load_data(m_dataset.name, itypes)
-        self.assertDictEqual(dset_data, exp_items)
 
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('os.path.isfile', return_value=True)
@@ -230,27 +268,8 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
 
     # test dataset save methods
 
-    @mock.patch('numpy.save')
-    def test_save_data(self, m_save):
-        m_dataset = self.m_dataset
-        items = m_dataset.get_data_as_dict()
-        exp_filenames = {k: os.path.join(self.savedir, self.datafiles[k])
-                         for k in items.keys()}
-
-        filenames = self.handler.save_data(m_dataset.name, items)
-        # assert save was not called for any type in item_types being False
-        self.assertDictEqual(filenames, exp_filenames)
-        self.assertEqual(m_save.call_count, len(items))
-        pattern = '_(raw|gtux|gtuy|yx)_test.npy'
-        for cal in m_save.call_args_list:
-            filename = cal[0][0]
-            itype = re.search(pattern, filename).group(1)
-            self.assertEqual(filename, exp_filenames[itype])
-            nptest.assert_array_equal(cal[0][1], items[itype])
-
-    @mock.patch('numpy.save')
     @mock.patch('builtins.open', new_callable=mock.mock_open())
-    def test_save_dataset(self, m_open, m_save):
+    def test_save_dataset(self, m_open):
         m_open.return_value = buf = testset.MockTextFileStream()
         m_dataset = self.m_dataset
         name = m_dataset.name
@@ -260,19 +279,13 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
                          for k in items.keys()}
 
         self.handler.save_dataset(m_dataset, metafields_order=self.meta_order)
-        # main postcondition asserted: that the config file was saved to with
+        # main postcondition asserted: that the config file was saved with
         # the proper filename
         self.assertEqual(buf.temp_buf, self.configfile_contents)
         m_open.assert_called_with(exp_configfile, 'w', encoding='UTF-8')
         # assert relevant data items were saved
-        self.assertEqual(m_save.call_count, len(items))
-        pattern = '_(raw|gtux|gtuy|yx)_test.npy'
-        for cal in m_save.call_args_list:
-            filename = cal[0][0]
-            itype = re.search(pattern, filename).group(1)
-            if itypes[itype]:
-                self.assertEqual(filename, exp_filenames[itype])
-                nptest.assert_array_equal(cal[0][1], items[itype])
+        data_handler = self.handler.data_persistency_handler
+        data_handler.save_data.assert_called_with(name, items, m_dataset.dtype)
         # targets and metadata save assertions
         m_targets, m_meta = m_dataset.get_targets(), m_dataset.get_metadata()
         targ_handler = self.handler.targets_persistency_handler
@@ -281,6 +294,7 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
         meta_handler.save_metadata.assert_called_with(name, m_meta,
             metafields=m_dataset.metadata_fields,
             metafields_order=self.meta_order)
+
 
 if __name__ == '__main__':
     unittest.main()
