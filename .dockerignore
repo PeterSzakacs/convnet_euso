@@ -10,7 +10,7 @@
 pyvenv.cfg
 .venv
 pip-selfcheck.json
-*.whl
+
 
 
 # Cython
@@ -27,6 +27,8 @@ src/libs/event_viz/*.c
 #Misc
 .vscode/
 .idea/
+.git/
 logs/
 res/
 out/
+venv/
