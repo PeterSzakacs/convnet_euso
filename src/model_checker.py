@@ -28,7 +28,7 @@ if __name__ == '__main__':
     dataset = input_handler.load_dataset(name, item_types=item_types)
 
     #load trained network model
-    logdir = cutils.get_config_for_module("model_chacker")['default']['logdir']
+    logdir = cutils.get_config_for_module("model_checker")['default']['logdir']
     if not os.path.exists(logdir):
         os.mkdir(logdir)
     network_module_name, model_file = args.network, args.model_file
