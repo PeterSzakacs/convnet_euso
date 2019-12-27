@@ -1,160 +1,15 @@
 import os
-import re
 import unittest
 import unittest.mock as mock
-
-import numpy.testing as nptest
 
 import dataset.constants as cons
 import dataset.data_utils as dat
 import dataset.dataset_utils as ds
-import dataset.io.fs_io as io_utils
+import dataset.io.fs.data.npy_io as data_io
+import dataset.io.fs.meta.tsv_io as meta_io
+import dataset.io.fs.targets.npy_io as targets_io
+import dataset.io.fs_io as fs_io
 import test.test_setups as testset
-
-
-class TestDatasetMetadataFsPersistencyManager(testset.DatasetMetadataMixin,
-                                              unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestDatasetMetadataFsPersistencyManager, cls).setUpClass()
-        cls.name, cls.loaddir, cls.savedir = 'test', '/dsets', '/test'
-        file_suffix = '_meta_test'
-        cls.metafile = '{}{}.tsv'.format(cls.name, file_suffix)
-        with mock.patch('os.path.isdir', return_value=True),\
-             mock.patch('os.path.exists', return_value=True):
-            cls.handler = io_utils.DatasetMetadataFsPersistencyHandler(
-                cls.loaddir,
-                cls.savedir,
-                metafile_suffix=file_suffix
-            )
-
-    @mock.patch('utils.io_utils.load_TSV')
-    def test_load_dataset_metadata(self, m_load):
-        m_load.return_value = self.mock_meta
-        exp_filename = os.path.join(self.loaddir, self.metafile)
-
-        dset_meta = self.handler.load_metadata(self.name)
-        self.assertListEqual(dset_meta, self.mock_meta)
-        m_load.assert_called_once_with(exp_filename, selected_columns=None)
-
-    @mock.patch('utils.io_utils.load_TSV')
-    def test_load_dataset_metadata_specific_fields(self, m_load):
-        m_load.return_value = self.mock_meta
-        exp_filename = os.path.join(self.loaddir, self.metafile)
-        metafields = [next(iter(self.metafields))]
-
-        dset_meta = self.handler.load_metadata(self.name, metafields)
-        self.assertListEqual(dset_meta, self.mock_meta)
-        m_load.assert_called_once_with(exp_filename,
-                                       selected_columns=set(metafields))
-
-    @mock.patch('utils.io_utils.save_TSV')
-    def test_save_dataset_metadata(self, m_save):
-        exp_filename = os.path.join(self.savedir, self.metafile)
-        ordered_meta = list(self.metafields)
-        ordered_meta.sort()
-
-        filename = self.handler.save_metadata(self.name, self.mock_meta)
-        self.assertEqual(filename, exp_filename)
-        m_save.assert_called_once_with(exp_filename, self.mock_meta,
-                                       ordered_meta,
-                                       file_exists_overwrite=True)
-
-    @mock.patch('utils.io_utils.save_TSV')
-    def test_save_dataset_metadata_unaccounted_metafields(self, m_save):
-        metafields = self.metafields.copy()
-        metafields.add('testfield')
-        ordered_meta = list(self.metafields)
-        ordered_meta.sort()
-
-        self.assertRaises(Exception, self.handler.save_metadata, self.name,
-                          self.mock_meta, metafields=metafields,
-                          metafields_order=ordered_meta)
-        m_save.assert_not_called()
-
-
-class TestDatasetTargetsFsPersistencyManager(testset.DatasetTargetsMixin,
-                                             unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestDatasetTargetsFsPersistencyManager, cls).setUpClass()
-        cls.name, cls.loaddir, cls.savedir = 'test', '/dsets', '/test'
-        # for targets, having live numpy arrays is not necessary
-        file_suffix = '_class_targets_test'
-        cls.targetsfile = '{}{}.npy'.format(cls.name, file_suffix)
-        with mock.patch('os.path.isdir', return_value=True),\
-             mock.patch('os.path.exists', return_value=True):
-            cls.handler = io_utils.DatasetTargetsFsPersistencyHandler(
-                cls.loaddir,
-                cls.savedir,
-                classification_targets_file_suffix=file_suffix
-            )
-
-    @mock.patch('numpy.load')
-    def test_load_dataset_targets(self, m_load):
-        m_load.return_value = self.mock_targets
-        exp_filename = os.path.join(self.loaddir, self.targetsfile)
-        dset_targets = self.handler.load_targets(self.name)
-        nptest.assert_array_equal(dset_targets, self.mock_targets)
-        m_load.assert_called_with(exp_filename)
-
-    @mock.patch('numpy.save')
-    def test_save_dataset_targets(self, m_save):
-        exp_filename = os.path.join(self.savedir, self.targetsfile)
-        filename = self.handler.save_targets(self.name, self.mock_targets)
-        self.assertEqual(filename, exp_filename)
-        m_save.assert_called_once_with(exp_filename, self.mock_targets)
-
-
-class TestDatasetDataFsPersistencyManager(testset.DatasetItemsMixin,
-                                          unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestDatasetDataFsPersistencyManager, cls).setUpClass()
-        cls.name = 'test_name'
-        cls.loaddir, cls.savedir = '/dsets', '/test'
-        suffixes = {k: '_{}_test'.format(k) for k in cons.ALL_ITEM_TYPES}
-        cls.datafiles = {k: '{}{}.npy'.format(cls.name, suffixes[k])
-                         for k in cons.ALL_ITEM_TYPES}
-        with mock.patch('os.path.isdir', return_value=True),\
-             mock.patch('os.path.exists', return_value=True):
-            cls.handler = io_utils.DatasetDataFsPersistencyHandler(
-                cls.loaddir,
-                cls.savedir,
-                data_files_suffixes=suffixes
-            )
-
-    @mock.patch('numpy.load')
-    def test_load_data(self, m_load):
-        name, items, itypes = self.name, self.items, self.item_types
-        pattern = '_(raw|gtux|gtuy|yx)_test.npy'
-        i_getter = (lambda filename:
-            items[re.search(pattern, filename).group(1)])
-        m_load.side_effect = i_getter
-        exp_items = {k: ([] if not v else items[k]) for k, v in itypes.items()}
-
-        dset_data = self.handler.load_data(name, itypes)
-        self.assertDictEqual(dset_data, exp_items)
-
-    @mock.patch('numpy.save')
-    def test_save_data(self, m_save):
-        name, items = self.name, self.items
-        exp_filenames = {k: os.path.join(self.savedir, self.datafiles[k])
-                         for k in items.keys()}
-
-        filenames = self.handler.save_data(name, items)
-        # assert save was not called for any type in item_types being False
-        self.assertDictEqual(filenames, exp_filenames)
-        self.assertEqual(m_save.call_count, len(items))
-        pattern = '_(raw|gtux|gtuy|yx)_test.npy'
-        for cal in m_save.call_args_list:
-            filename = cal[0][0]
-            itype = re.search(pattern, filename).group(1)
-            self.assertEqual(filename, exp_filenames[itype])
-            nptest.assert_array_equal(cal[0][1], items[itype])
 
 
 class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
@@ -214,18 +69,18 @@ class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
 
         with mock.patch('os.path.isdir', return_value=True),\
              mock.patch('os.path.exists', return_value=True):
-            cls.handler = io_utils.DatasetFsPersistencyHandler(
+            cls.handler = fs_io.DatasetFsPersistencyHandler(
                 cls.loaddir,
                 cls.savedir,
                 configfile_suffix=conf_suffix,
                 data_handler = mock.create_autospec(
-                    io_utils.DatasetDataFsPersistencyHandler
+                    data_io.NumpyDataPersistencyHandler
                 ),
                 targets_handler=mock.create_autospec(
-                    io_utils.DatasetTargetsFsPersistencyHandler
+                    targets_io.NumpyTargetsPersistencyHandler
                 ),
                 metadata_handler=mock.create_autospec(
-                    io_utils.DatasetMetadataFsPersistencyHandler
+                    meta_io.TSVMetadataPersistencyHandler
                 )
             )
 

@@ -1,259 +1,16 @@
-import abc
 import ast
 import configparser
 import os
 
-import numpy as np
-
 import dataset.constants as cons
-import dataset.data_utils as dat
 import dataset.dataset_utils as ds
-import dataset.metadata_utils as meta
-import utils.io_utils as io_utils
+import dataset.io.fs.base as fs_io_base
+import dataset.io.fs.data.npy_io as data_io
+import dataset.io.fs.meta.tsv_io as meta_io
+import dataset.io.fs.targets.npy_io as targets_io
 
 
-class FsPersistencyHandler(abc.ABC):
-
-    def __init__(self, load_dir=None, save_dir=None):
-        super(FsPersistencyHandler, self).__init__()
-        self.loaddir = load_dir
-        self.savedir = save_dir
-
-    # properties
-
-    @property
-    def savedir(self):
-        return self._savedir
-
-    @savedir.setter
-    def savedir(self, value):
-        if value is not None and not os.path.isdir(value):
-            raise IOError('Invalid save directory: {}'.format(value))
-        self._savedir = value
-
-    @property
-    def loaddir(self):
-        return self._loaddir
-
-    @loaddir.setter
-    def loaddir(self, value):
-        if value is not None and not os.path.isdir(value):
-            raise IOError('Invalid load directory: {}'.format(value))
-        self._loaddir = value
-
-    def _check_before_write(self, err_msg='Save directory not set'):
-        if self.savedir is None:
-            raise Exception(err_msg)
-        else:
-            return True
-
-    def _check_before_read(self, err_msg='Load directory not set'):
-        if self.loaddir is None:
-            raise Exception(err_msg)
-        else:
-            return True
-
-
-class DatasetMetadataFsPersistencyHandler(FsPersistencyHandler):
-
-    # static attributes and methods
-
-    DEFAULT_METADATA_FILE_SUFFIX = '_meta'
-
-    def __init__(self, load_dir=None, save_dir=None, metafile_suffix=None):
-        super(DatasetMetadataFsPersistencyHandler, self).__init__(
-            load_dir, save_dir)
-        self._meta = metafile_suffix or self.DEFAULT_METADATA_FILE_SUFFIX
-
-    def load_metadata(self, name, metafields=None):
-        """
-            Load dataset metadata from secondary storage as a list of dicts.
-
-            Accepts optionally the names of fields to load. The returned list
-            of dictionaries will in that case contain these fields as keys,
-            with any extra field values unparsed and indexed by the default
-            None key.
-
-            Parameters
-            ----------
-            :param name:        the dataset name/metadata filename prefix.
-            :type name:         str
-            :param metafields:  (optional) names of fields to load.
-            :type metafields:   typing.Iterable[str]
-        """
-        meta_fields = metafields
-        if meta_fields is not None:
-            meta_fields = set(metafields)
-        filename = os.path.join(self.loaddir, '{}{}.tsv'.format(
-            name, self._meta))
-        meta = io_utils.load_TSV(filename, selected_columns=meta_fields)
-        return meta
-
-    def save_metadata(self, name, metadata, metafields=None,
-                              metafields_order=None):
-        """
-            Persist dataset metadata into secondary storage as a TSV file
-            stored in outdir with the given order of fields (columns).
-
-            If metafields is not passed, it is derived by iterating over the
-            metadata before saving and finding all unique fieldnames. Passing
-            this argument can therefore speed up this method, but the caller
-            is responsible for making sure all metadata fields are accounted
-            for.
-
-            If no ordering is passed, the fields are sorted by their name. If
-            an ordering is passed and does not account for all fields present
-            in metafields (regardless if they were derived from metadata or
-            passed in explicitly) an exception is raised.
-
-            Parameters
-            ----------
-            :param name:        the dataset name.
-            :type name:         str
-            :param metadata:    metadata to save/persist.
-            :type metadata:     typing.Sequence[typing.Mapping[
-                                    str, typing.Any]]
-            :param metafields:  (optional) names of all fields in the metadata.
-            :type metafields:   typing.Set[str]
-            :param metafields_order:    (optional) ordering of fields (columns)
-                                        in the created TSV.
-            :type metafields_order:     typing.Sequence[str]
-        """
-        metafields = metafields or meta.extract_metafields(metadata)
-        if metafields_order is not None:
-            fields_in_order = set(metafields_order)
-            diff = fields_in_order.symmetric_difference(metafields)
-            if not not diff:
-                raise Exception('Metadata field order contains more or fewer '
-                                'fields than are present in metadata.\n'
-                                'Metafields in order: {}\nMetafields: {}'
-                                .format(fields_in_order, metafields))
-        else:
-            metafields_order = list(metafields)
-            metafields_order.sort()
-        # save metadata
-        filename = os.path.join(self.savedir, '{}{}.tsv'.format(
-            name, self._meta))
-        io_utils.save_TSV(filename, metadata, metafields_order,
-                          file_exists_overwrite=True)
-        return filename
-
-
-class DatasetTargetsFsPersistencyHandler(FsPersistencyHandler):
-
-    # static attributes and methods
-
-    DEFAULT_CLASSIFICATION_TARGETS_FILE_SUFFIX = '_class_targets'
-
-    def __init__(self, load_dir=None, save_dir=None,
-                 classification_targets_file_suffix=None):
-        super(DatasetTargetsFsPersistencyHandler, self).__init__(
-            load_dir, save_dir)
-        self._targ = (classification_targets_file_suffix or
-                      self.DEFAULT_CLASSIFICATION_TARGETS_FILE_SUFFIX)
-
-    def load_targets(self, name):
-        """
-            Load dataset targets from secondary storage as a numpy.ndarray.
-
-            Parameters
-            ----------
-            :param name:        the dataset name/targets filename prefix.
-            :type name:         str
-        """
-        filename = '{}{}.npy'.format(name, self._targ)
-        return np.load(os.path.join(self.loaddir, filename))
-
-    def save_targets(self, name, targets):
-        """
-            Persist the dataset targets into secondary storage as an npy file
-            stored in outdir.
-
-            Parameters
-            ----------
-            :param name:        the dataset name.
-            :type name:         str
-            :param targets:     targets to save/persist.
-            :type targets:      typing.Sequence[numpy.ndarray]
-        """
-        # save targets
-        filename = os.path.join(self.savedir, '{}{}.npy'.format(
-            name, self._targ))
-        np.save(filename, targets)
-        return filename
-
-
-class DatasetDataFsPersistencyHandler(FsPersistencyHandler):
-
-    # static attributes and methods
-
-    DEFAULT_DATA_FILES_SUFFIXES = {k: '_{}'.format(k)
-                                   for k in cons.ALL_ITEM_TYPES}
-
-    def __init__(self, load_dir=None, save_dir=None, data_files_suffixes={}):
-        super(DatasetDataFsPersistencyHandler, self).__init__(
-            load_dir, save_dir)
-        self._data = {}
-        for k in cons.ALL_ITEM_TYPES:
-            self._data[k] = data_files_suffixes.get(
-                k, self.DEFAULT_DATA_FILES_SUFFIXES[k])
-
-    def load_data(self, name, item_types):
-        """
-            Load dataset data from secondary storage as a dictionary of string
-            to numpy.ndarray.
-
-            If a particular item type is not present or should not be loaded,
-            it is substituted with an empty list.
-
-            Parameters
-            ----------
-            :param name:        the dataset name/data filenames prefix.
-            :type name:         str
-            :param item_types:  types of dataset items to load.
-            :type item_types:   typing.Mapping[str, bool]
-        """
-        self._check_before_read()
-        dat.check_item_types(item_types)
-        data = {}
-        for item_type in cons.ALL_ITEM_TYPES:
-            if item_types[item_type]:
-                filename = os.path.join(self.loaddir, '{}{}.npy'.format(
-                    name, self._data[item_type]))
-                data[item_type] = np.load(filename)
-            else:
-                data[item_type] = []
-        return data
-
-    def save_data(self, name, data_items_dict, dtype=np.uint8):
-        """
-            Persist the dataset data into secondary storage as a set of npy
-            files with a common prefix (the dataset name) stored in outdir.
-
-            Parameters
-            ----------
-            :param name:        the dataset name.
-            :type name:         str
-            :param data_items_dict: data items to save/persist.
-            :type data_items_dict:  typing.Mapping[
-                                        str, typing.Sequence[numpy.ndarray]]
-            :param dtype:           data type of all items.
-            :type data_items_dict:  str or numpy.dtype
-        """
-        self._check_before_write()
-        savefiles = {}
-        # save data
-        keys = set(cons.ALL_ITEM_TYPES).intersection(data_items_dict.keys())
-        for k in keys:
-            filename = os.path.join(self.savedir, '{}{}.npy'.format(
-                name, self._data[k]))
-            data = np.array(data_items_dict[k], dtype=dtype)
-            np.save(filename, data)
-            savefiles[k] = filename
-        return savefiles
-
-
-class DatasetFsPersistencyHandler(FsPersistencyHandler):
+class DatasetFsPersistencyHandler(fs_io_base.FsPersistencyHandler):
 
     # static attributes and methods
 
@@ -262,17 +19,16 @@ class DatasetFsPersistencyHandler(FsPersistencyHandler):
     def __init__(self, load_dir=None, save_dir=None, configfile_suffix=None,
                  data_handler=None, targets_handler=None,
                  metadata_handler=None):
-        super(DatasetFsPersistencyHandler, self).__init__(
-            load_dir, save_dir)
+        super(self.__class__, self).__init__(load_dir, save_dir)
         self._conf = configfile_suffix or self.DEFAULT_CONFIG_FILE_SUFFIX
         self._data_handler   = (data_handler or
-                                DatasetDataFsPersistencyHandler(
+                                data_io.NumpyDataPersistencyHandler(
                                     load_dir=load_dir, save_dir=save_dir))
         self._target_handler = (targets_handler or
-                                DatasetTargetsFsPersistencyHandler(
+                                targets_io.NumpyTargetsPersistencyHandler(
                                     load_dir=load_dir, save_dir=save_dir))
         self._meta_handler   = (metadata_handler or
-                                DatasetMetadataFsPersistencyHandler(
+                                meta_io.TSVMetadataPersistencyHandler(
                                     load_dir=load_dir, save_dir=save_dir))
 
     # properties
