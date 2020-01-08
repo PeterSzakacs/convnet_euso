@@ -10,6 +10,7 @@ import dataset.tck.metadata_handlers as meta
 import dataset.tck.target_handlers as targ
 import utils.io_utils as io_utils
 
+
 # script to coallesce (simulated or real) data from several files
 # into a single larger .npy file to use as a dataset for training
 # or evaluating a network.
@@ -57,6 +58,28 @@ class DatasetCondenser:
                         f"{dataset.num_data}")
 
 
+def get_data_handler(args):
+    packet_template = args.template
+    extractor = tck_io_utils.PacketExtractor(packet_template=packet_template)
+    extractors = {'NPY': extractor.extract_packets_from_npyfile,
+                  'ROOT': extractor.extract_packets_from_rootfile}
+    cache = tck_io_utils.PacketCache(args.max_cache_size, extractors,
+                                     num_evict_on_full=args.num_evicted)
+    if args.converter == 'gtupack':
+        before, after = args.num_gtu_around[0:2]
+        handler = event_tran.GtuInPacketEventTransformer(
+            cache.get, num_gtu_before=before, num_gtu_after=after,
+            adjust_if_out_of_bounds=(not args.no_bounds_adjust))
+    elif args.converter == 'allpack':
+        start, stop = args.gtu_range[0:2]
+        handler = event_tran.AllPacketsEventTransformer(cache.get, start, stop)
+    else:
+        packet_id, (start, stop) = args.packet_idx, args.gtu_range
+        handler = event_tran.DefaultEventTransformer(cache.get, packet_id,
+                                                     start, stop)
+    return handler
+
+
 if __name__ == "__main__":
     import sys
     import cmdint.cmd_interface_condenser as cmd
@@ -66,41 +89,20 @@ if __name__ == "__main__":
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 
-    packet_template = args.template
-    extractor = tck_io_utils.PacketExtractor(packet_template=packet_template)
-    extractors = {'NPY': extractor.extract_packets_from_npyfile,
-                  'ROOT': extractor.extract_packets_from_rootfile}
-    cache = tck_io_utils.PacketCache(args.max_cache_size, extractors,
-                                     num_evict_on_full=args.num_evicted)
-
-    if args.converter == 'gtupack':
-        before, after = args.num_gtu_around[0:2]
-        data_transformer = event_tran.GtuInPacketEventTransformer(cache.get,
-            num_gtu_before=before, num_gtu_after=after,
-            adjust_if_out_of_bounds=(not args.no_bounds_adjust))
-    elif args.converter == 'allpack':
-        start, stop = args.gtu_range[0:2]
-        data_transformer = event_tran.AllPacketsEventTransformer(cache.get,
-                                                                 start, stop)
-    else:
-        packet_id, (start, stop) = args.packet_idx, args.gtu_range
-        data_transformer = event_tran.DefaultEventTransformer(cache.get,
-                                                              packet_id,
-                                                              start, stop)
+    data_handler = get_data_handler(args)
     target_handler = targ.StaticTargetHandler(
         cons.CLASSIFICATION_TARGETS[args.target])
     meta_creator = meta.MetadataCreator(args.extra_metafields)
 
-    condenser = DatasetCondenser(data_transformer, meta_creator,
-                                 target_handler)
+    condenser = DatasetCondenser(data_handler, meta_creator, target_handler)
 
-    extracted_packet_shape = list(packet_template.packet_shape)
-    extracted_packet_shape[0] = data_transformer.num_frames
+    extracted_packet_shape = list(args.template.packet_shape)
+    extracted_packet_shape[0] = data_handler.num_frames
     dataset = ds.NumpyDataset(args.name, extracted_packet_shape,
                               item_types=args.item_types, dtype=args.dtype)
 
     input_tsv = args.filelist
-    fields = set(data_transformer.REQUIRED_FILELIST_COLUMNS)
+    fields = set(data_handler.REQUIRED_FILELIST_COLUMNS)
     fields = fields.union(meta_creator.MANDATORY_EVENT_META)
     fields = fields.union(meta_creator.extra_metafields)
     rows = io_utils.load_TSV(input_tsv, selected_columns=fields)
