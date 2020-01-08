@@ -5,6 +5,7 @@ import dataset.tck.constants as tck_cons
 import dataset.tck.event_transformers as event_tran
 import dataset.tck.io_utils as tck_io_utils
 import dataset.tck.metadata_handlers as meta
+import dataset.tck.target_handlers as targ
 import utils.io_utils as io_utils
 
 # script to coallesce (simulated or real) data from several files
@@ -49,7 +50,8 @@ if __name__ == "__main__":
         data_transformer = event_tran.DefaultEventTransformer(cache.get,
                                                               packet_id,
                                                               start, stop)
-    target = cons.CLASSIFICATION_TARGETS[args.target]
+    target_handler = targ.StaticTargetHandler(
+        cons.CLASSIFICATION_TARGETS[args.target])
     meta_creator = meta.MetadataCreator(args.extra_metafields)
 
     extracted_packet_shape = list(packet_template.packet_shape)
@@ -67,12 +69,13 @@ if __name__ == "__main__":
     rows = io_utils.load_TSV(input_tsv, selected_columns=fields)
     events = data_transformer.process_events(rows)
     events = meta_creator.process_events(events)
+    events = target_handler.process_events(events)
     for event_list in events:
-        event_meta = event_list[0][1]
+        event_meta = event_list[0][2]
         print("Processing {} packets from {}".format(
             len(event_list), event_meta[tck_cons.SRCFILE_KEY]))
         for event in event_list:
-            packet, meta = event[:]
+            packet, target, meta = event[:]
             dataset.add_data_item(packet, target, metadata=meta)
         print("Dataset current total data items count: {}".format(
             dataset.num_data
