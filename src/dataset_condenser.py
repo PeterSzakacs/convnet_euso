@@ -1,3 +1,5 @@
+import logging
+
 import dataset.constants as cons
 import dataset.dataset_utils as ds
 import dataset.io.fs_io as fs_io
@@ -19,6 +21,41 @@ import utils.io_utils as io_utils
 # - frames 27-47 typically contain the shower
 # for processing raw flight data:
 # - frames 27-47 are the rule of thumb
+
+
+class DatasetCondenser:
+
+    def __init__(self, packets_handler, metadata_handler, targets_handler,
+                 logging_level=None):
+        self.packets_handler = packets_handler
+        self.metadata_handler = metadata_handler
+        self.targets_handler = targets_handler
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.set_logging_level(logging_level=logging_level)
+
+    def set_logging_level(self, logging_level=None):
+        logger = self.logger
+        level = logging_level or logging.INFO
+        logger.level = level
+        stdout_handler = logging.StreamHandler()
+        stdout_handler.level = level
+        logger.addHandler(stdout_handler)
+
+    def add_to_dataset(self, event_stream, dataset):
+        events = self.packets_handler.process_events(event_stream)
+        events = self.metadata_handler.process_events(events)
+        events = self.targets_handler.process_events(events)
+        logger = self.logger
+        for event_list in events:
+            event_meta = event_list[0][2]
+            logger.info(f"Processing {len(event_list)} packets "
+                        f"from {event_meta[tck_cons.SRCFILE_KEY]}")
+            for event in event_list:
+                packet, target, meta = event[:]
+                dataset.add_data_item(packet, target, metadata=meta)
+            logger.info(f"Dataset current total data items count: "
+                        f"{dataset.num_data}")
+
 
 if __name__ == "__main__":
     import sys
@@ -54,33 +91,21 @@ if __name__ == "__main__":
         cons.CLASSIFICATION_TARGETS[args.target])
     meta_creator = meta.MetadataCreator(args.extra_metafields)
 
+    condenser = DatasetCondenser(data_transformer, meta_creator,
+                                 target_handler)
+
     extracted_packet_shape = list(packet_template.packet_shape)
     extracted_packet_shape[0] = data_transformer.num_frames
-    output_handler = fs_io.DatasetFsPersistencyHandler(save_dir=args.outdir)
     dataset = ds.NumpyDataset(args.name, extracted_packet_shape,
                               item_types=args.item_types, dtype=args.dtype)
 
-
-    # main loop
     input_tsv = args.filelist
     fields = set(data_transformer.REQUIRED_FILELIST_COLUMNS)
     fields = fields.union(meta_creator.MANDATORY_EVENT_META)
     fields = fields.union(meta_creator.extra_metafields)
     rows = io_utils.load_TSV(input_tsv, selected_columns=fields)
-    events = data_transformer.process_events(rows)
-    events = meta_creator.process_events(events)
-    events = target_handler.process_events(events)
-    for event_list in events:
-        event_meta = event_list[0][2]
-        print("Processing {} packets from {}".format(
-            len(event_list), event_meta[tck_cons.SRCFILE_KEY]))
-        for event in event_list:
-            packet, target, meta = event[:]
-            dataset.add_data_item(packet, target, metadata=meta)
-        print("Dataset current total data items count: {}".format(
-            dataset.num_data
-        ))
-
-    print('Creating dataset "{}" containing {} items'.format(
-        dataset.name, dataset.num_data))
+    condenser.add_to_dataset(rows, dataset)
+    output_handler = fs_io.DatasetFsPersistencyHandler(save_dir=args.outdir)
+    print(f"Creating dataset \"{dataset.name}\" containing "
+          f"{dataset.num_data} items")
     output_handler.save_dataset(dataset)
