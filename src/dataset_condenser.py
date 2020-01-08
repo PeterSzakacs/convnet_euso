@@ -1,7 +1,7 @@
 import dataset.constants as cons
-import dataset.tck.constants as tck_cons
 import dataset.dataset_utils as ds
 import dataset.io.fs_io as fs_io
+import dataset.tck.constants as tck_cons
 import dataset.tck.event_transformers as event_tran
 import dataset.tck.io_utils as tck_io_utils
 import dataset.tck.metadata_handlers as meta
@@ -37,15 +37,17 @@ if __name__ == "__main__":
 
     if args.converter == 'gtupack':
         before, after = args.num_gtu_around[0:2]
-        data_transformer = event_tran.GtuInPacketEventTransformer(
+        data_transformer = event_tran.GtuInPacketEventTransformer(cache.get,
             num_gtu_before=before, num_gtu_after=after,
             adjust_if_out_of_bounds=(not args.no_bounds_adjust))
     elif args.converter == 'allpack':
         start, stop = args.gtu_range[0:2]
-        data_transformer = event_tran.AllPacketsEventTransformer(start, stop)
+        data_transformer = event_tran.AllPacketsEventTransformer(cache.get,
+                                                                 start, stop)
     else:
         packet_id, (start, stop) = args.packet_idx, args.gtu_range
-        data_transformer = event_tran.DefaultEventTransformer(packet_id,
+        data_transformer = event_tran.DefaultEventTransformer(cache.get,
+                                                              packet_id,
                                                               start, stop)
     target = cons.CLASSIFICATION_TARGETS[args.target]
     meta_creator = meta.MetadataCreator(args.extra_metafields)
@@ -63,15 +65,14 @@ if __name__ == "__main__":
     fields = fields.union(meta_creator.MANDATORY_EVENT_META)
     fields = fields.union(meta_creator.extra_metafields)
     rows = io_utils.load_TSV(input_tsv, selected_columns=fields)
-    for row in rows:
-        srcfile = row[tck_cons.SRCFILE_KEY]
-        print("Processing file {}".format(srcfile))
-        packets = cache.get(srcfile)
-        dataset_packets = data_transformer.event_to_packets(packets, row)
-        print("Extracted: {} data items".format(len(dataset_packets)))
-        metadata = meta_creator.create_metadata(dataset_packets, row)
-        for idx in range(len(dataset_packets)):
-            packet, meta = dataset_packets[idx]['packet'], metadata[idx]
+    events = data_transformer.process_events(rows)
+    for event in events:
+        event_meta = event[0]['event_meta']
+        print("Processing {} packets from {}".format(
+            len(event), event_meta[tck_cons.SRCFILE_KEY]))
+        metadata = meta_creator.create_metadata(event, event_meta)
+        for idx in range(len(event)):
+            packet, meta = event[idx]['packet'], metadata[idx]
             dataset.add_data_item(packet, target, metadata=meta)
         print("Dataset current total data items count: {}".format(
             dataset.num_data
