@@ -13,13 +13,36 @@ class MetadataCreator:
     def extra_metafields(self):
         return self._extra
 
-    def create_metadata(self, packet_attrs, event_metadata):
-        metadata = []
+    def process_events(self, events):
+        """
+        Add metadata to events created by the event transformer classes.
+
+        Each element in the iterable is assumed to be a list or other iterable,
+        as a single event transformer input entry can be processed into many
+        packets (e.g. when using AllPacketsEventTransformer).
+
+        The processed events are returned as a lazily evaluated generator
+        expression, which upon iteration returns lists having the same length
+        as the corresponding input entry and with each element being a tuple
+        with the following structure:
+
+        (packet, processed_metadata_for_packet)
+
+        :param events: events to process
+        :type events: iterable of dict
+        :returns: generator of tuple
+        """
         metafields = self._extra.union(self.MANDATORY_EVENT_META)
-        meta_dict = {field: event_metadata.get(field) for field in metafields}
-        for packet_attr in packet_attrs:
-            meta = meta_dict.copy()
-            for fieldname in self.MANDATORY_PACKET_ATTRS:
-                meta[fieldname] = packet_attr[fieldname]
-            metadata.append(meta)
-        return metadata
+        for events_list in events:
+            yield [(
+                # packet extracted in the previous step
+                event['packet'],
+                # metadata to include in created dataset
+                {
+                    "packet_id": event["packet_id"],
+                    "start_gtu": event["start_gtu"],
+                    "end_gtu": event["end_gtu"],
+                    **{fieldname: event['event_meta'][fieldname]
+                       for fieldname in metafields}
+                }
+            ) for event in events_list]

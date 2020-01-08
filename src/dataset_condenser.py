@@ -66,13 +66,13 @@ if __name__ == "__main__":
     fields = fields.union(meta_creator.extra_metafields)
     rows = io_utils.load_TSV(input_tsv, selected_columns=fields)
     events = data_transformer.process_events(rows)
-    for event in events:
-        event_meta = event[0]['event_meta']
+    events = meta_creator.process_events(events)
+    for event_list in events:
+        event_meta = event_list[0][1]
         print("Processing {} packets from {}".format(
-            len(event), event_meta[tck_cons.SRCFILE_KEY]))
-        metadata = meta_creator.create_metadata(event, event_meta)
-        for idx in range(len(event)):
-            packet, meta = event[idx]['packet'], metadata[idx]
+            len(event_list), event_meta[tck_cons.SRCFILE_KEY]))
+        for event in event_list:
+            packet, meta = event[:]
             dataset.add_data_item(packet, target, metadata=meta)
         print("Dataset current total data items count: {}".format(
             dataset.num_data
