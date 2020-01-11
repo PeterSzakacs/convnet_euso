@@ -1,6 +1,32 @@
 import dataset.tck.constants as c
 
 
+TRANSFORMER_TYPE = ('GTUPACK', 'ALLPACK', 'DEFAULT')
+
+
+def get_event_transformer(name, packet_extraction_fn, **kwargs):
+    transformer = name.upper()
+    if transformer == 'GTUPACK':
+        before = kwargs.get('num_gtu_before')
+        after = kwargs.get('num_gtu_after')
+        adjust = kwargs.get('adjust_if_out_of_bounds', True)
+        print(adjust)
+        return GtuInPacketEventTransformer(packet_extraction_fn,
+                                           num_gtu_before=before,
+                                           num_gtu_after=after,
+                                           adjust_if_out_of_bounds=adjust)
+    elif transformer == 'ALLPACK':
+        start, stop = kwargs['start_gtu'], kwargs['stop_gtu']
+        return AllPacketsEventTransformer(packet_extraction_fn, start, stop)
+    elif transformer == 'DEFAULT':
+        packet_id = kwargs['packet_id']
+        start, stop = kwargs['start_gtu'], kwargs['stop_gtu']
+        return DefaultEventTransformer(packet_extraction_fn, packet_id,
+                                       start, stop)
+    else:
+        raise ValueError
+
+
 class DefaultEventTransformer:
 
     REQUIRED_FILELIST_COLUMNS = (c.SRCFILE_KEY, 'packet_id', )

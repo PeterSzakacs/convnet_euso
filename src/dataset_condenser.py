@@ -57,30 +57,20 @@ class DatasetCondenser:
                         f"{dataset.num_data}")
 
 
-def get_data_handler(args):
+def get_packet_cache(args):
     packet_template = args.template
     extractor = tck_io_utils.PacketExtractor(packet_template=packet_template)
     extractors = {'NPY': extractor.extract_packets_from_npyfile,
                   'ROOT': extractor.extract_packets_from_rootfile}
     cache = tck_io_utils.PacketCache(args.max_cache_size, extractors,
                                      num_evict_on_full=args.num_evicted)
-    if args.converter == 'gtupack':
-        before, after = args.num_gtu_around[0:2]
-        handler = event_tran.GtuInPacketEventTransformer(
-            cache.get, num_gtu_before=before, num_gtu_after=after,
-            adjust_if_out_of_bounds=(not args.no_bounds_adjust))
-    elif args.converter == 'allpack':
-        start, stop = args.gtu_range[0:2]
-        handler = event_tran.AllPacketsEventTransformer(cache.get, start, stop)
-    else:
-        packet_id, (start, stop) = args.packet_idx, args.gtu_range
-        handler = event_tran.DefaultEventTransformer(cache.get, packet_id,
-                                                     start, stop)
-    return handler
+    return cache
 
 
 def main(args):
-    data_handler = get_data_handler(args)
+    cache = get_packet_cache(args)
+    data_handler = event_tran.get_event_transformer(
+        args.event_transformer, cache.get, **args.event_transformer_args)
     target_handler = targ.get_target_handler(args.target_handler_type,
                                              **args.target_handler_args)
     meta_creator = meta.MetadataCreator(args.extra_metafields)

@@ -121,6 +121,7 @@ class CmdInterface:
         atype = dargs.arg_type.OUTPUT
         args.item_types = self.item_args.get_item_types(args, atype)
 
+        self._parse_converter_arg(args)
         self._parse_target_arg(args)
 
         return args
@@ -141,3 +142,29 @@ class CmdInterface:
             raise ValueError(f'Unknown target assignment method {method}')
         args.target_handler_type = method
         args.target_handler_args = handler_args
+
+    @staticmethod
+    def _parse_converter_arg(args):
+        converter = args.converter
+        if converter == 'gtupack':
+            _before, _after = args.num_gtu_around[0:2]
+            transformer_args = {
+                "num_gtu_before": _before, "num_gtu_after": _after,
+                "adjust_if_out_of_bounds": not args.no_bounds_adjust,
+            }
+        elif converter == 'allpack':
+            _start, _stop = args.gtu_range[0:2]
+            transformer_args = {
+                "start_gtu": _start, "stop_gtu": _stop,
+            }
+        elif converter == 'default':
+            _packet_id, (_start, _stop) = args.packet_idx, args.gtu_range
+            transformer_args = {
+                "start_gtu": _start, "stop_gtu": _stop,
+                "packet_id": _packet_id,
+            }
+        else:
+            # in case later we add another converter and subparser
+            raise ValueError(f"Unknown converter {converter}")
+        args.event_transformer = converter
+        args.event_transformer_args = transformer_args
