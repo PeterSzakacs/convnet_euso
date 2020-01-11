@@ -5,9 +5,9 @@ import cmdint.common.argparse_types as atypes
 import cmdint.common.args as cargs
 import cmdint.common.dataset_args as dargs
 import dataset.constants as cons
-import utils.common_utils as cutils
 
-class CmdInterface():
+
+class CmdInterface:
 
     def __init__(self):
         parser = argparse.ArgumentParser(
@@ -80,7 +80,6 @@ class CmdInterface():
         self.packet_args = packet_args
         self.dset_args = dset_args
         self.item_args = item_args
-
 
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)

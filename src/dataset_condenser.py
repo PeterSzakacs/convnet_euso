@@ -80,15 +80,7 @@ def get_data_handler(args):
     return handler
 
 
-if __name__ == "__main__":
-    import sys
-    import cmdint.cmd_interface_condenser as cmd
-
-    # command line parsing
-    cmd_int = cmd.CmdInterface()
-    args = cmd_int.get_cmd_args(sys.argv[1:])
-    print(args)
-
+def main(args):
     data_handler = get_data_handler(args)
     target_handler = targ.StaticTargetHandler(
         cons.CLASSIFICATION_TARGETS[args.target])
@@ -111,3 +103,15 @@ if __name__ == "__main__":
     print(f"Creating dataset \"{dataset.name}\" containing "
           f"{dataset.num_data} items")
     output_handler.save_dataset(dataset)
+
+
+if __name__ == "__main__":
+    import sys
+    import cmdint.cmd_interface_condenser as cmd
+
+    # command line parsing
+    cmd_int = cmd.CmdInterface()
+    args = cmd_int.get_cmd_args(sys.argv[1:])
+    print(args)
+
+    main(args)
