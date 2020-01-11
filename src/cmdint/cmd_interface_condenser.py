@@ -111,20 +111,31 @@ class CmdInterface:
     def get_cmd_args(self, argsToParse):
         args = self.parser.parse_args(argsToParse)
 
+        atype = dargs.arg_type.OUTPUT
+        filelist = args.filelist
+        name, outdir = self.dset_args.get_dataset_double(args, atype)
+
         if not os.path.isfile(args.filelist):
             raise ValueError("Invalid filelist {}".format(args.filelist))
         if not os.path.isdir(args.outdir):
             raise ValueError("Invalid output directory {}".format(args.outdir))
 
-        args.template = self.packet_args.packet_arg_to_template(args)
-
-        atype = dargs.arg_type.OUTPUT
-        args.item_types = self.item_args.get_item_types(args, atype)
-
-        self._parse_converter_arg(args)
-        self._parse_target_arg(args)
-
-        return args
+        args_dict = {
+            "filelist": filelist,
+            "packet_template": self.packet_args.packet_arg_to_template(args),
+            "output_dataset": {
+                "name": name, "outdir": outdir, "dtype": args.dtype,
+                "item_types": self.item_args.get_item_types(args, atype)
+            },
+            "event_transformer": self._parse_converter_arg(args),
+            "target_handler": self._parse_target_arg(args),
+            "extra_metafields": args.extra_metafields,
+            "cache": {
+                "max_size": args.max_cache_size,
+                "num_evict_on_full": args.num_evicted
+            },
+        }
+        return args_dict
 
     @staticmethod
     def _parse_target_arg(args):
@@ -140,8 +151,7 @@ class CmdInterface:
             }
         else:
             raise ValueError(f'Unknown target assignment method {method}')
-        args.target_handler_type = method
-        args.target_handler_args = handler_args
+        return {"name": method, "args": handler_args}
 
     @staticmethod
     def _parse_converter_arg(args):
@@ -166,5 +176,4 @@ class CmdInterface:
         else:
             # in case later we add another converter and subparser
             raise ValueError(f"Unknown converter {converter}")
-        args.event_transformer = converter
-        args.event_transformer_args = transformer_args
+        return {"name": converter, "args": transformer_args}
