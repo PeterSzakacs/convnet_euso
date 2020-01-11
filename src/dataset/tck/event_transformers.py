@@ -102,16 +102,19 @@ class GtuInPacketEventTransformer:
             start = gtu - self._gtu_before
             stop = gtu + self._gtu_after
             if (start < 0 or stop > packet.shape[0]) and not self._adjust:
-                idx = event.get(['event_id'], srcfile)
+                idx = event.get('event_id', srcfile)
                 raise Exception('Frame range for event id {} ({}:{}) is out of'
                                 ' packet bounds'.format(idx, start, stop))
             else:
+                # TODO: this is not optimal
                 while start < 0:
                     start += 1
                     stop += 1
                 while stop > packet.shape[0]:
                     start -= 1
                     stop -= 1
+            if start < 0:
+                raise Exception('Cannot correctly adjust frame window')
             result = {'packet': packet[start:stop], 'packet_id': idx,
                       'start_gtu': start, 'end_gtu': stop, 'event_meta': event}
             yield [result, ]
