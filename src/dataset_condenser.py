@@ -57,6 +57,34 @@ class DatasetCondenser:
                         f"{dataset.num_data}")
 
 
+def main(**kwargs):
+    # get conversion class from events to dataset items
+    packet_template = kwargs['packet_template']
+    cache = get_packet_cache(packet_template, **kwargs['cache'])
+    condenser = get_condenser(cache.get, **kwargs)
+
+    # create output dataset
+    data_handler = condenser.packets_handler
+    output_packet_shape = list(packet_template.packet_shape)
+    output_packet_shape[0] = data_handler.num_frames
+    dataset, handler = get_output_dataset_and_handler(output_packet_shape,
+                                                      **kwargs['output_dataset'])
+
+    # load events from filelist and add them to output dataset as items
+    meta_creator = condenser.metadata_handler
+    input_tsv = kwargs['filelist']
+    fields = set(data_handler.REQUIRED_FILELIST_COLUMNS)
+    fields = fields.union(meta_creator.MANDATORY_EVENT_META)
+    fields = fields.union(meta_creator.extra_metafields)
+    rows = io_utils.load_TSV(input_tsv, selected_columns=fields)
+    condenser.add_to_dataset(rows, dataset)
+
+    # save dataset
+    print(f"Creating dataset \"{dataset.name}\" containing "
+          f"{dataset.num_data} items")
+    handler.save_dataset(dataset)
+
+
 def get_packet_cache(packet_template, **cache_args):
     extractor = tck_io_utils.PacketExtractor(packet_template=packet_template)
     extractors = {'NPY': extractor.extract_packets_from_npyfile,
@@ -67,41 +95,27 @@ def get_packet_cache(packet_template, **cache_args):
     return cache
 
 
-def main(**kwargs):
-    packet_template = kwargs['packet_template']
-    cache = get_packet_cache(packet_template, **kwargs['cache'])
-
+def get_condenser(packet_extraction_fn, **kwargs):
     event_transformer = kwargs['event_transformer']
     data_handler = event_tran.get_event_transformer(
-        event_transformer['name'], cache.get, **event_transformer['args'])
+        event_transformer['name'], packet_extraction_fn,
+        **event_transformer['args'])
 
     target_handler = kwargs['target_handler']
     target_handler = targ.get_target_handler(
         target_handler['name'], **target_handler['args'])
 
     meta_creator = meta.MetadataCreator(kwargs['extra_metafields'])
+    return DatasetCondenser(data_handler, meta_creator, target_handler)
 
-    condenser = DatasetCondenser(data_handler, meta_creator, target_handler)
 
-    extracted_packet_shape = list(packet_template.packet_shape)
-    extracted_packet_shape[0] = data_handler.num_frames
-
-    dataset_args = kwargs['output_dataset']
-    dataset = ds.NumpyDataset(dataset_args['name'], extracted_packet_shape,
+def get_output_dataset_and_handler(output_packet_shape, **dataset_args):
+    dataset = ds.NumpyDataset(dataset_args['name'], output_packet_shape,
                               item_types=dataset_args['item_types'],
                               dtype=dataset_args['dtype'])
-
-    input_tsv = kwargs['filelist']
-    fields = set(data_handler.REQUIRED_FILELIST_COLUMNS)
-    fields = fields.union(meta_creator.MANDATORY_EVENT_META)
-    fields = fields.union(meta_creator.extra_metafields)
-    rows = io_utils.load_TSV(input_tsv, selected_columns=fields)
-    condenser.add_to_dataset(rows, dataset)
     output_handler = fs_io.DatasetFsPersistencyHandler(
         save_dir=dataset_args['outdir'])
-    print(f"Creating dataset \"{dataset.name}\" containing "
-          f"{dataset.num_data} items")
-    output_handler.save_dataset(dataset)
+    return dataset, output_handler
 
 
 if __name__ == "__main__":
