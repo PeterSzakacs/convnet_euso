@@ -1,6 +1,19 @@
 import dataset.constants as cons
 
 
+HANDLER_TYPES = ('STATIC', 'BIN_COLUMN')
+
+
+def get_target_handler(handler_type, **kwargs):
+    _type = handler_type.upper()
+    if _type == 'STATIC':
+        return StaticTargetHandler(kwargs['target_value'])
+    elif _type == 'BIN_COLUMN':
+        return BinaryColumnTargetHandler(kwargs['column_name'])
+    else:
+        raise ValueError(f'Unknown handler type: {handler_type}')
+
+
 class StaticTargetHandler:
 
     def __init__(self, target_value):

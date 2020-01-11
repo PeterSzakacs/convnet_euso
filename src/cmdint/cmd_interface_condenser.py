@@ -1,5 +1,6 @@
 import os
 import argparse
+import textwrap
 
 import cmdint.common.argparse_types as atypes
 import cmdint.common.args as cargs
@@ -7,11 +8,25 @@ import cmdint.common.dataset_args as dargs
 import dataset.constants as cons
 
 
+_TARGET_ARG_HELP = textwrap.dedent(f'''\
+        target assignment method to use for all extracted items along with 
+        relevant arguments for it. Supported methods and their arguments:
+        --target STATIC ({"|".join(cons.CLASSIFICATION_TARGETS)})
+        set chosen static value for all items
+        --target BIN_COLUMN <COLUMN_NAME>
+        set value from metadata column (must be included in extra_metafields)
+        ''')
+
+
 class CmdInterface:
 
     def __init__(self):
         parser = argparse.ArgumentParser(
-            description="Create dataset from multiple files with packets")
+            description="Create dataset from multiple files with packets",
+            formatter_class=argparse.RawTextHelpFormatter
+        )
+
+        # global settings
         parser.add_argument('--max_cache_size', default=40,
                             type=atypes.int_range(1),
                             help=('maximum size of parsed files cache'))
@@ -20,27 +35,39 @@ class CmdInterface:
                             help=('number of cache entires to evict when the '
                                   'cache gets full'))
 
+        # input settings
         group = parser.add_argument_group(title='Input settings')
         packet_args = cargs.PacketArgs()
         packet_args.add_packet_arg(group)
         group.add_argument('-f', '--filelist', required=True,
                            help=('input files list in TSV format'))
 
+        # output (dataset) settings
         group = parser.add_argument_group(title='Output settings')
         out_aliases = {'dataset name': 'name', 'dataset directory': 'outdir'}
         dset_args = dargs.DatasetArgs(output_aliases=out_aliases)
         dset_args.add_dataset_arg_double(group, dargs.arg_type.OUTPUT,
                                          dir_short_alias='d', dir_default='.',
                                          name_short_alias='n')
+
+        # output (dataset) data item settings
+        group = parser.add_argument_group(title='Data item settings')
         item_args = dargs.ItemTypeArgs()
         item_args.add_item_type_args(group, dargs.arg_type.OUTPUT)
-        group.add_argument('--target', required=True,
-                           choices=cons.CLASSIFICATION_TARGETS.keys(),
-                           help=('classification target value to use for all '
-                                 'items'))
         group.add_argument('--dtype', default='float32',
-                           help='(numeric) datatype of all dataset items')
+                           help='cast extracted items to the given numpy data '
+                                'type (default: %(default)s))')
+
+        # output (dataset) target settings
+        group = parser.add_argument_group(title='Item target settings')
+        group.add_argument('--target', required=True, nargs=2,
+                           metavar=('METHOD', 'ARGS'),
+                           help=_TARGET_ARG_HELP)
+
+        # output (dataset) metadata settings
+        group = parser.add_argument_group(title='Metadata settings')
         group.add_argument('--extra_metafields', nargs='+', default=[],
+                           metavar='FIELD',
                            help=('additional fields in the event list to '
                                  'include in dataset metadata'))
 
@@ -94,4 +121,23 @@ class CmdInterface:
         atype = dargs.arg_type.OUTPUT
         args.item_types = self.item_args.get_item_types(args, atype)
 
+        self._parse_target_arg(args)
+
         return args
+
+    @staticmethod
+    def _parse_target_arg(args):
+        raw_value = args.target
+        method = raw_value[0].upper()
+        if method == 'STATIC':
+            handler_args = {
+                'target_value': cons.CLASSIFICATION_TARGETS[raw_value[1]]
+            }
+        elif method == 'BIN_COLUMN':
+            handler_args = {
+                'column_name': raw_value[1]
+            }
+        else:
+            raise ValueError(f'Unknown target assignment method {method}')
+        args.target_handler_type = method
+        args.target_handler_args = handler_args

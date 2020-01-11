@@ -1,6 +1,5 @@
 import logging
 
-import dataset.constants as cons
 import dataset.dataset_utils as ds
 import dataset.io.fs_io as fs_io
 import dataset.tck.constants as tck_cons
@@ -82,8 +81,8 @@ def get_data_handler(args):
 
 def main(args):
     data_handler = get_data_handler(args)
-    target_handler = targ.StaticTargetHandler(
-        cons.CLASSIFICATION_TARGETS[args.target])
+    target_handler = targ.get_target_handler(args.target_handler_type,
+                                             **args.target_handler_args)
     meta_creator = meta.MetadataCreator(args.extra_metafields)
 
     condenser = DatasetCondenser(data_handler, meta_creator, target_handler)
