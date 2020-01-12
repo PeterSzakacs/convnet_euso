@@ -10,7 +10,6 @@ def get_event_transformer(name, packet_extraction_fn, **kwargs):
         before = kwargs.get('num_gtu_before')
         after = kwargs.get('num_gtu_after')
         adjust = kwargs.get('adjust_if_out_of_bounds', True)
-        print(adjust)
         return GtuInPacketEventTransformer(packet_extraction_fn,
                                            num_gtu_before=before,
                                            num_gtu_after=after,

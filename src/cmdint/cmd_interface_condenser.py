@@ -1,5 +1,6 @@
-import os
 import argparse
+import logging
+import os
 import textwrap
 
 import cmdint.common.argparse_types as atypes
@@ -27,6 +28,10 @@ class CmdInterface:
         )
 
         # global settings
+        parser.add_argument('--log_level', default='INFO',
+                            choices=logging._nameToLevel.keys(),
+                            help='global logging output level (default: '
+                                 '%(default)s))')
         parser.add_argument('--max_cache_size', default=40,
                             type=atypes.int_range(1),
                             help=('maximum size of parsed files cache'))
@@ -134,6 +139,7 @@ class CmdInterface:
                 "max_size": args.max_cache_size,
                 "num_evict_on_full": args.num_evicted
             },
+            "logger": self._get_logger(args)
         }
         return args_dict
 
@@ -177,3 +183,13 @@ class CmdInterface:
             # in case later we add another converter and subparser
             raise ValueError(f"Unknown converter {converter}")
         return {"name": converter, "args": transformer_args}
+
+    @staticmethod
+    def _get_logger(args):
+        logger = logging.getLogger('DatasetCondenser')
+        level = logging.getLevelName(args.log_level)
+        logger.level = level
+        stdout_handler = logging.StreamHandler()
+        stdout_handler.level = level
+        logger.addHandler(stdout_handler)
+        return logger

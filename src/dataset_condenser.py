@@ -26,38 +26,32 @@ import utils.io_utils as io_utils
 class DatasetCondenser:
 
     def __init__(self, packets_handler, metadata_handler, targets_handler,
-                 logging_level=None):
+                 logger=None):
         self.packets_handler = packets_handler
         self.metadata_handler = metadata_handler
         self.targets_handler = targets_handler
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.set_logging_level(logging_level=logging_level)
-
-    def set_logging_level(self, logging_level=None):
-        logger = self.logger
-        level = logging_level or logging.INFO
-        logger.level = level
-        stdout_handler = logging.StreamHandler()
-        stdout_handler.level = level
-        logger.addHandler(stdout_handler)
+        self.logger = logger or logging.getLogger(self.__class__.__name__)
 
     def add_to_dataset(self, event_stream, dataset):
         events = self.packets_handler.process_events(event_stream)
         events = self.metadata_handler.process_events(events)
         events = self.targets_handler.process_events(events)
-        logger = self.logger
+        log_info = self.logger.info
         for event_list in events:
             event_meta = event_list[0][2]
-            logger.info(f"Processing {len(event_list)} packets "
-                        f"from {event_meta[tck_cons.SRCFILE_KEY]}")
+            log_info(f"Processing {len(event_list)} packets from "
+                     f"{event_meta[tck_cons.SRCFILE_KEY]}")
             for event in event_list:
                 packet, target, meta = event[:]
                 dataset.add_data_item(packet, target, metadata=meta)
-            logger.info(f"Dataset current total data items count: "
-                        f"{dataset.num_data}")
+            log_info(f"Dataset current total data items count: "
+                     f"{dataset.num_data}")
 
 
 def main(**kwargs):
+    logger = kwargs['logger']
+    logger.debug(kwargs)
+
     # get conversion class from events to dataset items
     packet_template = kwargs['packet_template']
     cache = get_packet_cache(packet_template, **kwargs['cache'])
@@ -80,8 +74,8 @@ def main(**kwargs):
     condenser.add_to_dataset(rows, dataset)
 
     # save dataset
-    print(f"Creating dataset \"{dataset.name}\" containing "
-          f"{dataset.num_data} items")
+    logger.info(f"Creating dataset \"{dataset.name}\" containing "
+                f"{dataset.num_data} items")
     handler.save_dataset(dataset)
 
 
@@ -106,7 +100,8 @@ def get_condenser(packet_extraction_fn, **kwargs):
         target_handler['name'], **target_handler['args'])
 
     meta_creator = meta.MetadataCreator(kwargs['extra_metafields'])
-    return DatasetCondenser(data_handler, meta_creator, target_handler)
+    return DatasetCondenser(data_handler, meta_creator, target_handler,
+                            logger=kwargs['logger'])
 
 
 def get_output_dataset_and_handler(output_packet_shape, **dataset_args):
@@ -125,6 +120,5 @@ if __name__ == "__main__":
     # command line parsing
     cmd_int = cmd.CmdInterface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
-    print(args)
 
     main(**args)
