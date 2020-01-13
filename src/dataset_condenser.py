@@ -1,158 +1,13 @@
-import collections
+import logging
 
-import dataset.constants as cons
-import dataset.dataset_tck as tck
 import dataset.dataset_utils as ds
 import dataset.io.fs_io as fs_io
+import dataset.tck.constants as tck_cons
+import dataset.tck.event_transformers as event_tran
+import dataset.tck.io_utils as tck_io_utils
+import dataset.tck.metadata_handlers as meta
+import dataset.tck.target_handlers as targ
 import utils.io_utils as io_utils
-
-SRCFILE_KEY = 'source_file_acquisition_full'
-
-# for processing simu data:
-# - frames 0-20 can be used as examples of bg noise
-# - frames 27-47 typically contain the shower
-# for processing raw flight data:
-# - frames 27-47 are the rule of thumb
-
-
-class DefaultEventTransformer:
-
-    REQUIRED_FILELIST_COLUMNS = ('packet_id', )
-
-    def __init__(self, packet_id, start_gtu, stop_gtu):
-        self._packet_id = packet_id
-        self._start_gtu = start_gtu
-        self._stop_gtu = stop_gtu
-
-    @property
-    def num_frames(self):
-        return self._stop_gtu - self._start_gtu
-
-    def event_to_packets(self, event_packets, event_metadata):
-        idx = self._packet_id
-        start, stop = self._start_gtu, self._stop_gtu
-        result = {'packet': packets[idx][start:stop], 'packet_id': idx,
-                  'start_gtu': start, 'end_gtu': stop, }
-        return [result, ]
-
-
-class AllPacketsEventTransformer:
-
-    REQUIRED_FILELIST_COLUMNS = ()
-
-    def __init__(self, start_gtu, stop_gtu):
-        self._start_gtu = start_gtu
-        self._stop_gtu = stop_gtu
-
-    @property
-    def num_frames(self):
-        return self._stop_gtu - self._start_gtu
-
-    def event_to_packets(self, event_packets, event_metadata):
-        results = []
-        start, stop = self._start_gtu, self._stop_gtu
-        for idx in range(len(packets)):
-            packet = event_packets[idx][start:stop]
-            result = {'packet': packet, 'packet_id': idx,
-                      'start_gtu': start, 'end_gtu': stop, }
-            results.append(result)
-        return results
-
-
-class GtuInPacketEventTransformer:
-
-    REQUIRED_FILELIST_COLUMNS = ('packet_id', 'gtu_in_packet')
-
-    def __init__(self, num_gtu_before=None, num_gtu_after=None,
-                 adjust_if_out_of_bounds=True):
-        self._gtu_before = num_gtu_before or 4
-        self._gtu_after = num_gtu_after or 15
-        self._gtu_after = self._gtu_after + 1
-        self._adjust = adjust_if_out_of_bounds
-
-    @property
-    def num_frames(self):
-        return self._gtu_after + self._gtu_before
-
-    def event_to_packets(self, event_packets, event_metadata):
-        idx = int(event_metadata['packet_id'])
-        packet = event_packets[idx]
-        packet_gtu = int(event_metadata['gtu_in_packet'])
-        start = packet_gtu - self._gtu_before
-        stop = packet_gtu + self._gtu_after
-        if (start < 0 or stop > packet.shape[0]) and not self._adjust:
-            idx = event_metadata.get(['event_id'], event_metadata[SRCFILE_KEY])
-            raise Exception('Frame range for event id {} ({}:{}) is out of '
-                            'packet bounds'.format(idx, start, stop))
-        else:
-            while start < 0:
-                start += 1
-                stop += 1
-            while stop > packet.shape[0]:
-                start -= 1
-                stop -= 1
-        result = {'packet': packet[start:stop], 'packet_id': idx,
-                  'start_gtu': start, 'end_gtu': stop}
-        return [result, ]
-
-
-class MetadataCreator:
-
-    MANDATORY_PACKET_ATTRS = ('packet_id', 'start_gtu', 'end_gtu')
-    MANDATORY_EVENT_META = (SRCFILE_KEY, )
-
-    def __init__(self, extra_fields=None):
-        self._extra = set(extra_fields or [])
-
-    @property
-    def extra_metafields(self):
-        return self._extra
-
-    def create_metadata(self, packet_attrs, event_metadata):
-        metadata = []
-        metafields = self._extra.union(self.MANDATORY_EVENT_META)
-        meta_dict = {field: event_metadata.get(field) for field in metafields}
-        for packet_attr in packet_attrs:
-            meta = meta_dict.copy()
-            for fieldname in self.MANDATORY_PACKET_ATTRS:
-                meta[fieldname] = packet_attr[fieldname]
-            metadata.append(meta)
-        return metadata
-
-
-class PacketCache:
-
-    def __init__(self, max_size, packet_extractors, num_evict_on_full=10):
-        if max_size < num_evict_on_full:
-            raise ValueError('Number of evicted items must be less than the '
-                             'cache size')
-        self._maxsize = max_size
-        self._extractors = {}
-        for key in ('NPY', 'ROOT'):
-            self._extractors[key] = packet_extractors[key]
-        self._num_evict = num_evict_on_full
-        self._packets = {}
-        self._file_queue = collections.deque([], max_size)
-
-    def get(self, filename):
-        all_packets, queue = self._packets, self._file_queue
-        packets = all_packets.get(filename, None)
-        if packets is None:
-            extractors = self._extractors
-            if filename.endswith('.npy'):
-                extractor = extractors['NPY']
-            elif filename.endswith('.root'):
-                extractor = extractors['ROOT']
-            else:
-                raise Exception('Unknown file type: {}'.format(filename))
-            packets = extractor(filename)
-            all_packets[filename] = packets
-            queue.append(filename)
-            if len(queue) == self._maxsize:
-                for idx in range(self._num_evict):
-                    filename = queue.popleft()
-                    all_packets.pop(filename)
-        return packets
 
 
 # script to coallesce (simulated or real) data from several files
@@ -161,6 +16,103 @@ class PacketCache:
 
 # currently no usage for L1 trigger file, so it is just ignored
 
+# for processing simu data:
+# - frames 0-20 can be used as examples of bg noise
+# - frames 27-47 typically contain the shower
+# for processing raw flight data:
+# - frames 27-47 are the rule of thumb
+
+
+class DatasetCondenser:
+
+    def __init__(self, packets_handler, metadata_handler, targets_handler,
+                 logger=None):
+        self.packets_handler = packets_handler
+        self.metadata_handler = metadata_handler
+        self.targets_handler = targets_handler
+        self.logger = logger or logging.getLogger(self.__class__.__name__)
+
+    def add_to_dataset(self, event_stream, dataset):
+        events = self.packets_handler.process_events(event_stream)
+        events = self.metadata_handler.process_events(events)
+        events = self.targets_handler.process_events(events)
+        log_info = self.logger.info
+        for event_list in events:
+            event_meta = event_list[0][2]
+            log_info(f"Processing {len(event_list)} packets from "
+                     f"{event_meta[tck_cons.SRCFILE_KEY]}")
+            for event in event_list:
+                packet, target, meta = event[:]
+                dataset.add_data_item(packet, target, metadata=meta)
+            log_info(f"Dataset current total data items count: "
+                     f"{dataset.num_data}")
+
+
+def main(**kwargs):
+    logger = kwargs['logger']
+    logger.debug(kwargs)
+
+    # get conversion class from events to dataset items
+    packet_template = kwargs['packet_template']
+    cache = get_packet_cache(packet_template, **kwargs['cache'])
+    condenser = get_condenser(cache.get, **kwargs)
+
+    # create output dataset
+    data_handler = condenser.packets_handler
+    output_packet_shape = list(packet_template.packet_shape)
+    output_packet_shape[0] = data_handler.num_frames
+    dataset, handler = get_output_dataset_and_handler(output_packet_shape,
+                                                      **kwargs['output_dataset'])
+
+    # load events from filelist and add them to output dataset as items
+    meta_creator = condenser.metadata_handler
+    input_tsv = kwargs['filelist']
+    fields = set(data_handler.REQUIRED_FILELIST_COLUMNS)
+    fields = fields.union(meta_creator.MANDATORY_EVENT_META)
+    fields = fields.union(meta_creator.extra_metafields)
+    rows = io_utils.load_TSV(input_tsv, selected_columns=fields)
+    condenser.add_to_dataset(rows, dataset)
+
+    # save dataset
+    logger.info(f"Creating dataset \"{dataset.name}\" containing "
+                f"{dataset.num_data} items")
+    handler.save_dataset(dataset)
+
+
+def get_packet_cache(packet_template, **cache_args):
+    extractor = tck_io_utils.PacketExtractor(packet_template=packet_template)
+    extractors = {'NPY': extractor.extract_packets_from_npyfile,
+                  'ROOT': extractor.extract_packets_from_rootfile}
+    cache = tck_io_utils.PacketCache(
+        cache_args['max_size'], extractors,
+        num_evict_on_full=cache_args['num_evict_on_full'])
+    return cache
+
+
+def get_condenser(packet_extraction_fn, **kwargs):
+    event_transformer = kwargs['event_transformer']
+    data_handler = event_tran.get_event_transformer(
+        event_transformer['name'], packet_extraction_fn,
+        **event_transformer['args'])
+
+    target_handler = kwargs['target_handler']
+    target_handler = targ.get_target_handler(
+        target_handler['name'], **target_handler['args'])
+
+    meta_creator = meta.MetadataCreator(kwargs['extra_metafields'])
+    return DatasetCondenser(data_handler, meta_creator, target_handler,
+                            logger=kwargs['logger'])
+
+
+def get_output_dataset_and_handler(output_packet_shape, **dataset_args):
+    dataset = ds.NumpyDataset(dataset_args['name'], output_packet_shape,
+                              item_types=dataset_args['item_types'],
+                              dtype=dataset_args['dtype'])
+    output_handler = fs_io.DatasetFsPersistencyHandler(
+        save_dir=dataset_args['outdir'])
+    return dataset, output_handler
+
+
 if __name__ == "__main__":
     import sys
     import cmdint.cmd_interface_condenser as cmd
@@ -168,56 +120,5 @@ if __name__ == "__main__":
     # command line parsing
     cmd_int = cmd.CmdInterface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
-    print(args)
 
-    packet_template = args.template
-    extractor = tck.PacketExtractor(packet_template=packet_template)
-    extractors = {'NPY': extractor.extract_packets_from_npyfile,
-                  'ROOT': extractor.extract_packets_from_rootfile}
-    cache = PacketCache(args.max_cache_size, extractors,
-                        num_evict_on_full=args.num_evicted)
-
-    if args.converter == 'gtupack':
-        before, after = args.num_gtu_around[0:2]
-        data_transformer = GtuInPacketEventTransformer(
-            num_gtu_before=before, num_gtu_after=after,
-            adjust_if_out_of_bounds=(not args.no_bounds_adjust))
-    elif args.converter == 'allpack':
-        start, stop = args.gtu_range[0:2]
-        data_transformer = AllPacketsEventTransformer(start, stop)
-    else:
-        packet_id, (start, stop) = args.packet_idx, args.gtu_range
-        data_transformer = DefaultEventTransformer(packet_id, start, stop)
-    target = cons.CLASSIFICATION_TARGETS[args.target]
-    meta_creator = MetadataCreator(args.extra_metafields)
-
-    extracted_packet_shape = list(packet_template.packet_shape)
-    extracted_packet_shape[0] = data_transformer.num_frames
-    output_handler = fs_io.DatasetFsPersistencyHandler(save_dir=args.outdir)
-    dataset = ds.NumpyDataset(args.name, extracted_packet_shape,
-                              item_types=args.item_types, dtype=args.dtype)
-
-
-    # main loop
-    input_tsv = args.filelist
-    fields = set(data_transformer.REQUIRED_FILELIST_COLUMNS)
-    fields = fields.union(meta_creator.MANDATORY_EVENT_META)
-    fields = fields.union(meta_creator.extra_metafields)
-    rows = io_utils.load_TSV(input_tsv, selected_columns=fields)
-    for row in rows:
-        srcfile = row[SRCFILE_KEY]
-        print("Processing file {}".format(srcfile))
-        packets = cache.get(srcfile)
-        dataset_packets = data_transformer.event_to_packets(packets, row)
-        print("Extracted: {} data items".format(len(dataset_packets)))
-        metadata = meta_creator.create_metadata(dataset_packets, row)
-        for idx in range(len(dataset_packets)):
-            packet, meta = dataset_packets[idx]['packet'], metadata[idx]
-            dataset.add_data_item(packet, target, metadata=meta)
-        print("Dataset current total data items count: {}".format(
-            dataset.num_data
-        ))
-
-    print('Creating dataset "{}" containing {} items'.format(
-        dataset.name, dataset.num_data))
-    output_handler.save_dataset(dataset)
+    main(**args)

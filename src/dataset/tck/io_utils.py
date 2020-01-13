@@ -1,9 +1,11 @@
+import collections
+
 import numpy as np
 
 import libs.event_reading as reading
 import utils.data_templates as templates
 
-# classes (get raw packet data from external file)
+# classes
 
 
 class PacketExtractor:
@@ -71,3 +73,38 @@ class PacketExtractor:
 
         num_packets = int(frames_total / self._template.num_frames)
         return ndarray.reshape(num_packets, *self._template.packet_shape)
+
+
+class PacketCache:
+
+    def __init__(self, max_size, packet_extractors, num_evict_on_full=10):
+        if max_size < num_evict_on_full:
+            raise ValueError('Number of evicted items must be less than the '
+                             'cache size')
+        self._maxsize = max_size
+        self._extractors = {}
+        for key in ('NPY', 'ROOT'):
+            self._extractors[key] = packet_extractors[key]
+        self._num_evict = num_evict_on_full
+        self._packets = {}
+        self._file_queue = collections.deque([], max_size)
+
+    def get(self, filename):
+        all_packets, queue = self._packets, self._file_queue
+        packets = all_packets.get(filename, None)
+        if packets is None:
+            extractors = self._extractors
+            if filename.endswith('.npy'):
+                extractor = extractors['NPY']
+            elif filename.endswith('.root'):
+                extractor = extractors['ROOT']
+            else:
+                raise Exception('Unknown file type: {}'.format(filename))
+            packets = extractor(filename)
+            all_packets[filename] = packets
+            queue.append(filename)
+            if len(queue) == self._maxsize:
+                for idx in range(self._num_evict):
+                    filename = queue.popleft()
+                    all_packets.pop(filename)
+        return packets
