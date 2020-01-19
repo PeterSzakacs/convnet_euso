@@ -67,5 +67,5 @@ if __name__ == '__main__':
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 
-    args['network'] = 'net.' + args['network']
+    args['network'] = 'net.samples.' + args['network']
     main(**args)

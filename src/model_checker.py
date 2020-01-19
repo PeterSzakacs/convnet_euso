@@ -32,7 +32,7 @@ if __name__ == '__main__':
     if not os.path.exists(logdir):
         os.mkdir(logdir)
     network_module_name, model_file = args.network, args.model_file
-    network_module_name = "net." + network_module_name
+    network_module_name = "net.samples." + network_module_name
     run_id = netutils.get_default_run_id(network_module_name)
     tb_dir = os.path.join(logdir, run_id)
     os.mkdir(tb_dir)

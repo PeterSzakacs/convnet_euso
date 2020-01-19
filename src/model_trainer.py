@@ -25,7 +25,7 @@ if __name__ == '__main__':
                                         num_items=num_items)
 
     # import network model
-    network, model_file = 'net.' + args['network'], args['model_file']
+    network, model_file = 'net.samples.' + args['network'], args['model_file']
     tb_dir = args['tb_dir']
     model = netutils.import_model(network, dataset.item_shapes, **args)
 
