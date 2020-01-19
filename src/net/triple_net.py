@@ -49,7 +49,7 @@ class TripleNet(conv_classes.Conv2DNetwork):
         builder.end_current_path()
 
         shape = input_shapes['gtuy']
-        gtuy_out = builder.add_input_layer(shape, 'gtuy', name='input_gtuy')
+        builder.add_input_layer(shape, 'gtuy', name='input_gtuy')
         builder.start_new_path()
         builder.add_reshape_layer((*shape, 1))
         builder.add_conv2d_layer(32, 3, filter_strides=1, activation='relu',
