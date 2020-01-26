@@ -84,11 +84,11 @@ class Conv2DNetwork(bclasses.NeuralNetwork):
 
     def __init__(self, builder):
         super(Conv2DNetwork, self).__init__(builder)
-        layers, categories = builder.layers_dict, builder.layer_categories
-        conv_layers = categories['Conv2D']
-        fc_layers = categories['FC']
-        self._conv = {name: layers[name] for name in conv_layers}
-        self._fc = {name: layers[name] for name in fc_layers}
+        layers, layer_types = builder.layers_dict, builder.layer_types
+        conv_layers = layer_types['Conv2D']
+        fc_layers = layer_types['FC']
+        self._conv = {name: layers[name]['layer'] for name in conv_layers}
+        self._fc = {name: layers[name]['layer'] for name in fc_layers}
 
     @property
     def network_type(self):

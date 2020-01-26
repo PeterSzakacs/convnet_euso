@@ -124,11 +124,13 @@ class NeuralNetwork(abc.ABC):
         trainable_layers = categories['trainable']
         hidden_layers = categories['hidden']
         input_layers = categories['input']
-        self._out = layers[builder.output_layer]
+        self._out = layers[builder.output_layer]['layer']
         self._out_name = builder.output_layer
-        self._inputs = {name: layers[name] for name in input_layers}
-        self._trainable = {name: layers[name] for name in trainable_layers}
-        self._hidden = {name: layers[name] for name in hidden_layers}
+        self._inputs = {name: layers[name]['layer'] for name in input_layers}
+        self._trainable = {
+            name: layers[name]['layer'] for name in trainable_layers
+        }
+        self._hidden = {name: layers[name]['layer'] for name in hidden_layers}
         self._input_itype_map = builder.input_to_item_type_mapping
         self._paths = builder.data_paths.copy()
 
@@ -167,7 +169,7 @@ class NeuralNetwork(abc.ABC):
         return self._input_itype_map
 
 
-class GraphBuilder():
+class GraphBuilder:
 
     # legal names contain alphanumeric characters, underscore, dash and dots
     # (essentially, filesystem friendly)
@@ -177,18 +179,26 @@ class GraphBuilder():
     def __init__(self):
         self._layers = {}
         self._layer_categories = {c: [] for c in net_cons.LAYER_CATEGORIES}
+        self._layer_types = {c: [] for c in net_cons.LAYER_TYPES}
         self._curr_layer_name = None
         self._inputs = {}
         self._output = None
         self._paths = {}
         self._curr_path = None
 
-    def _add_layer(self, layer, categories, exclude_from_path=False):
-        name = self._sanitize_layer_name(layer.name)
-        layers, layers_cat = self._layers, self._layer_categories
-        layers[name] = layer
-        for category_name in categories:
-            layers_cat[category_name].append(name)
+    def _add_layer(self, layer, exclude_from_path=False):
+        name = self._sanitize_layer_name(layer['layer'].name)
+        self._layers[name] = layer
+
+        # add name of the current layer to all of its categories
+        categories = self._layer_categories
+        for category in layer['categories']:
+            categories[category].append(name)
+
+        # add name of the current layer to its type
+        self._layer_types[layer['type']].append(name)
+
+        # update current layer name and the newest layer on the current path
         self._curr_layer_name = name
         if not (self._curr_path is None or exclude_from_path):
             self._curr_path.append(name)
@@ -204,6 +214,10 @@ class GraphBuilder():
     @property
     def layer_categories(self):
         return self._layer_categories
+
+    @property
+    def layer_types(self):
+        return self._layer_types
 
     @property
     def layers_dict(self):
@@ -239,20 +253,24 @@ class GraphBuilder():
         if self._output is not None:
             raise Exception('Output layer already set')
         try:
-            self._layer_categories['hidden'].remove(layer_name)
+            layer = self._layers[layer_name]
         except ValueError:
             raise Exception('Unknown layer "{}"'.format(layer_name))
-        layer = self._layers[layer_name]
+        self._layer_categories['hidden'].remove(layer_name)
+        layer['categories'].remove('hidden')
         if trainable:
             # the layer object does not change, only a trainer object is added,
             # no need to reassign to the dict again
-            est.regression(layer, **kwargs)
+            est.regression(layer['layer'], **kwargs)
         self._output = layer_name
 
     def add_input_layer(self, input_shape, input_item_type,
                         exclude_from_path=False, **kwargs):
-        layer = core.input_data(shape=[None, *input_shape], **kwargs)
-        name = self._add_layer(layer, ('input', ), exclude_from_path)
+        layer = {
+            "layer": core.input_data(shape=[None, *input_shape], **kwargs),
+            "type": "input", "categories": ("input", )
+        }
+        name = self._add_layer(layer, exclude_from_path)
         self._inputs[name] = input_item_type
         return name
 
@@ -261,21 +279,25 @@ class GraphBuilder():
     def add_fc_layer(self, n_units, prev_layer_name=None,
                      exclude_from_path=False, **kwargs):
         prev_name = prev_layer_name or self._curr_layer_name
-        prev = self._layers[prev_name]
+        prev = self._layers[prev_name]['layer']
         layer = core.fully_connected(prev, n_units, **kwargs)
-        categories = ['FC', 'hidden']
-        trainables = tflearn.get_all_trainable_variable()
-        if layer.W in trainables:
+        categories = ['hidden']
+        if layer.W in tflearn.get_all_trainable_variable():
             categories.append('trainable')
-        return self._add_layer(layer, categories, exclude_from_path)
+        return self._add_layer(
+            {"layer": layer, "type": "FC", "categories": categories},
+            exclude_from_path
+        )
 
     def add_dropout_layer(self, dropout_rate, prev_layer_name=None,
                           exclude_from_path=True, **kwargs):
         prev_name = prev_layer_name or self._curr_layer_name
-        prev = self._layers[prev_name]
-        layer = core.dropout(prev, dropout_rate, **kwargs)
-        categories = ['Dropout', 'hidden']
-        return self._add_layer(layer, categories, exclude_from_path)
+        prev = self._layers[prev_name]['layer']
+        layer = {
+            "layer": core.dropout(prev, dropout_rate, **kwargs),
+            "type": "Dropout", "categories": ("hidden", )
+        }
+        return self._add_layer(layer, exclude_from_path)
 
     # convolutional layers
 
@@ -283,14 +305,16 @@ class GraphBuilder():
                          prev_layer_name=None, exclude_from_path=False,
                          **kwargs):
         prev_name = prev_layer_name or self._curr_layer_name
-        prev = self._layers[prev_name]
+        prev = self._layers[prev_name]['layer']
         layer = conv.conv_2d(prev, n_filters, filter_size,
                              strides=filter_strides, **kwargs)
-        categories = ['Conv2D', 'hidden']
-        trainables = tflearn.get_all_trainable_variable()
-        if layer.W in trainables:
+        categories = ['hidden']
+        if layer.W in tflearn.get_all_trainable_variable():
             categories.append('trainable')
-        return self._add_layer(layer, categories, exclude_from_path)
+        return self._add_layer(
+            {"layer": layer, "type": "Conv2D", "categories": categories},
+            exclude_from_path
+        )
 
     # max pooling layers
 
@@ -298,43 +322,53 @@ class GraphBuilder():
                             prev_layer_name=None, exclude_from_path=False,
                             **kwargs):
         prev_name = prev_layer_name or self._curr_layer_name
-        prev = self._layers[prev_name]
-        layer = conv.max_pool_2d(prev, window_size, strides=window_strides,
-                                 **kwargs)
-        categories = ['MaxPool2D', 'hidden']
-        return self._add_layer(layer, categories, exclude_from_path)
+        prev = self._layers[prev_name]['layer']
+        layer = {
+            "layer": conv.max_pool_2d(prev, window_size,
+                                      strides=window_strides, **kwargs),
+            "type": "MaxPool2D", "categories": ("hidden", )
+        }
+        return self._add_layer(layer, exclude_from_path)
 
     # normalization layers
 
     def add_lrn_layer(self, prev_layer_name=None, exclude_from_path=False,
                       **kwargs):
         prev_name = prev_layer_name or self._curr_layer_name
-        prev = self._layers[prev_name]
-        layer = norm.local_response_normalization(prev, **kwargs)
-        categories = ['LRN', 'hidden']
-        return self._add_layer(layer, categories, exclude_from_path)
+        prev = self._layers[prev_name]['layer']
+        layer = {
+            "layer": norm.local_response_normalization(prev, **kwargs),
+            "type": "LRN", "categories": ("hidden", )
+        }
+        return self._add_layer(layer, exclude_from_path)
 
     # merge and reshape operations
 
     def add_flatten_layer(self, prev_layer_name=None, exclude_from_path=True,
                           **kwargs):
         prev_name = prev_layer_name or self._curr_layer_name
-        prev = self._layers[prev_name]
-        layer = core.flatten(prev, **kwargs)
-        categories = ['Flatten', 'hidden']
-        return self._add_layer(layer, categories, exclude_from_path)
+        prev = self._layers[prev_name]['layer']
+        layer = {
+            "layer": core.flatten(prev, **kwargs),
+            "type": "Flatten", "categories": ("hidden", )
+        }
+        return self._add_layer(layer, exclude_from_path)
 
     def add_reshape_layer(self, new_shape, prev_layer_name=None,
                           exclude_from_path=True, **kwargs):
         prev_name = prev_layer_name or self._curr_layer_name
-        prev = self._layers[prev_name]
-        layer = core.reshape(prev, [-1, *new_shape], **kwargs)
-        categories = ['Reshape', 'hidden']
-        return self._add_layer(layer, categories, exclude_from_path)
+        prev = self._layers[prev_name]['layer']
+        layer = {
+            "layer": core.reshape(prev, [-1, *new_shape], **kwargs),
+            "type": "Reshape", "categories": ("hidden", )
+        }
+        return self._add_layer(layer, exclude_from_path)
 
     def add_merge_layer(self, prev_layer_names, merge_mode,
                         exclude_from_path=True, **kwargs):
-        prev = [self._layers[name] for name in prev_layer_names]
-        layer = merge.merge(prev, merge_mode, **kwargs)
-        categories = ['Merge', 'hidden']
-        return self._add_layer(layer, categories, exclude_from_path)
+        prev = [self._layers[name]['layer'] for name in prev_layer_names]
+        layer = {
+            "layer": merge.merge(prev, merge_mode, **kwargs),
+            "type": "Merge", "categories": ("hidden", )
+        }
+        return self._add_layer(layer, exclude_from_path)
