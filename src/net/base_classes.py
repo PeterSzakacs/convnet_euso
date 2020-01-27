@@ -48,18 +48,6 @@ class NetworkModel:
         layer = self._net.trainable_layers[layer_name]
         self._model.set_weights(layer['layer'].b, weights)
 
-    def _convert_weights_to_internal_form(self, name, weights):
-        return weights
-
-    def _convert_biases_to_internal_form(self, name, biases):
-        return biases
-
-    def _convert_weights_to_external_form(self, name, weights):
-        return weights
-
-    def _convert_biases_to_external_form(self, name, biases):
-        return biases
-
     @property
     def network_graph(self):
         return self._net
