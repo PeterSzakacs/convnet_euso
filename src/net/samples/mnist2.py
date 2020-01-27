@@ -3,15 +3,17 @@
 # filters in convolutional layers)
 
 import net.base_classes as base_classes
-import net.convnet_classes as conv_classes
 
 
 def create_model(input_shapes, **optsettings):
     network = MNISTNet2(input_shapes, **optsettings)
-    return conv_classes.Conv2DNetworkModel(network, **optsettings)
+    return base_classes.NetworkModel(network, **optsettings)
 
 
-class MNISTNet2(conv_classes.Conv2DNetwork):
+class MNISTNet2(base_classes.NeuralNetwork):
+
+    def network_type(self):
+        return 'classifier'
 
     def __init__(self, input_shapes, input_type='yx', **optsettings):
         lr = optsettings.get('learning_rate') or 0.01

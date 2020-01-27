@@ -4,15 +4,17 @@
 # after the mnist network)
 
 import net.base_classes as base_classes
-import net.convnet_classes as conv_classes
 
 
 def create_model(input_shapes, **optsettings):
     network = GithubNet3b(input_shapes, **optsettings)
-    return conv_classes.Conv2DNetworkModel(network, **optsettings)
+    return base_classes.NetworkModel(network, **optsettings)
 
 
-class GithubNet3b(conv_classes.Conv2DNetwork):
+class GithubNet3b(base_classes.NeuralNetwork):
+
+    def network_type(self):
+        return 'classifier'
 
     def __init__(self, input_shapes, input_type='yx', **optsettings):
         lr = optsettings.get('learning_rate') or 0.001

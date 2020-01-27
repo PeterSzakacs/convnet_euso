@@ -2,15 +2,17 @@
 # github_net2 without dropout and flatten layers after second max_pool_2d layer
 
 import net.base_classes as base_classes
-import net.convnet_classes as conv_classes
 
 
 def create_model(input_shapes, **optsettings):
     network = GithubNet2b(input_shapes, **optsettings)
-    return conv_classes.Conv2DNetworkModel(network, **optsettings)
+    return base_classes.NetworkModel(network, **optsettings)
 
 
-class GithubNet2b(conv_classes.Conv2DNetwork):
+class GithubNet2b(base_classes.NeuralNetwork):
+
+    def network_type(self):
+        return 'classifier'
 
     def __init__(self, input_shapes, input_type='yx', **optsettings):
         lr = optsettings.get('learning_rate') or 0.001
