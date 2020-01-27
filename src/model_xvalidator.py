@@ -21,6 +21,7 @@ def main(**settings):
     net_module_name = settings['network']
     model = netutils.import_model(net_module_name, dataset.item_shapes,
                                   **settings)
+    graph = model.network_graph
 
     # prepare network trainer
     num_epochs = settings['num_epochs']
@@ -28,8 +29,10 @@ def main(**settings):
                                       **settings)
 
     # main loop
-    weights = model.trainable_layer_weights
-    biases = model.trainable_layer_biases
+    weights = { layer: model.get_layer_weights(layer)
+                for layer in graph.trainable_layers }
+    biases = { layer: model.get_layer_biases(layer)
+                for layer in graph.trainable_layers }
     run_id = 'cval_{}'.format(netutils.get_default_run_id(net_module_name))
     num_crossvals = settings['num_crossvals']
     for run_idx in range(num_crossvals):
@@ -40,8 +43,10 @@ def main(**settings):
         data['test_data'] = netutils.convert_dataset_items_to_model_inputs(
             model, data['test_data'])
         trainer.train_model(model, data_dict=data, run_id=run_id)
-        model.trainable_layer_weights = weights
-        model.trainable_layer_biases = biases
+        # restore initial weights and biases
+        for layer in graph.trainable_layers:
+            model.set_layer_weights(layer, weights[layer])
+            model.set_layer_biases(layer, biases[layer])
 
 
 if __name__ == '__main__':

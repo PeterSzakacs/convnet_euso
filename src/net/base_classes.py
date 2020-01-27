@@ -9,6 +9,7 @@ import tflearn.layers.merge_ops as merge
 import tflearn.layers.estimator as est
 
 import net.constants as net_cons
+import net.layer.layer_utils as layer_utils
 
 
 class NetworkModel:
@@ -26,6 +27,26 @@ class NetworkModel:
             model.session = session
             model.trainer.session = session
             model.predictor.session = session
+
+    def get_layer_weights(self, layer_name):
+        layer = self._net.trainable_layers[layer_name]
+        converter = layer_utils.weight_converters_external().get(
+            layer['type'], lambda w: w)
+        return converter(self._model.get_weights(layer['layer'].W))
+
+    def set_layer_weights(self, layer_name, weights):
+        layer = self._net.trainable_layers[layer_name]
+        converter = layer_utils.weight_converters_internal().get(
+            layer['type'], lambda w: w)
+        self._model.set_weights(layer['layer'].W, converter(weights))
+
+    def get_layer_biases(self, layer_name):
+        layer = self._net.trainable_layers[layer_name]
+        return self._model.get_weights(layer['layer'].b)
+
+    def set_layer_biases(self, layer_name, weights):
+        layer = self._net.trainable_layers[layer_name]
+        self._model.set_weights(layer['layer'].b, weights)
 
     def _convert_weights_to_internal_form(self, name, weights):
         return weights
@@ -46,34 +67,6 @@ class NetworkModel:
     @property
     def network_model(self):
         return self._model
-
-    @property
-    def trainable_layer_weights(self):
-        model, layers = self._model, self._net.trainable_layers
-        convert = self._convert_weights_to_external_form
-        return {name: convert(name, model.get_weights(layer['layer'].W))
-                for name, layer in layers.items()}
-
-    @trainable_layer_weights.setter
-    def trainable_layer_weights(self, values):
-        model, layers = self._model, self._net.trainable_layers
-        convert = self._convert_weights_to_internal_form
-        for name, layer in layers.items():
-            model.set_weights(layer['layer'].W, convert(name, values[name]))
-
-    @property
-    def trainable_layer_biases(self):
-        model, layers = self._model, self._net.trainable_layers
-        convert = self._convert_biases_to_external_form
-        return {name: convert(name, model.get_weights(layer['layer'].b))
-                for name, layer in layers.items()}
-
-    @trainable_layer_biases.setter
-    def trainable_layer_biases(self, values):
-        model, layers = self._model, self._net.trainable_layers
-        convert = self._convert_biases_to_internal_form
-        for name, layer in layers.items():
-            model.set_weights(layer['layer'].b, convert(name, values[name]))
 
     def initialize_model(self, create_hidden_models=False, **model_settings):
         settings = {
