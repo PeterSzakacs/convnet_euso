@@ -11,7 +11,7 @@ import tflearn.layers.estimator as est
 import net.constants as net_cons
 
 
-class NetworkModel():
+class NetworkModel:
 
     def __init__(self, neural_network, **model_settings):
         self._net = neural_network
@@ -51,7 +51,7 @@ class NetworkModel():
     def trainable_layer_weights(self):
         model, layers = self._model, self._net.trainable_layers
         convert = self._convert_weights_to_external_form
-        return {name: convert(name, model.get_weights(layer.W))
+        return {name: convert(name, model.get_weights(layer['layer'].W))
                 for name, layer in layers.items()}
 
     @trainable_layer_weights.setter
@@ -59,13 +59,13 @@ class NetworkModel():
         model, layers = self._model, self._net.trainable_layers
         convert = self._convert_weights_to_internal_form
         for name, layer in layers.items():
-            model.set_weights(layer.W, convert(name, values[name]))
+            model.set_weights(layer['layer'].W, convert(name, values[name]))
 
     @property
     def trainable_layer_biases(self):
         model, layers = self._model, self._net.trainable_layers
         convert = self._convert_biases_to_external_form
-        return {name: convert(name, model.get_weights(layer.b))
+        return {name: convert(name, model.get_weights(layer['layer'].b))
                 for name, layer in layers.items()}
 
     @trainable_layer_biases.setter
@@ -73,24 +73,24 @@ class NetworkModel():
         model, layers = self._model, self._net.trainable_layers
         convert = self._convert_biases_to_internal_form
         for name, layer in layers.items():
-            model.set_weights(layer.b, convert(name, values[name]))
+            model.set_weights(layer['layer'].b, convert(name, values[name]))
 
     def initialize_model(self, create_hidden_models=False, **model_settings):
-        settings = {}
-        settings['tensorboard_dir'] = model_settings.get('tb_dir',
-                                                         '/tmp/tflearn_logs/')
-        settings['tensorboard_verbose'] = tb_verbosity = model_settings.get(
-            'tb_verbosity', 0)
-        model = tflearn.DNN(self._net.output_layer, **settings)
+        settings = {
+            'tensorboard_dir': model_settings.get('tb_dir',
+                                                  '/tmp/tflearn_logs/'),
+            'tensorboard_verbose': model_settings.get('tb_verbosity', 0)
+        }
+        model = tflearn.DNN(self._net.output_layer['layer'], **settings)
         self._model = model
-        session = self._model.session
         if create_hidden_models:
+            session = self._model.session
             layers = set()
             for pathname, path in self._net.data_paths.items():
                 layers = layers.union(path)
-            layers.remove(self._net.output_layer_name)
+            layers.remove(self._net.output_layer)
             hidden_layers = self._net.hidden_layers
-            hidden_models = {name: tflearn.DNN(hidden_layers[name],
+            hidden_models = {name: tflearn.DNN(hidden_layers[name]['layer'],
                                                session=session)
                              for name in layers}
             self._hidden_models = hidden_models
@@ -124,13 +124,13 @@ class NeuralNetwork(abc.ABC):
         trainable_layers = categories['trainable']
         hidden_layers = categories['hidden']
         input_layers = categories['input']
-        self._out = layers[builder.output_layer]['layer']
+        self._out = layers[builder.output_layer]
         self._out_name = builder.output_layer
-        self._inputs = {name: layers[name]['layer'] for name in input_layers}
+        self._inputs = {name: layers[name] for name in input_layers}
         self._trainable = {
-            name: layers[name]['layer'] for name in trainable_layers
+            name: layers[name] for name in trainable_layers
         }
-        self._hidden = {name: layers[name]['layer'] for name in hidden_layers}
+        self._hidden = {name: layers[name] for name in hidden_layers}
         self._input_itype_map = builder.input_to_item_type_mapping
         self._paths = builder.data_paths.copy()
 

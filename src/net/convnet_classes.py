@@ -31,7 +31,7 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
     def conv_weights(self):
         model, conv_layers = self.network_model, self.network_graph.conv_layers
         convert = self._convert_weights_to_external_form
-        return {name: convert(name, model.get_weights(layer.W))
+        return {name: convert(name, model.get_weights(layer['layer'].W))
                 for name, layer in conv_layers.items()}
 
     @conv_weights.setter
@@ -39,25 +39,25 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
         model, conv_layers = self.network_model, self.network_graph.conv_layers
         convert = self._convert_weights_to_internal_form
         for name, layer in conv_layers.items():
-            model.set_weights(layer.W, convert(name, values[name]))
+            model.set_weights(layer['layer'].W, convert(name, values[name]))
 
     @property
     def conv_biases(self):
         model, conv_layers = self.network_model, self.network_graph.conv_layers
-        return {name: model.get_weights(layer.b)
+        return {name: model.get_weights(layer['layer'].b)
                 for name, layer in conv_layers.items()}
 
     @conv_biases.setter
     def conv_biases(self, values):
         model, conv_layers = self.network_model, self.network_graph.conv_layers
         for name, layer in conv_layers.items():
-            model.set_weights(layer.b, values[name])
+            model.set_weights(layer['layer'].b, values[name])
 
     @property
     def fc_weights(self):
         model, fc_layers = self.network_model, self.network_graph.fc_layers
         convert = self._convert_weights_to_external_form
-        return {name: convert(name, model.get_weights(layer.W))
+        return {name: convert(name, model.get_weights(layer['layer'].W))
                 for name, layer in fc_layers.items()}
 
     @fc_weights.setter
@@ -65,19 +65,19 @@ class Conv2DNetworkModel(bclasses.NetworkModel):
         model, fc_layers = self.network_model, self.network_graph.fc_layers
         convert = self._convert_weights_to_internal_form
         for name, layer in fc_layers.items():
-            model.set_weights(layer.W, convert(name, values[name]))
+            model.set_weights(layer['layer'].W, convert(name, values[name]))
 
     @property
     def fc_biases(self):
         model, fc_layers = self.network_model, self.network_graph.fc_layers
-        return {name: model.get_weights(layer.b)
+        return {name: model.get_weights(layer['layer'].b)
                 for name, layer in fc_layers.items()}
 
     @fc_biases.setter
     def fc_biases(self, values):
         model, fc_layers = self.network_model, self.network_graph.fc_layers
         for name, layer in fc_layers.items():
-            model.set_weights(layer.b, values[name])
+            model.set_weights(layer['layer'].b, values[name])
 
 
 class Conv2DNetwork(bclasses.NeuralNetwork):
@@ -87,8 +87,8 @@ class Conv2DNetwork(bclasses.NeuralNetwork):
         layers, layer_types = builder.layers_dict, builder.layer_types
         conv_layers = layer_types['Conv2D']
         fc_layers = layer_types['FC']
-        self._conv = {name: layers[name]['layer'] for name in conv_layers}
-        self._fc = {name: layers[name]['layer'] for name in fc_layers}
+        self._conv = {name: layers[name] for name in conv_layers}
+        self._fc = {name: layers[name] for name in fc_layers}
 
     @property
     def network_type(self):
@@ -103,14 +103,14 @@ class Conv2DNetwork(bclasses.NeuralNetwork):
         return self._fc
 
     def get_filter_size(self, conv_layer_name):
-        conv_layer = self._conv[conv_layer_name]
+        conv_layer = self._conv[conv_layer_name]['layer']
         tensor_shape = conv_layer.W.shape
         return tuple(int(tensor_shape[idx]) for idx in range(0,3))
 
     def get_num_filters(self, conv_layer_name):
-        conv_layer = self._conv[conv_layer_name]
+        conv_layer = self._conv[conv_layer_name]['layer']
         return int(conv_layer.W.shape[3])
 
     def get_num_neurons(self, fc_layer_name):
-        fc_layer = self._conv[fc_layer_name]
+        fc_layer = self._fc[fc_layer_name]['layer']
         return int(fc_layer.W.shape[1])
