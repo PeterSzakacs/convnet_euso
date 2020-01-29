@@ -1,9 +1,7 @@
-import os
 import importlib
 import datetime as dt
 import random
 
-import tflearn
 import numpy as np
 
 import dataset.target_utils as targ
@@ -37,9 +35,9 @@ def get_default_run_id(network_module_name):
 def convert_dataset_items_to_model_inputs(model, data_dict,
                                           create_getter=False):
     inputs_dict = {}
-    graph = model.network_graph
-    for input_name, item_type in graph.input_item_types.items():
-        item_np = np.array(data_dict[item_type])
+    input_spec = model.network_graph.input_spec
+    for input_name, spec in input_spec.items():
+        item_np = np.array(data_dict[spec['item_type']])
         inputs_dict[input_name] = item_np
     item_getter = lambda data, i_slice: {k: d[i_slice]
                                          for k, d in data.items()}

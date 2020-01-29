@@ -112,13 +112,23 @@ class NeuralNetwork(abc.ABC):
             name: layers[name] for name in trainable_layers
         }
         self._hidden = {name: layers[name] for name in hidden_layers}
-        self._input_itype_map = builder.input_to_item_type_mapping
         self._paths = builder.data_paths.copy()
 
     # properties
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def network_type(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def input_spec(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def output_spec(self):
         pass
 
     @property
@@ -145,10 +155,6 @@ class NeuralNetwork(abc.ABC):
     def data_paths(self):
         return self._paths
 
-    @property
-    def input_item_types(self):
-        return self._input_itype_map
-
 
 class GraphBuilder:
 
@@ -162,7 +168,6 @@ class GraphBuilder:
         self._layer_categories = {c: [] for c in net_cons.LAYER_CATEGORIES}
         self._layer_types = {c: [] for c in net_cons.LAYER_TYPES}
         self._curr_layer_name = None
-        self._inputs = {}
         self._output = None
         self._paths = {}
         self._curr_path = None
@@ -205,10 +210,6 @@ class GraphBuilder:
         return self._layers
 
     @property
-    def input_to_item_type_mapping(self):
-        return self._inputs
-
-    @property
     def output_layer(self):
         return self._output
 
@@ -245,14 +246,12 @@ class GraphBuilder:
             est.regression(layer['layer'], **kwargs)
         self._output = layer_name
 
-    def add_input_layer(self, input_shape, input_item_type,
-                        exclude_from_path=False, **kwargs):
+    def add_input_layer(self, input_shape, exclude_from_path=False, **kwargs):
         layer = {
             "layer": core.input_data(shape=[None, *input_shape], **kwargs),
             "type": "Input", "categories": ("input", )
         }
         name = self._add_layer(layer, exclude_from_path)
-        self._inputs[name] = input_item_type
         return name
 
     # core layers (fully connected, dropout etc.)

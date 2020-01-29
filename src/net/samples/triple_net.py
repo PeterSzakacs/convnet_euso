@@ -11,9 +11,6 @@ def create_model(input_shapes, **optsettings):
 
 class TripleNet(base_classes.NeuralNetwork):
 
-    def network_type(self):
-        return 'classifier'
-
     def __init__(self, input_shapes, **optsettings):
         lr = optsettings.get('learning_rate') or 0.001
         optimizer = optsettings.get('optimizer') or 'adam'
@@ -21,7 +18,7 @@ class TripleNet(base_classes.NeuralNetwork):
         builder = base_classes.GraphBuilder()
 
         shape = input_shapes['yx']
-        builder.add_input_layer(shape, 'yx', name='input_yx')
+        builder.add_input_layer(shape, name='input_yx')
         builder.start_new_path()
         builder.add_reshape_layer((*shape, 1))
         builder.add_conv2d_layer(32, 3, filter_strides=1, activation='relu',
@@ -36,7 +33,7 @@ class TripleNet(base_classes.NeuralNetwork):
         builder.end_current_path()
 
         shape = input_shapes['gtux']
-        builder.add_input_layer(shape, 'gtux', name='input_gtux')
+        builder.add_input_layer(shape, name='input_gtux')
         builder.start_new_path()
         builder.add_reshape_layer((*shape, 1))
         builder.add_conv2d_layer(32, 3, filter_strides=1, activation='relu',
@@ -51,7 +48,7 @@ class TripleNet(base_classes.NeuralNetwork):
         builder.end_current_path()
 
         shape = input_shapes['gtuy']
-        builder.add_input_layer(shape, 'gtuy', name='input_gtuy')
+        builder.add_input_layer(shape, name='input_gtuy')
         builder.start_new_path()
         builder.add_reshape_layer((*shape, 1))
         builder.add_conv2d_layer(32, 3, filter_strides=1, activation='relu',
@@ -77,3 +74,38 @@ class TripleNet(base_classes.NeuralNetwork):
         builder.finalize(out_name, name='target', learning_rate=lr,
                          optimizer=optimizer, loss=loss_fn)
         super(self.__class__, self).__init__(builder)
+        self.input_shapes = input_shapes.copy()
+        self.out_name = out_name
+
+    @property
+    def network_type(self):
+        return 'classifier'
+
+    @property
+    def input_spec(self):
+        return {
+            "input_yx": {
+                "shape": self.input_shapes['yx'],
+                "item_type": 'yx',
+                "location": "data"
+            },
+            "input_gtux": {
+                "shape": self.input_shapes['gtux'],
+                "item_type": 'gtux',
+                "location": "data"
+            },
+            "input_gtuy": {
+                "shape": self.input_shapes['gtuy'],
+                "item_type": 'gtuy',
+                "location": "data"
+            }
+        }
+
+    @property
+    def output_spec(self):
+        return {
+            self.out_name: {
+                "item_type": "classification",
+                "location": "targets"
+            }
+        }

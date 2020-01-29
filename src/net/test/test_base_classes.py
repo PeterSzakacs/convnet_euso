@@ -2,8 +2,6 @@ import unittest
 
 import numpy as np
 from numpy.testing import assert_array_equal
-from tflearn.layers import regression
-from tflearn.layers.core import input_data, fully_connected
 
 import net.base_classes as bclasses
 
@@ -43,6 +41,7 @@ class MockNeuralNetwork(bclasses.NeuralNetwork):
         return 'test'
 
 
+@unittest.skip("API redesign in progress")
 class TestNeuralNetwork(unittest.TestCase):
 
     def test_input_layer_order(self, network=None):
@@ -67,6 +66,7 @@ class TestNeuralNetwork(unittest.TestCase):
         self.assertEqual(network.output_layer, network._exp_output)
 
 
+@unittest.skip("API redesign in progress")
 class TestNeuralNetworkModel(unittest.TestCase):
 
     # helper methods (general)
