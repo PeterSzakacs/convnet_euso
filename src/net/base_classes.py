@@ -249,7 +249,7 @@ class GraphBuilder:
                         exclude_from_path=False, **kwargs):
         layer = {
             "layer": core.input_data(shape=[None, *input_shape], **kwargs),
-            "type": "input", "categories": ("input", )
+            "type": "Input", "categories": ("input", )
         }
         name = self._add_layer(layer, exclude_from_path)
         self._inputs[name] = input_item_type
@@ -351,5 +351,15 @@ class GraphBuilder:
         layer = {
             "layer": merge.merge(prev, merge_mode, **kwargs),
             "type": "Merge", "categories": ("hidden", )
+        }
+        return self._add_layer(layer, exclude_from_path)
+
+    def add_upsample2d_layer(self, window_size, prev_layer_name=None,
+                             exclude_from_path=True, **kwargs):
+        prev_name = prev_layer_name or self._curr_layer_name
+        prev = self._layers[prev_name]
+        layer = {
+            "layer": conv.upsample_2d(prev, window_size, **kwargs),
+            "type": "Upsample2D", "categories": ("hidden",)
         }
         return self._add_layer(layer, exclude_from_path)

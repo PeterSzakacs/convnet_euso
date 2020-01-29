@@ -1,7 +1,7 @@
 LAYER_CATEGORIES = ('input', 'hidden', 'trainable')
 
 LAYER_TYPES = ('Conv2D', 'LRN', 'MaxPool2D', 'FC', 'Dropout', 'Merge',
-               'Flatten', 'Reshape', 'input')
+               'Flatten', 'Reshape', 'Input', 'Upsample2D')
 
 # well-defined modes to use when splitting dataset for training
 DATASET_SPLIT_MODES = ('FROM_START', 'FROM_END', 'RANDOM', )
