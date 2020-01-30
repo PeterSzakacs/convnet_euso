@@ -1,21 +1,23 @@
 
 # first triple-input convolutional network, derived from github_net3b
 
-import net.base_classes as base_classes
+import net.builders as builders
+import net.graphs as graphs
+import net.models as models
 
 
 def create_model(input_shapes, **optsettings):
     network = TripleNet(input_shapes, **optsettings)
-    return base_classes.NetworkModel(network, **optsettings)
+    return models.NetworkModel(network, **optsettings)
 
 
-class TripleNet(base_classes.NeuralNetwork):
+class TripleNet(graphs.NeuralNetwork):
 
     def __init__(self, input_shapes, **optsettings):
         lr = optsettings.get('learning_rate') or 0.001
         optimizer = optsettings.get('optimizer') or 'adam'
         loss_fn = optsettings.get('loss_fn') or 'categorical_crossentropy'
-        builder = base_classes.GraphBuilder()
+        builder = builders.GraphBuilder()
 
         shape = input_shapes['yx']
         builder.add_input_layer(shape, name='input_yx')
