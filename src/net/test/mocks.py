@@ -1,46 +1,62 @@
 import unittest
 
-import numpy as np
-
-import net.builders as bclasses
+import net.builders as builders
 import net.graphs as graphs
-
-
-# NOTE: Since the classes under test here are 3rd party library wrappers, these
-# tests are much more integration tests than unit tests. Because of this, they
-# are rather slow.
 
 
 class MockNeuralNetwork(graphs.NeuralNetwork):
 
-    @classmethod
-    def get_instance(cls):
-        # creating a neural network graph is also expensive, so...
-        # just use a single instance (the graph is never changed anyway)
-        if not hasattr(cls, '_the_net'):
-            cls._the_net = MockNeuralNetwork()
-        return cls._the_net
-
     def __init__(self):
-        builder = bclasses.GraphBuilder()
-        in_name = builder.add_input_layer((3, ), 'test')
-        fc1 = builder.add_fc_layer(10, weights_init='zeros', bias_init='zeros')
-        fc2 = builder.add_fc_layer(3, weights_init='zeros', bias_init='zeros')
+        builder = builders.GraphBuilder()
+        input_layer = builder.add_input_layer((3, 3, 1), 'test')
+        conv1 = builder.add_conv2d_layer(10, 3, filter_strides=1,
+                                         weights_init='zeros',
+                                         bias_init='zeros')
+        fc1 = builder.add_fc_layer(10, weights_init='zeros',
+                                   bias_init='zeros')
+        fc2 = builder.add_fc_layer(3, weights_init='zeros',
+                                   bias_init='zeros')
         builder.finalize(fc2)
         super(MockNeuralNetwork, self).__init__(builder)
 
-        layers = builder.layers_dict
-        self.all_w = {fc1: np.zeros((3, 10)), fc2: np.zeros((10, 3))}
-        self.all_b = {fc1: np.zeros(10, ), fc2: np.zeros(3, )}
-        self._exp_inputs = {in_name: layers[in_name]}
-        self._exp_input_mapping = {in_name: 'test'}
-        self._exp_output = layers[fc2]
-        self._exp_trainables = {fc1: layers[fc1],
-                                fc2: layers[fc2]}
-        self._exp_hidden = {fc1: layers[fc1]}
+        all_layers = builder.layers_dict
+        self._in, self._out = input_layer, fc2
+        self.exp_inputs = {input_layer: all_layers[input_layer]}
+        self.exp_output = {fc2: all_layers[fc2]}
+        self.exp_trainable_layers = {
+            conv1: all_layers[conv1],
+            fc1: all_layers[fc1],
+            fc2: all_layers[fc2],
+        }
+        self.exp_hidden_layers = {
+            conv1: all_layers[conv1],
+            fc1: all_layers[fc1],
+        }
+        self.exp_paths = {
+            input_layer: [conv1, fc1, fc2]
+        }
 
+    @property
     def network_type(self):
         return 'test'
+
+    @property
+    def input_spec(self):
+        return {
+            # item_type and location omitted for testing purposes
+            self._in: {
+                "shape": (3, 3, 1)
+            }
+        }
+
+    @property
+    def output_spec(self):
+        return {
+            # item_type and location omitted for testing purposes
+            self._out: {
+                "shape": (3, )
+            }
+        }
 
 
 if __name__ == '__main__':

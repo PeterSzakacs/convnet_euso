@@ -14,9 +14,8 @@ class NeuralNetwork(abc.ABC):
         trainable_layers = categories['trainable']
         hidden_layers = categories['hidden']
         input_layers = categories['input']
-        self._out = layers[builder.output_layer]
-        self._out_name = builder.output_layer
         self._inputs = {name: layers[name] for name in input_layers}
+        self._output = {builder.output_layer: layers[builder.output_layer]}
         self._trainable = {
             name: layers[name] for name in trainable_layers
         }
@@ -54,11 +53,7 @@ class NeuralNetwork(abc.ABC):
 
     @property
     def output_layer(self):
-        return self._out
-
-    @property
-    def output_layer_name(self):
-        return self._out_name
+        return self._output
 
     @property
     def data_paths(self):

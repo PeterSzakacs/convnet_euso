@@ -53,14 +53,15 @@ class NetworkModel:
                                                   '/tmp/tflearn_logs/'),
             'tensorboard_verbose': model_settings.get('tb_verbosity', 0)
         }
-        model = tflearn.DNN(self._net.output_layer['layer'], **settings)
+        output_name, output_layer = next(iter(self._net.output_layer.items()))
+        model = tflearn.DNN(output_layer['layer'], **settings)
         self._model = model
         if create_hidden_models:
             session = self._model.session
             layers = set()
             for pathname, path in self._net.data_paths.items():
                 layers = layers.union(path)
-            layers.remove(self._net.output_layer)
+            layers.remove(output_name)
             hidden_layers = self._net.hidden_layers
             hidden_models = {name: tflearn.DNN(hidden_layers[name]['layer'],
                                                session=session)
