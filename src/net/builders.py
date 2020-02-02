@@ -93,6 +93,9 @@ class GraphBuilder:
         except ValueError:
             raise Exception('Unknown layer "{}"'.format(layer_name))
         self._layer_categories['hidden'].remove(layer_name)
+        for path in self._paths.values():
+            if layer_name in path:
+                path.remove(layer_name)
         layer['categories'].remove('hidden')
         if trainable:
             # the layer object does not change, only a trainer object is added,

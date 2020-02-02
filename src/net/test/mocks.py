@@ -1,5 +1,7 @@
 import unittest
 
+import numpy.random as nprand
+
 import net.builders as builders
 import net.graphs as graphs
 
@@ -35,6 +37,8 @@ class MockNeuralNetwork(graphs.NeuralNetwork):
         self.exp_paths = {
             input_layer: [conv1, fc1, fc2]
         }
+        example_input = nprand.randint(low=0, high=255, size=3*3)
+        self.example_input = {self._in: example_input.reshape((1, 3, 3, 1))}
 
     @property
     def network_type(self):
