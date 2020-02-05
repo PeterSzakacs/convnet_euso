@@ -37,12 +37,16 @@ def main(**settings):
     num_crossvals = settings['num_crossvals']
     for run_idx in range(num_crossvals):
         print('Starting run {}'.format(run_idx + 1))
-        data = splitter.get_data_and_targets(dataset)
-        data['train_data'] = netutils.convert_dataset_items_to_model_inputs(
-            model, data['train_data'])
-        data['test_data'] = netutils.convert_dataset_items_to_model_inputs(
-            model, data['test_data'])
-        trainer.train_model(model, data_dict=data, run_id=run_id)
+        data_dict = splitter.get_data_and_targets(dataset,
+                                                  dict_format='PER_SET')
+        tr, te = data_dict['train'], data_dict['test']
+        inputs_dict = {
+            'train_data': netutils.convert_to_model_inputs_dict(model, tr),
+            'train_targets': netutils.convert_to_model_outputs_dict(model, tr),
+            'test_data': netutils.convert_to_model_inputs_dict(model, te),
+            'test_targets': netutils.convert_to_model_outputs_dict(model, te),
+        }
+        trainer.train_model(model, data_dict=inputs_dict, run_id=run_id)
         # restore initial weights and biases
         for layer in graph.trainable_layers:
             model.set_layer_weights(layer, weights[layer])

@@ -30,12 +30,15 @@ if __name__ == '__main__':
     model = netutils.import_model(network, dataset.item_shapes, **args)
 
     # prepare network trainer
-    data_dict = splitter.get_data_and_targets(dataset)
-    data_dict['train_data'] = netutils.convert_dataset_items_to_model_inputs(
-        model, data_dict['train_data'])
-    data_dict['test_data'] = netutils.convert_dataset_items_to_model_inputs(
-        model, data_dict['test_data'])
-    trainer = netutils.TfModelTrainer(data_dict, **args)
+    data_dict = splitter.get_data_and_targets(dataset, dict_format='PER_SET')
+    train, test = data_dict['train'], data_dict['test']
+    inputs_dict = {
+        'train_data': netutils.convert_to_model_inputs_dict(model, train),
+        'train_targets': netutils.convert_to_model_outputs_dict(model, train),
+        'test_data': netutils.convert_to_model_inputs_dict(model, test),
+        'test_targets': netutils.convert_to_model_outputs_dict(model, test),
+    }
+    trainer = netutils.TfModelTrainer(inputs_dict, **args)
 
     # train model and optionally save if requested
     trainer.train_model(model)
