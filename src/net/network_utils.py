@@ -37,14 +37,34 @@ def convert_dataset_items_to_model_inputs(model, data_dict,
     inputs_dict = {}
     input_spec = model.network_graph.input_spec
     for input_name, spec in input_spec.items():
-        item_np = np.array(data_dict[spec['item_type']])
-        inputs_dict[input_name] = item_np
+        inputs_dict[input_name] = data_dict[spec['item_type']]
     item_getter = lambda data, i_slice: {k: d[i_slice]
                                          for k, d in data.items()}
     if create_getter:
         return inputs_dict, item_getter
     else:
         return inputs_dict
+
+
+def convert_to_model_inputs_dict(model, available_data):
+    inputs_dict = {}
+    input_spec = model.network_graph.input_spec
+    for input_name, spec in input_spec.items():
+        item_type = spec['item_type']
+        inputs_dict[input_name] = available_data['data'][item_type]
+    return inputs_dict
+
+
+def convert_to_model_outputs_dict(model, available_data):
+    targets = {}
+    output_spec = model.network_graph.output_spec
+    for output_name, spec in output_spec.items():
+        if spec['location'] == 'targets':
+            targets = available_data['targets']
+        elif spec['location'] == 'data':
+            item_type = spec['item_type']
+            targets = available_data['data'][item_type]
+    return targets
 
 
 # model functions (import, train, evaluate, save, etc.)
@@ -87,7 +107,9 @@ def evaluate_classification_model(model, dataset, items_slice=None,
     return log_data
 
 
-class DatasetSplitter():
+class DatasetSplitter:
+
+    ALLOWED_OUTPUT_FORMATS = ('FLAT', 'PER_SET', 'PER_TYPE', )
 
     def __init__(self, split_mode, items_fraction=0.1, num_items=None):
         self.split_mode = split_mode
@@ -155,16 +177,45 @@ class DatasetSplitter():
             train_idx = list(all_idx)
         return list(train_idx), list(test_idx)
 
-    def get_data_and_targets(self, train_dset, test_dset=None):
+    def get_data_and_targets(self, train_dset, test_dset=None,
+                             dict_format='FLAT'):
+        if (not isinstance(dict_format, str) or
+                dict_format.upper() not in self.ALLOWED_OUTPUT_FORMATS):
+            raise ValueError(f"Unknown dict format: {dict_format}, "
+                             f"allowed values: {self.ALLOWED_OUTPUT_FORMATS}")
+        dict_format = dict_format.upper()
         train_idx, test_idx = None, None
         if test_dset is None:
             test_dset = train_dset
             n_data = train_dset.num_data
             train_idx, test_idx = self.get_train_test_indices(n_data)
-        return {'train_data': train_dset.get_data_as_dict(train_idx),
-                'train_targets': train_dset.get_targets(train_idx),
-                'test_data': test_dset.get_data_as_dict(test_idx),
-                'test_targets': test_dset.get_targets(test_idx)}
+        train_data = train_dset.get_data_as_dict(train_idx)
+        train_targets = train_dset.get_targets(train_idx)
+        test_data = test_dset.get_data_as_dict(test_idx)
+        test_targets = test_dset.get_targets(test_idx)
+        if dict_format == 'FLAT':
+            return {
+                'train_data': train_data, 'train_targets': train_targets,
+                'test_data': test_data, 'test_targets': test_targets,
+            }
+        elif dict_format == 'PER_SET':
+            return {
+                "train": {
+                    "data": train_data, "targets": train_targets,
+                },
+                "test": {
+                    "data": test_data, "targets": test_targets,
+                }
+            }
+        elif dict_format == 'PER_TYPE':
+            return {
+                "data": {
+                    "train": train_data, "test": test_data,
+                },
+                "targets": {
+                    "train": train_targets, "test": test_targets,
+                }
+            }
 
 
 class TfModelTrainer():
