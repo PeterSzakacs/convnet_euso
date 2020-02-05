@@ -106,7 +106,7 @@ class GraphBuilder:
     def add_input_layer(self, input_shape, exclude_from_path=False, **kwargs):
         layer = {
             "layer": core.input_data(shape=[None, *input_shape], **kwargs),
-            "type": "Input", "categories": ("input", )
+            "type": "Input", "categories": ["input"]
         }
         name = self._add_layer(layer, exclude_from_path)
         return name
@@ -132,7 +132,7 @@ class GraphBuilder:
         prev = self._layers[prev_name]['layer']
         layer = {
             "layer": core.dropout(prev, dropout_rate, **kwargs),
-            "type": "Dropout", "categories": ("hidden", )
+            "type": "Dropout", "categories": ["hidden"]
         }
         return self._add_layer(layer, exclude_from_path)
 
@@ -163,7 +163,7 @@ class GraphBuilder:
         layer = {
             "layer": conv.max_pool_2d(prev, window_size,
                                       strides=window_strides, **kwargs),
-            "type": "MaxPool2D", "categories": ("hidden", )
+            "type": "MaxPool2D", "categories": ["hidden"]
         }
         return self._add_layer(layer, exclude_from_path)
 
@@ -175,7 +175,7 @@ class GraphBuilder:
         prev = self._layers[prev_name]['layer']
         layer = {
             "layer": norm.local_response_normalization(prev, **kwargs),
-            "type": "LRN", "categories": ("hidden", )
+            "type": "LRN", "categories": ["hidden"]
         }
         return self._add_layer(layer, exclude_from_path)
 
@@ -187,7 +187,7 @@ class GraphBuilder:
         prev = self._layers[prev_name]['layer']
         layer = {
             "layer": core.flatten(prev, **kwargs),
-            "type": "Flatten", "categories": ("hidden", )
+            "type": "Flatten", "categories": ["hidden"]
         }
         return self._add_layer(layer, exclude_from_path)
 
@@ -197,7 +197,7 @@ class GraphBuilder:
         prev = self._layers[prev_name]['layer']
         layer = {
             "layer": core.reshape(prev, [-1, *new_shape], **kwargs),
-            "type": "Reshape", "categories": ("hidden", )
+            "type": "Reshape", "categories": ["hidden"]
         }
         return self._add_layer(layer, exclude_from_path)
 
@@ -206,7 +206,7 @@ class GraphBuilder:
         prev = [self._layers[name]['layer'] for name in prev_layer_names]
         layer = {
             "layer": merge.merge(prev, merge_mode, **kwargs),
-            "type": "Merge", "categories": ("hidden", )
+            "type": "Merge", "categories": ["hidden"]
         }
         return self._add_layer(layer, exclude_from_path)
 
@@ -216,6 +216,6 @@ class GraphBuilder:
         prev = self._layers[prev_name]
         layer = {
             "layer": conv.upsample_2d(prev, window_size, **kwargs),
-            "type": "Upsample2D", "categories": ("hidden",)
+            "type": "Upsample2D", "categories": ["hidden"]
         }
         return self._add_layer(layer, exclude_from_path)
