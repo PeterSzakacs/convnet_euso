@@ -58,3 +58,19 @@ class NeuralNetwork(abc.ABC):
     @property
     def data_paths(self):
         return self._paths
+
+
+class AutoEncoder(NeuralNetwork):
+
+    def __init__(self, builder, encoder_layer_name):
+        super(AutoEncoder, self).__init__(builder)
+        self._enc_layer_name = encoder_layer_name
+        self._enc_layer = builder.layers_dict[encoder_layer_name]
+
+    @property
+    def network_type(self):
+        return 'autoencoder'
+
+    @property
+    def encoder_layer(self):
+        return self._enc_layer

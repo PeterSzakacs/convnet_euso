@@ -97,3 +97,28 @@ class NetworkModel:
             model.session = session
             model.trainer.session = session
             model.predictor.session = session
+
+
+class AutoEncoderModel(NetworkModel):
+
+    def __init__(self, neural_network, **model_settings):
+        super(self.__class__, self).__init__(neural_network, **model_settings)
+        encoder_layer = neural_network.encoder_layer
+        encoder_model = tflearn.DNN(encoder_layer['layer'])
+        session = self.network_model.session
+        encoder_model.session = session
+        encoder_model.trainer.session = session
+        encoder_model.predictor.session = session
+        self._encoder = encoder_model
+
+    def encode(self, input_data_dict):
+        return self._encoder.predict(input_data_dict)
+
+    def load_from_file(self, model_filename, **optargs):
+        super(self.__class__, self).load_from_file(model_filename, **optargs)
+        session = self.network_model.session
+        encoder_model = self._encoder
+        encoder_model.session.close()
+        encoder_model.session = session
+        encoder_model.trainer.session = session
+        encoder_model.predictor.session = session
