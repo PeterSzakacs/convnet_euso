@@ -86,7 +86,6 @@ def evaluate_classification_model(model, dataset, items_slice=None,
     metadata = dataset.get_metadata(items_slice)
     data, item_getter = convert_dataset_items_to_model_inputs(
         model, data, create_getter=True)
-    log_data = []
 
     # TODO: might want to simplify these indexes or at least give better names
     start, stop = items_slice.start, items_slice.stop
@@ -103,8 +102,7 @@ def evaluate_classification_model(model, dataset, items_slice=None,
             log_item = _classification_fields_handler(
                 prediction, targets[abs_idx], idx + pred_idx,
                 old_dict=metadata[abs_idx].copy())
-            log_data.append(log_item)
-    return log_data
+            yield log_item
 
 
 class DatasetSplitter:
