@@ -2,7 +2,7 @@ import os
 
 import dataset.io.fs_io as io_utils
 import net.network_utils as netutils
-
+import net.training.utils as train_utils
 
 if __name__ == '__main__':
     import cmdint.cmd_interface_trainer as cmd
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         'test_data': netutils.convert_to_model_inputs_dict(model, test),
         'test_targets': netutils.convert_to_model_outputs_dict(model, test),
     }
-    trainer = netutils.TfModelTrainer(inputs_dict, **args)
+    trainer = train_utils.TfModelTrainer(inputs_dict, **args)
 
     # train model and optionally save if requested
     trainer.train_model(model)

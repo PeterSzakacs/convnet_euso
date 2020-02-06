@@ -1,7 +1,6 @@
-import os
-
 import dataset.io.fs_io as io_utils
 import net.network_utils as netutils
+import net.training.utils as train_utils
 
 
 def main(**settings):
@@ -25,14 +24,14 @@ def main(**settings):
 
     # prepare network trainer
     num_epochs = settings['num_epochs']
-    trainer = netutils.TfModelTrainer(splitter.get_data_and_targets(dataset),
-                                      **settings)
+    trainer = train_utils.TfModelTrainer(
+        splitter.get_data_and_targets(dataset), **settings)
 
     # main loop
-    weights = { layer: model.get_layer_weights(layer)
-                for layer in graph.trainable_layers }
-    biases = { layer: model.get_layer_biases(layer)
-                for layer in graph.trainable_layers }
+    weights = {layer: model.get_layer_weights(layer)
+               for layer in graph.trainable_layers}
+    biases = {layer: model.get_layer_biases(layer)
+              for layer in graph.trainable_layers}
     run_id = 'cval_{}'.format(netutils.get_default_run_id(net_module_name))
     num_crossvals = settings['num_crossvals']
     for run_idx in range(num_crossvals):
