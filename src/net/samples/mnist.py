@@ -25,7 +25,7 @@ class MNISTNet(graphs.NeuralNetwork):
         loss_fn = optsettings.get('loss_fn') or 'categorical_crossentropy'
         builder = builders.GraphBuilder()
         shape = input_shapes[input_type]
-        builder.add_input_layer(shape, input_type, name='input')
+        in_name = builder.add_input_layer(shape, input_type, name='input')
         builder.start_new_path()
         builder.add_reshape_layer((*shape, 1))
         builder.add_conv2d_layer(32, 3, activation='relu', regularizer="L2")
@@ -45,7 +45,7 @@ class MNISTNet(graphs.NeuralNetwork):
         super(self.__class__, self).__init__(builder)
         self.input_type = input_type
         self.input_shape = input_shapes[input_type]
-        self.out_name = out_name
+        self.in_name, self.out_name = in_name, out_name
 
     @property
     def network_type(self):
@@ -54,7 +54,7 @@ class MNISTNet(graphs.NeuralNetwork):
     @property
     def input_spec(self):
         return {
-            "input": {
+            self.in_name: {
                 "shape": self.input_shape,
                 "item_type": self.input_type,
                 "location": "data"

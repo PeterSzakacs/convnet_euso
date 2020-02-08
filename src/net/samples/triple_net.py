@@ -20,7 +20,7 @@ class TripleNet(graphs.NeuralNetwork):
         builder = builders.GraphBuilder()
 
         shape = input_shapes['yx']
-        builder.add_input_layer(shape, name='input_yx')
+        in_yx = builder.add_input_layer(shape, name='input_yx')
         builder.start_new_path()
         builder.add_reshape_layer((*shape, 1))
         builder.add_conv2d_layer(32, 3, filter_strides=1, activation='relu',
@@ -35,7 +35,7 @@ class TripleNet(graphs.NeuralNetwork):
         builder.end_current_path()
 
         shape = input_shapes['gtux']
-        builder.add_input_layer(shape, name='input_gtux')
+        in_gtux = builder.add_input_layer(shape, name='input_gtux')
         builder.start_new_path()
         builder.add_reshape_layer((*shape, 1))
         builder.add_conv2d_layer(32, 3, filter_strides=1, activation='relu',
@@ -50,7 +50,7 @@ class TripleNet(graphs.NeuralNetwork):
         builder.end_current_path()
 
         shape = input_shapes['gtuy']
-        builder.add_input_layer(shape, name='input_gtuy')
+        in_gtuy = builder.add_input_layer(shape, name='input_gtuy')
         builder.start_new_path()
         builder.add_reshape_layer((*shape, 1))
         builder.add_conv2d_layer(32, 3, filter_strides=1, activation='relu',
@@ -77,6 +77,7 @@ class TripleNet(graphs.NeuralNetwork):
                          optimizer=optimizer, loss=loss_fn)
         super(self.__class__, self).__init__(builder)
         self.input_shapes = input_shapes.copy()
+        self.in_yx, self.in_gtux, self.in_gtuy = in_yx, in_gtux, in_gtuy
         self.out_name = out_name
 
     @property
@@ -86,17 +87,17 @@ class TripleNet(graphs.NeuralNetwork):
     @property
     def input_spec(self):
         return {
-            "input_yx": {
+            self.in_yx: {
                 "shape": self.input_shapes['yx'],
                 "item_type": 'yx',
                 "location": "data"
             },
-            "input_gtux": {
+            self.in_gtux: {
                 "shape": self.input_shapes['gtux'],
                 "item_type": 'gtux',
                 "location": "data"
             },
-            "input_gtuy": {
+            self.in_gtuy: {
                 "shape": self.input_shapes['gtuy'],
                 "item_type": 'gtuy',
                 "location": "data"
