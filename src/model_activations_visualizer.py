@@ -25,8 +25,10 @@ def main(**settings):
     # import network model
     net_module_name = settings['network']
     model = netutils.import_model(net_module_name, dataset.item_shapes,
-                                  create_hidden_models=True, **settings)
+                                  **settings)
     graph = model.network_graph
+    for data_path_layers in graph.data_paths.values():
+        model.enable_hidden_layer_output(data_path_layers)
 
     # feed data to network model
     inputs = netutils.convert_dataset_items_to_model_inputs(model, data)
@@ -36,7 +38,7 @@ def main(**settings):
     for layer_name, layer_activations in activations.items():
         out_dir = os.path.join(logdir, layer_name)
         os.makedirs(out_dir, exist_ok=True)
-        layer = hidden_layers[layer_name]
+        layer = hidden_layers[layer_name]['layer']
         if len(layer.shape[1:]) == 3:
             fig_creator = acviz.visualize_3d_activations
         elif len(layer.shape[1:]) == 1:
@@ -57,5 +59,5 @@ if __name__ == '__main__':
     cmd_int = cmd.CmdInterface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
-    args['network'] = 'net.' + args['network']
+    args['network'] = 'net.samples.' + args['network']
     main(**args)

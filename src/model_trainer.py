@@ -2,7 +2,7 @@ import os
 
 import dataset.io.fs_io as io_utils
 import net.network_utils as netutils
-
+import net.training.utils as train_utils
 
 if __name__ == '__main__':
     import cmdint.cmd_interface_trainer as cmd
@@ -25,17 +25,20 @@ if __name__ == '__main__':
                                         num_items=num_items)
 
     # import network model
-    network, model_file = 'net.' + args['network'], args['model_file']
+    network, model_file = 'net.samples.' + args['network'], args['model_file']
     tb_dir = args['tb_dir']
     model = netutils.import_model(network, dataset.item_shapes, **args)
 
     # prepare network trainer
-    data_dict = splitter.get_data_and_targets(dataset)
-    data_dict['train_data'] = netutils.convert_dataset_items_to_model_inputs(
-        model, data_dict['train_data'])
-    data_dict['test_data'] = netutils.convert_dataset_items_to_model_inputs(
-        model, data_dict['test_data'])
-    trainer = netutils.TfModelTrainer(data_dict, **args)
+    data_dict = splitter.get_data_and_targets(dataset, dict_format='PER_SET')
+    train, test = data_dict['train'], data_dict['test']
+    inputs_dict = {
+        'train_data': netutils.convert_to_model_inputs_dict(model, train),
+        'train_targets': netutils.convert_to_model_outputs_dict(model, train),
+        'test_data': netutils.convert_to_model_inputs_dict(model, test),
+        'test_targets': netutils.convert_to_model_outputs_dict(model, test),
+    }
+    trainer = train_utils.TfModelTrainer(inputs_dict, **args)
 
     # train model and optionally save if requested
     trainer.train_model(model)

@@ -3,6 +3,7 @@ import os
 
 import dataset.io.fs_io as io_utils
 import net.network_utils as netutils
+import net.testing.utils as test_utils
 import utils.config_utils as cutils
 
 
@@ -32,7 +33,7 @@ if __name__ == '__main__':
     if not os.path.exists(logdir):
         os.mkdir(logdir)
     network_module_name, model_file = args.network, args.model_file
-    network_module_name = "net." + network_module_name
+    network_module_name = "net.samples." + network_module_name
     run_id = netutils.get_default_run_id(network_module_name)
     tb_dir = os.path.join(logdir, run_id)
     os.mkdir(tb_dir)
@@ -40,7 +41,7 @@ if __name__ == '__main__':
                                   model_file=model_file, tb_dir=tb_dir)
 
     # check (evaluate) model
-    log_data = netutils.evaluate_classification_model(
+    log_data = test_utils.evaluate_classification_model(
         model,
         dataset,
         items_slice=slice(args.start_item, args.stop_item)

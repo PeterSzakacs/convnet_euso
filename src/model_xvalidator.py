@@ -1,7 +1,6 @@
-import os
-
 import dataset.io.fs_io as io_utils
 import net.network_utils as netutils
+import net.training.utils as train_utils
 
 
 def main(**settings):
@@ -21,27 +20,36 @@ def main(**settings):
     net_module_name = settings['network']
     model = netutils.import_model(net_module_name, dataset.item_shapes,
                                   **settings)
+    graph = model.network_graph
 
     # prepare network trainer
     num_epochs = settings['num_epochs']
-    trainer = netutils.TfModelTrainer(splitter.get_data_and_targets(dataset),
-                                      **settings)
+    trainer = train_utils.TfModelTrainer(
+        splitter.get_data_and_targets(dataset), **settings)
 
     # main loop
-    weights = model.trainable_layer_weights
-    biases = model.trainable_layer_biases
+    weights = {layer: model.get_layer_weights(layer)
+               for layer in graph.trainable_layers}
+    biases = {layer: model.get_layer_biases(layer)
+              for layer in graph.trainable_layers}
     run_id = 'cval_{}'.format(netutils.get_default_run_id(net_module_name))
     num_crossvals = settings['num_crossvals']
     for run_idx in range(num_crossvals):
         print('Starting run {}'.format(run_idx + 1))
-        data = splitter.get_data_and_targets(dataset)
-        data['train_data'] = netutils.convert_dataset_items_to_model_inputs(
-            model, data['train_data'])
-        data['test_data'] = netutils.convert_dataset_items_to_model_inputs(
-            model, data['test_data'])
-        trainer.train_model(model, data_dict=data, run_id=run_id)
-        model.trainable_layer_weights = weights
-        model.trainable_layer_biases = biases
+        data_dict = splitter.get_data_and_targets(dataset,
+                                                  dict_format='PER_SET')
+        tr, te = data_dict['train'], data_dict['test']
+        inputs_dict = {
+            'train_data': netutils.convert_to_model_inputs_dict(model, tr),
+            'train_targets': netutils.convert_to_model_outputs_dict(model, tr),
+            'test_data': netutils.convert_to_model_inputs_dict(model, te),
+            'test_targets': netutils.convert_to_model_outputs_dict(model, te),
+        }
+        trainer.train_model(model, data_dict=inputs_dict, run_id=run_id)
+        # restore initial weights and biases
+        for layer in graph.trainable_layers:
+            model.set_layer_weights(layer, weights[layer])
+            model.set_layer_biases(layer, biases[layer])
 
 
 if __name__ == '__main__':
@@ -52,5 +60,5 @@ if __name__ == '__main__':
     cmd_int = cmd.CmdInterface()
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
-    args['network'] = 'net.' + args['network']
+    args['network'] = 'net.samples.' + args['network']
     main(**args)

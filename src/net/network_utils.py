@@ -1,9 +1,7 @@
-import os
 import importlib
 import datetime as dt
 import random
 
-import tflearn
 import numpy as np
 
 import dataset.target_utils as targ
@@ -37,16 +35,36 @@ def get_default_run_id(network_module_name):
 def convert_dataset_items_to_model_inputs(model, data_dict,
                                           create_getter=False):
     inputs_dict = {}
-    graph = model.network_graph
-    for input_name, item_type in graph.input_item_types.items():
-        item_np = np.array(data_dict[item_type])
-        inputs_dict[input_name] = item_np
+    input_spec = model.network_graph.input_spec
+    for input_name, spec in input_spec.items():
+        inputs_dict[input_name] = data_dict[spec['item_type']]
     item_getter = lambda data, i_slice: {k: d[i_slice]
                                          for k, d in data.items()}
     if create_getter:
         return inputs_dict, item_getter
     else:
         return inputs_dict
+
+
+def convert_to_model_inputs_dict(model, available_data):
+    inputs_dict = {}
+    input_spec = model.network_graph.input_spec
+    for input_name, spec in input_spec.items():
+        item_type = spec['item_type']
+        inputs_dict[input_name] = available_data['data'][item_type]
+    return inputs_dict
+
+
+def convert_to_model_outputs_dict(model, available_data):
+    targets = {}
+    output_spec = model.network_graph.output_spec
+    for output_name, spec in output_spec.items():
+        if spec['location'] == 'targets':
+            targets = available_data['targets']
+        elif spec['location'] == 'data':
+            item_type = spec['item_type']
+            targets = available_data['data'][item_type]
+    return targets
 
 
 # model functions (import, train, evaluate, save, etc.)
@@ -60,36 +78,9 @@ def import_model(module_name, input_shapes, model_file=None, **optsettings):
     return model
 
 
-def evaluate_classification_model(model, dataset, items_slice=None,
-                                  batch_size=128):
-    items_slice = items_slice or slice(0, None)
-    data = dataset.get_data_as_dict(items_slice)
-    targets = dataset.get_targets(items_slice)
-    metadata = dataset.get_metadata(items_slice)
-    data, item_getter = convert_dataset_items_to_model_inputs(
-        model, data, create_getter=True)
-    log_data = []
+class DatasetSplitter:
 
-    # TODO: might want to simplify these indexes or at least give better names
-    start, stop = items_slice.start, items_slice.stop
-    stop = stop or dataset.num_data
-    tf_model = model.network_model
-    for idx in range(start, stop, batch_size):
-        rel_idx = idx - start
-        items_slice = slice(rel_idx, rel_idx + batch_size)
-        data_batch = item_getter(data, items_slice)
-        predictions = tf_model.predict(data_batch)
-        for pred_idx in range(len(predictions)):
-            prediction = predictions[pred_idx]
-            abs_idx = rel_idx + pred_idx
-            log_item = _classification_fields_handler(
-                prediction, targets[abs_idx], idx + pred_idx,
-                old_dict=metadata[abs_idx].copy())
-            log_data.append(log_item)
-    return log_data
-
-
-class DatasetSplitter():
+    ALLOWED_OUTPUT_FORMATS = ('FLAT', 'PER_SET', 'PER_TYPE', )
 
     def __init__(self, split_mode, items_fraction=0.1, num_items=None):
         self.split_mode = split_mode
@@ -157,88 +148,42 @@ class DatasetSplitter():
             train_idx = list(all_idx)
         return list(train_idx), list(test_idx)
 
-    def get_data_and_targets(self, train_dset, test_dset=None):
+    def get_data_and_targets(self, train_dset, test_dset=None,
+                             dict_format='FLAT'):
+        if (not isinstance(dict_format, str) or
+                dict_format.upper() not in self.ALLOWED_OUTPUT_FORMATS):
+            raise ValueError(f"Unknown dict format: {dict_format}, "
+                             f"allowed values: {self.ALLOWED_OUTPUT_FORMATS}")
+        dict_format = dict_format.upper()
         train_idx, test_idx = None, None
         if test_dset is None:
             test_dset = train_dset
             n_data = train_dset.num_data
             train_idx, test_idx = self.get_train_test_indices(n_data)
-        return {'train_data': train_dset.get_data_as_dict(train_idx),
-                'train_targets': train_dset.get_targets(train_idx),
-                'test_data': test_dset.get_data_as_dict(test_idx),
-                'test_targets': test_dset.get_targets(test_idx)}
-
-
-class TfModelTrainer():
-
-    DEFAULT_OPTIONAL_SETTINGS = {
-        'batch_size': None, 'validation_batch_size': None, 'show_metric': True,
-        'snapshot_step': 100,
-    }
-
-    def __init__(self, data_dict, num_epochs=11, **optsettings):
-        self.train_test_data = data_dict
-        self.default_num_epochs = num_epochs
-        self._settings = self.DEFAULT_OPTIONAL_SETTINGS.copy()
-        self.optional_settings = optsettings
-
-    def _validate_setting(self, key, value):
-        if key.endswith('batch_size') or key == 'snapshot_step':
-            if value is None:
-                return None
-            else:
-                return int(value)
-        elif key == 'show_metric':
-            return bool(value)
-
-    def _get_new_settings_dict(self, **settings):
-        old_settings = self._settings
-        new_settings = {}
-        for key, val in old_settings.items():
-            try:
-                # cannot use optsettings.get(key, default_value=None), or we
-                # could not set some settings to None
-                new_settings[key] = self._validate_setting(key, settings[key])
-            except KeyError:
-                new_settings[key] = val
-        return new_settings
-
-    @property
-    def train_test_data(self):
-        return self._data_dict
-
-    @train_test_data.setter
-    def train_test_data(self, values):
-        new_data_dict = {}
-        for k in net_cons.TRAIN_DATA_DICT_KEYS:
-            new_data_dict[k] = values[k]
-        self._data_dict = new_data_dict
-
-    @property
-    def default_num_epochs(self):
-        return self._epochs
-
-    @default_num_epochs.setter
-    def default_num_epochs(self, value):
-        self._epochs = int(value)
-
-    @property
-    def optional_settings(self):
-        return self._settings
-
-    @optional_settings.setter
-    def optional_settings(self, values):
-        self._settings = self._get_new_settings_dict(**values)
-
-    def train_model(self, model, data_dict=None, num_epochs=None, run_id=None,
-                    **optsettings):
-        data = data_dict or self._data_dict
-        tr_data, tr_targets = data['train_data'], data['train_targets']
-        te_data, te_targets = data['test_data'], data['test_targets']
-        epochs = num_epochs or self.default_num_epochs
-        settings = self._get_new_settings_dict(**optsettings)
-        run_id = run_id or get_default_run_id(model.network_graph.__module__)
-
-        tf_model = model.network_model
-        tf_model.fit(tr_data, tr_targets, n_epoch=epochs, run_id=run_id,
-                     validation_set=(te_data, te_targets), **settings)
+        train_data = train_dset.get_data_as_dict(train_idx)
+        train_targets = train_dset.get_targets(train_idx)
+        test_data = test_dset.get_data_as_dict(test_idx)
+        test_targets = test_dset.get_targets(test_idx)
+        if dict_format == 'FLAT':
+            return {
+                'train_data': train_data, 'train_targets': train_targets,
+                'test_data': test_data, 'test_targets': test_targets,
+            }
+        elif dict_format == 'PER_SET':
+            return {
+                "train": {
+                    "data": train_data, "targets": train_targets,
+                },
+                "test": {
+                    "data": test_data, "targets": test_targets,
+                }
+            }
+        elif dict_format == 'PER_TYPE':
+            return {
+                "data": {
+                    "train": train_data, "test": test_data,
+                },
+                "targets": {
+                    "train": train_targets, "test": test_targets,
+                }
+            }

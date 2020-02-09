@@ -47,14 +47,20 @@ def main(**args):
     item_types = dict.fromkeys(cons.ALL_ITEM_TYPES, True)
     item_shapes = dat.get_data_item_shapes(packet_shape, item_types)
     model = netutils.import_model(network, item_shapes, **args)
+    graph = model.network_graph
 
+    logdir = args['logdir']
     filter_slice = args.get('filter_slice', slice(0, None))
     depth_slice = args.get('depth_slice', slice(0, None))
-    conv_weights = model.conv_weights
-    for layer_name, weights in conv_weights.items():
+    conv_layers = (name for name, layer in graph.trainable_layers.items()
+                   if layer['type'] == 'Conv2D')
+    conv_weights = ((layer_name, model.get_layer_weights(layer_name))
+                    for layer_name in conv_layers)
+    for layer_name, weights in conv_weights:
         weights_sliced = weights[filter_slice, depth_slice]
         fig = visualize_conv_weights(weights_sliced)
-        fig.savefig('weights_of_layer_{}'.format(layer_name))
+        filename = 'weights_of_layer_{}'.format(layer_name)
+        fig.savefig(os.path.join(logdir, filename))
         plt.close(fig)
 
 
@@ -67,5 +73,5 @@ if __name__ == '__main__':
     args = cmd_int.get_cmd_args(sys.argv[1:])
     print(args)
 
-    args['network'] = 'net.' + args['network']
+    args['network'] = 'net.samples.' + args['network']
     main(**args)
