@@ -4,6 +4,7 @@ import numpy as np
 import numpy.testing as nptest
 
 import dataset.targets.facades as facades
+import dataset.test.utils as test_utils
 
 
 class TestTargetsFacade(unittest.TestCase):
@@ -141,19 +142,17 @@ class TestTargetsFacade(unittest.TestCase):
     # test target shuffling
 
     def test_shuffle(self):
-        def shuffler(seq):
-            # set targets[0] to all zeroes and targets[3] to all sevens
-            seq[0] = 0
-            seq[3] = 7
-
         included_types = ('softmax_class_value',)
         targets = self.targets
         in_targets = {k: targets[k] for k in included_types}
-        exp_targets = {k: targets[k].copy() for k in included_types}
-        shuffler(exp_targets['softmax_class_value'])
-
         facade = facades.TargetsFacade(in_targets)
-        facade.shuffle(shuffler, lambda: None)
+
+        exp_targets = {k: targets[k].copy() for k in included_types}
+        mock_shuffler = test_utils.MockShuffler(swap_indexes=[0, 7])
+        mock_shuffler.shuffle(exp_targets['softmax_class_value'])
+        mock_shuffler.reset_state()
+
+        facade.shuffle(mock_shuffler)
         self.assertTargetsDictEqual(facade.get_targets_as_dict(), exp_targets)
 
 

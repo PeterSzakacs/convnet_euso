@@ -78,11 +78,12 @@ class TargetsFacade:
         else:
             return {k: data[k][idxs] for k in self._used_types}
 
-    def shuffle(self, shuffler, shuffler_state_resetter):
+    def shuffle(self, shuffler):
+        shuffler.reset_state()
         for target_type in self._used_types:
             items = self._targets[target_type]
-            shuffler(items)
-            shuffler_state_resetter()
+            shuffler.shuffle(items)
+            shuffler.reset_state()
 
     # helper methods
 

@@ -4,10 +4,11 @@ import numpy as np
 import numpy.testing as nptest
 
 import dataset.data.facades as facades
-import dataset.data.test.utils as test_utils
+import dataset.data.test.utils as test_data_utils
+import dataset.test.utils as test_utils
 
 
-class TestDataFacade(test_utils.DataItemsDictUtilsMixin):
+class TestDataFacade(test_data_utils.DataItemsDictUtilsMixin):
 
     # custom asserts
 
@@ -146,20 +147,19 @@ class TestDataFacade(test_utils.DataItemsDictUtilsMixin):
     # test item shuffling
 
     def test_shuffle(self):
-        def shuffler(seq):
-            # set items[0] to all zeroes and items[3] to all sevens
-            seq[0] = 0
-            seq[3] = 7
-
         included_types = ('raw', 'yx')
         items = self.items
         in_items = {k: items[k] for k in included_types}
-        exp_items = {k: items[k].copy() for k in included_types}
-        shuffler(exp_items['raw'])
-        shuffler(exp_items['yx'])
-
         facade = facades.DataFacade(self.packet_shape, in_items)
-        facade.shuffle(shuffler, lambda: None)
+
+        mock_shuffler = test_utils.MockShuffler(swap_indexes=[2, 3])
+        exp_items = {k: items[k].copy() for k in included_types}
+        mock_shuffler.shuffle(exp_items['raw'])
+        mock_shuffler.reset_state()
+        mock_shuffler.shuffle(exp_items['yx'])
+        mock_shuffler.reset_state()
+
+        facade.shuffle(mock_shuffler)
         self.assertItemsDictEqual(facade.get_data_as_dict(), exp_items)
 
 

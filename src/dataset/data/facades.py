@@ -101,11 +101,12 @@ class DataFacade:
         else:
             return {k: data[k][idxs] for k in self._used_types}
 
-    def shuffle(self, shuffler, shuffler_state_resetter):
+    def shuffle(self, shuffler):
+        shuffler.reset_state()
         for item_type in self._used_types:
             items = self._data[item_type]
-            shuffler(items)
-            shuffler_state_resetter()
+            shuffler.shuffle(items)
+            shuffler.reset_state()
 
     # helper methods
 
