@@ -124,7 +124,9 @@ class DatasetFsPersistencyHandler(fs_io_base.FsPersistencyHandler):
         itypes = item_types or config['item_types']
         dataset = ds.NumpyDataset(name, config['packet_shape'],
                                   item_types=itypes)
-        data = self._data_handler.load_data(name, dataset.item_types)
+        item_types = {itype for itype, is_present in dataset.item_types.items()
+                      if is_present}
+        data = self._data_handler.load_data(name, item_types)
         targets = self._target_handler.load_targets(name)
         metadata = self._meta_handler.load_metadata(name)
         dataset._data.extend(data)

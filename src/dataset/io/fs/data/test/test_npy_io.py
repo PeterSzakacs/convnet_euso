@@ -10,6 +10,8 @@ import dataset.io.fs.data.npy_io as npy_io
 import test.test_setups as testset
 
 
+@unittest.skip("Test turned off until proper test methodology for primarily "
+               "IO-bound classes is determined")
 class TestNumpyDataPersistencyManager(testset.DatasetItemsMixin,
                                       unittest.TestCase):
 
