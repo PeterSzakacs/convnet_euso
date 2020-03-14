@@ -12,6 +12,8 @@ import dataset.io.fs_io as fs_io
 import test.test_setups as testset
 
 
+@unittest.skip('Temporarily skipped until new IO architecture is properly '
+               'designed')
 class TestDatasetFsPersistencyManager(testset.DatasetItemsMixin,
                                       testset.DatasetTargetsMixin,
                                       testset.DatasetMetadataMixin,
