@@ -1,5 +1,5 @@
 import collections
-import typing
+
 
 def extract_metafields(metadata):
     metafields = set()
@@ -10,9 +10,10 @@ def extract_metafields(metadata):
 
 class MetadataHolder:
 
-    def __init__(self):
+    def __init__(self, **attrs):
         self._metadata = []
         self._metafields = set()
+        self._attrs = attrs
 
     def __len__(self):
         return len(self._metadata)
@@ -27,6 +28,14 @@ class MetadataHolder:
             return [self._metadata[index] for index in idx]
         else:
             raise Exception('Unsupported index type: {}'.format(type(idx)))
+
+    @property
+    def attributes(self):
+        return {
+            'backend': 'tsv',
+            **self._attrs,
+            'fields': self.metadata_fields,
+        }
 
     @property
     def metadata_fields(self):

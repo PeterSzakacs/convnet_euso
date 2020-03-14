@@ -1,6 +1,3 @@
-import operator
-import functools
-
 import numpy as np
 
 import dataset.data_utils as dat
@@ -20,14 +17,16 @@ class NumpyDataset:
     """
 
     def __init__(self, name, packet_shape, resizable=True, dtype=np.uint8,
-                 item_types={'raw': True, 'yx': False, 'gtux': False,
-                             'gtuy': False}):
+                 item_types=None, **attrs):
+        item_types = item_types or {'raw': True, 'gtux': False, 'gtuy': False,
+                                    'yx': False}
         self._data = dat.DataHolder(packet_shape, item_types=item_types,
                                     dtype=dtype)
         self._targ = targ.TargetsHolder()
         self._meta = meta.MetadataHolder()
         self._num_data = 0
-        self.resizable = True
+        self._attrs = attrs
+        self.resizable = resizable
         self.name = name
 
     def __str__(self):
@@ -45,6 +44,33 @@ class NumpyDataset:
                 else items_slice_or_idx)
 
     # properties
+
+    @property
+    def attributes(self):
+        item_types, dtype = self.item_types, self.dtype
+        types = {it: {'dtype': dtype}
+                 for it, is_present in item_types.items() if is_present}
+        return {
+            'name': self.name,
+            'num_items': self.num_data,
+            'data': {
+                'packet_shape': self.accepted_packet_shape,
+                'backend': 'npy',
+                'types': {
+                    it: {'dtype': dtype}
+                    for it, is_present in item_types.items() if is_present
+                },
+            },
+            'targets': {
+                'backend': 'npy',
+                'types': {
+                    'softmax_class_value': {
+                        'dtype': 'uint8'
+                    }
+                },
+            },
+            'metadata': self._meta.attributes
+        }
 
     @property
     def name(self):
