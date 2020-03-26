@@ -2,42 +2,20 @@ import dataset.data.constants as cons
 import dataset.dataset_utils as ds
 import dataset.io.fs.config.ini.base as ini_base
 import dataset.io.fs.config.ini_io as ini_io
-import dataset.io.fs.data.npy_io as data_io
-import dataset.io.fs.meta.tsv_io as meta_io
-import dataset.io.fs.targets.npy_io as targets_io
+import dataset.io.fs.data as data_io
+import dataset.io.fs.meta as meta_io
+import dataset.io.fs.targets as targets_io
 
 
 class DatasetFsPersistencyHandler:
 
-    def __init__(self, load_dir=None, save_dir=None, configfile_suffix=None,
-                 data_handler=None, targets_handler=None,
-                 metadata_handler=None):
+    def __init__(self, load_dir=None, save_dir=None, configfile_suffix=None):
         self._conf = ini_io.IniConfigPersistencyHandler(
             file_suffix=configfile_suffix)
-        self._data_handler = (data_handler or
-                              data_io.NumpyDataPersistencyHandler())
-        self._target_handler = (targets_handler or
-                                targets_io.NumpyTargetsPersistencyHandler())
-        self._meta_handler = (metadata_handler or
-                              meta_io.TSVMetadataPersistencyHandler())
         self.loaddir = load_dir
         self.savedir = save_dir
 
     # properties
-
-    @property
-    def data_persistency_handler(self):
-        return self._data_handler
-
-    @property
-    def targets_persistency_handler(self):
-        return self._target_handler
-
-    @property
-    def metadata_persistency_handler(self):
-        return self._meta_handler
-
-    # property overrides
 
     @property
     def loaddir(self):
@@ -46,9 +24,6 @@ class DatasetFsPersistencyHandler:
     @loaddir.setter
     def loaddir(self, value):
         self._conf.loaddir = value
-        self._data_handler.loaddir = value
-        self._target_handler.loaddir = value
-        self._meta_handler.loaddir = value
 
     @property
     def savedir(self):
@@ -57,9 +32,6 @@ class DatasetFsPersistencyHandler:
     @savedir.setter
     def savedir(self, value):
         self._conf.savedir = value
-        self._data_handler.savedir = value
-        self._target_handler.savedir = value
-        self._meta_handler.savedir = value
 
     # dataset load
 
@@ -127,11 +99,14 @@ class DatasetFsPersistencyHandler:
         itypes.update(item_types)
         dataset = ds.NumpyDataset(name, config['data']['packet_shape'],
                                   item_types=itypes)
+
         item_types = {itype for itype, is_present in dataset.item_types.items()
                       if is_present}
-        data = self._data_handler.load_data(name, item_types)
-        targets = self._target_handler.load_targets(name)
-        metadata = self._meta_handler.load_metadata(name)
+        (d_handler, t_handler, m_handler) = self._get_handlers(config)
+        data = d_handler.load_data(name, item_types)
+        targets = t_handler.load_targets(name, config['targets']['types'])
+        metadata = m_handler.load_metadata(
+            name, metafields=config['metadata']['fields'])
         dataset._data.extend(data)
         dataset._targ.extend({'classification': targets})
         dataset._meta.extend(metadata)
@@ -153,13 +128,32 @@ class DatasetFsPersistencyHandler:
                                         in the created metadata TSV.
             :type metafields_order:     typing.Sequence[str]
         """
-        name = dataset.name
-        metadata, metafields = dataset.get_metadata(), dataset.metadata_fields
-        self._meta_handler.save_metadata(name, metadata, metafields=metafields,
-                                         metafields_order=metafields_order)
-        targets = dataset.get_targets()
-        self._target_handler.save_targets(name, targets)
-        data = dataset.get_data_as_dict()
-        self._data_handler.save_data(name, data, dtype=dataset.dtype)
+        name, config = dataset.name, dataset.attributes
+        (d_handler, t_handler, m_handler) = self._get_handlers(config)
 
-        self._conf.save_config(name, dataset.attributes)
+        metadata, metafields = dataset.get_metadata(), dataset.metadata_fields
+        m_handler.save_metadata(name, metadata, metafields=metafields,
+                                metafields_order=metafields_order)
+
+        targets = {'softmax_class_value': dataset.get_targets()}
+        t_handler.save_targets(name, targets)
+
+        data = dataset.get_data_as_dict()
+        d_handler.save_data(name, data, dtype=dataset.dtype)
+
+        self._conf.save_config(name, config)
+
+    # private helper methods
+
+    def _get_handlers(self, config):
+        loaddir, savedir = self.loaddir, self.savedir
+        backend = config['data']['backend']
+        data_handler = data_io.HANDLERS[backend](load_dir=loaddir,
+                                                 save_dir=savedir)
+        backend = config['targets']['backend']
+        targets_handler = targets_io.HANDLERS[backend](load_dir=loaddir,
+                                                       save_dir=savedir)
+        backend = config['metadata']['backend']
+        metadata_handler = meta_io.HANDLERS[backend](load_dir=loaddir,
+                                                     save_dir=savedir)
+        return data_handler, targets_handler, metadata_handler
