@@ -77,8 +77,8 @@ def get_data_item_shapes(packet_shape, item_types):
         :type packet_shape: tuple of int
         :param item_types: types of items for which their shape is to be
                            calculated.
-        :type item_types: dict of (str,bool)
-        :returns: dict of (str,tuple)
+        :type item_types: dict of str,bool
+        :returns: dict of str,tuple
     """
     utils.check_item_types(item_types)
     return {k: (_item_shape_getters[k](packet_shape) if item_types[k]
