@@ -40,10 +40,12 @@ class TestLegacyConfigParsing(unittest.TestCase):
                 },
                 'types': {
                     'raw': {
-                        'dtype': 'uint8'
+                        'dtype': 'uint8',
+                        'shape': (20, 24, 48),
                     },
                     'yx': {
-                        'dtype': 'uint8'
+                        'dtype': 'uint8',
+                        'shape': (24, 48),
                     }
                 },
             },
@@ -55,7 +57,8 @@ class TestLegacyConfigParsing(unittest.TestCase):
                 },
                 'types': {
                     'softmax_class_value': {
-                        'dtype': 'uint8'
+                        'dtype': 'uint8',
+                        'shape': (2, ),
                     }
                 },
             },
@@ -125,13 +128,22 @@ class TestVersion0ConfigParsing(unittest.TestCase):
                 'filename_format': 'type_only',
             },
             'data:yx': {
-                'dtype': 'uint8'
+                'dtype': 'uint8',
+                'shape_size': '2',
+                'shape[0]': '48',
+                'shape[1]': '24',
             },
             'data:gtux': {
-                'dtype': 'uint8'
+                'dtype': 'uint8',
+                'shape_size': '2',
+                'shape[0]': '30',
+                'shape[1]': '24',
             },
             'data:gtuy': {
-                'dtype': 'uint8'
+                'dtype': 'uint8',
+                'shape_size': '2',
+                'shape[0]': '30',
+                'shape[1]': '48',
             },
             'targets': {
                 'types': "{'softmax_class_value'}",
@@ -142,6 +154,8 @@ class TestVersion0ConfigParsing(unittest.TestCase):
             },
             'targets:softmax_class_value': {
                 'dtype': 'uint8',
+                'shape_size': '1',
+                'shape[0]': '2',
             },
             'metadata': {
                 'fields': "{'length', 'yx_angle'}",
@@ -163,13 +177,16 @@ class TestVersion0ConfigParsing(unittest.TestCase):
                 },
                 'types': {
                     'yx': {
-                        'dtype': 'uint8'
+                        'dtype': 'uint8',
+                        'shape': (48, 24),
                     },
                     'gtux': {
-                        'dtype': 'uint8'
+                        'dtype': 'uint8',
+                        'shape': (30, 24),
                     },
                     'gtuy': {
-                        'dtype': 'uint8'
+                        'dtype': 'uint8',
+                        'shape': (30, 48),
                     },
                 },
             },
@@ -181,7 +198,8 @@ class TestVersion0ConfigParsing(unittest.TestCase):
                 },
                 'types': {
                     'softmax_class_value': {
-                        'dtype': 'uint8'
+                        'dtype': 'uint8',
+                        'shape': (2, ),
                     }
                 },
             },
@@ -247,12 +265,15 @@ class TestVersion0ConfigCreation(unittest.TestCase):
                 'types': {
                     'yx': {
                         'dtype': 'uint8',
+                        'shape': (48, 24),
                     },
                     'gtux': {
                         'dtype': 'uint8',
+                        'shape': (30, 24),
                     },
                     'gtuy': {
                         'dtype': 'uint8',
+                        'shape': (30, 48),
                     },
                 },
                 'packet_shape': (30, 48, 24),
@@ -266,6 +287,7 @@ class TestVersion0ConfigCreation(unittest.TestCase):
                 'types': {
                     'softmax_class_value': {
                         'dtype': 'uint8',
+                        'shape': (2, ),
                     }
                 },
                 'backend': {
@@ -300,12 +322,21 @@ class TestVersion0ConfigCreation(unittest.TestCase):
             },
             'data:yx': {
                 'dtype': 'uint8',
+                'shape_size': 2,
+                'shape[0]': 48,
+                'shape[1]': 24,
             },
             'data:gtux': {
                 'dtype': 'uint8',
+                'shape_size': 2,
+                'shape[0]': 30,
+                'shape[1]': 24,
             },
             'data:gtuy': {
                 'dtype': 'uint8',
+                'shape_size': 2,
+                'shape[0]': 30,
+                'shape[1]': 48,
             },
             'targets': {
                 'types': {'softmax_class_value'},
@@ -317,6 +348,8 @@ class TestVersion0ConfigCreation(unittest.TestCase):
             },
             'targets:softmax_class_value': {
                 'dtype': 'uint8',
+                'shape_size': 1,
+                'shape[0]': 2,
             },
             'metadata': {
                 'fields': {'bg_lambda', 'yx_angle'},
