@@ -1,6 +1,7 @@
 import ast
 
 import dataset.constants as cons
+import dataset.data.shapes as shape_utils
 import dataset.io.fs.config.ini.base as ini
 
 
@@ -43,13 +44,13 @@ class ConfigParser(ini.AbstractIniConfigParser):
                 'frame_width': f_w,
             },
             'data:backend': _data['backend'],
-            **{f'data:{itype}': {'dtype': conf['dtype']}
+            **{f'data:{itype}': self._format_item_type_config(conf)
                for itype, conf in _d_types.items()},
             'targets': {
                 'types': set(_t_types),
             },
             'targets:backend': _targets['backend'],
-            **{f'targets:{itype}': {'dtype': conf['dtype']}
+            **{f'targets:{itype}': self._format_item_type_config(conf)
                for itype, conf in _t_types.items()},
             'metadata': {
                 'fields': _metadata['fields'],
@@ -69,14 +70,20 @@ class ConfigParser(ini.AbstractIniConfigParser):
         item_types_sec = config['item_types']
         item_types = set(k for k in cons.ALL_ITEM_TYPES
                          if item_types_sec[k] == 'True')
+
         dtype = general_sec['dtype']
+        packet_shape = (n_f, f_h, f_w)
+        shapes = shape_utils.get_data_item_shapes(
+            packet_shape, dict.fromkeys(item_types, True)
+        )
 
         return {
             'version': 0,
             'num_items': int(general_sec['num_data']),
             'data': {
-                'packet_shape': (n_f, f_h, f_w),
-                'types': {itype: {'dtype': dtype} for itype in item_types},
+                'packet_shape': packet_shape,
+                'types': {itype: {'dtype': dtype, 'shape': shapes[itype]}
+                          for itype in item_types},
                 'backend': {
                     'name': 'npy',
                     'filename_extension': 'npy',
@@ -84,7 +91,11 @@ class ConfigParser(ini.AbstractIniConfigParser):
                 }
             },
             'targets': {
-                'types': {'softmax_class_value': {'dtype': 'uint8'}},
+                'types': {
+                    'softmax_class_value': {
+                        'dtype': 'uint8', 'shape': (2, ),
+                    }
+                },
                 'backend': {
                     'name': 'npy',
                     'filename_extension': 'npy',
@@ -133,15 +144,17 @@ class ConfigParser(ini.AbstractIniConfigParser):
             'data': {
                 'packet_shape': (n_f, f_h, f_w),
                 'types': {
-                    itype: {'dtype': config[f'data:{itype}']['dtype']}
-                    for itype in d_types
+                    itype: ConfigParser._extract_item_type_config(
+                        config[f'data:{itype}']
+                    ) for itype in d_types
                 },
                 'backend': data_backend_sec.copy(),
             },
             'targets': {
                 'types': {
-                    itype: {'dtype': config[f'targets:{itype}']['dtype']}
-                    for itype in t_types
+                    itype: ConfigParser._extract_item_type_config(
+                        config[f'targets:{itype}']
+                    ) for itype in t_types
                 },
                 'backend': targets_backend_sec.copy(),
             },
@@ -149,4 +162,24 @@ class ConfigParser(ini.AbstractIniConfigParser):
                 'fields': ast.literal_eval(metadata_sec['fields']),
                 'backend': metadata_backend_sec.copy(),
             }
+        }
+
+    @staticmethod
+    def _format_item_type_config(type_config):
+        item_shape = type_config['shape']
+        shape_size = len(item_shape)
+        return {
+            'dtype': type_config['dtype'],
+            'shape_size': shape_size,
+            **{f'shape[{idx}]': item_shape[idx] for idx in range(shape_size)},
+        }
+
+    @staticmethod
+    def _extract_item_type_config(type_config):
+        shape_size = int(type_config['shape_size'])
+        shape_values = tuple(int(type_config[f'shape[{idx}]'])
+                             for idx in range(shape_size))
+        return {
+            'dtype': type_config['dtype'],
+            'shape': shape_values,
         }

@@ -74,7 +74,7 @@ def get_data_item_shapes(packet_shape, item_types):
         ----------
         :param packet_shape:  shape of the original packet as tuple of
                               (number of frames, frame height, frame width)
-        :type packet_shape: tuple of int
+        :type packet_shape: tuple of int, int, int
         :param item_types: types of items for which their shape is to be
                            calculated.
         :type item_types: dict of str,bool
