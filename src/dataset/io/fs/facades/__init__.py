@@ -1,7 +1,8 @@
-from dataset.io.fs.facades import memmap
-from dataset.io.fs.facades import npy
+from .base import FilesystemPersistenceFacade
+from .memmap import MemMapFacade
+from .npy import NumpyPersistenceFacade
 
 IO_HANDLERS = {
-    'npy': npy.NumpyPersistenceFacade(),
-    'memmap': memmap.MemMapFacade(),
+    'npy': NumpyPersistenceFacade(),
+    'memmap': MemMapFacade(),
 }
