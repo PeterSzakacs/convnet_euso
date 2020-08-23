@@ -2,8 +2,8 @@ import abc
 import os
 import typing as t
 
-import dataset.io.fs.utils as utils
 import dataset.io.fs.facades as facades
+import dataset.io.fs.utils as utils
 
 
 class FsPersistenceManager(abc.ABC):
@@ -24,7 +24,7 @@ class FsPersistenceManager(abc.ABC):
 
     def __init__(
             self,
-            io_facades: t.Mapping[str, facades.FilesystemPersistenceFacade],
+            io_facades: t.Mapping[str, facades.BaseFilesystemPersistenceFacade],
             filename_formatters: t.Mapping[str, utils.FilenameFormatter] = None
     ):
         if not io_facades:
