@@ -1,4 +1,4 @@
-from .base import FilesystemPersistenceFacade
+from .base import BaseFilesystemPersistenceFacade
 from .memmap import MemMapFacade
 from .npy import NumpyPersistenceFacade
 
