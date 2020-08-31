@@ -1,10 +1,12 @@
 import collections
-import operator
 import functools
+import operator
+import typing as t
 
 import numpy as np
 
 import dataset.constants as cons
+
 
 # other functions
 
@@ -23,19 +25,22 @@ def check_item_types(item_types):
 # holder creation
 
 
-def create_packet_holder(packet_shape, num_items=None, dtype=np.uint8):
+def create_packet_holder(
+        packet_shape: t.Sequence[int],
+        num_items: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> t.Union[list, np.ndarray]:
     """
         Create a data structure for holding raw packets with shape packet_shape
         and able to hold either an unlimited or at most num_items number of
         items.
 
-        Parameters
-        ----------
-        packet_shape :  tuple of 3 ints
-            shape of the original packet
-        num_items :     int or None
-            expected number of items which will be stored in the holder
-            or None if not known in advance
+        :param packet_shape: shape of the original packet
+        :param num_items: (optional) expected number of items which will be
+                          stored in the holder or None if not known in advance
+        :param dtype: (optional) dtype of the items in the holder - only
+                      important if num_items is not None
+        :return: empty holder for packets
     """
     n_f, f_h, f_w = packet_shape[0:3]
     if num_items is None:
@@ -44,19 +49,22 @@ def create_packet_holder(packet_shape, num_items=None, dtype=np.uint8):
         return np.empty((num_items, n_f, f_h, f_w), dtype=dtype)
 
 
-def create_y_x_projection_holder(packet_shape, num_items=None, dtype=np.uint8):
+def create_y_x_projection_holder(
+        packet_shape: t.Sequence[int],
+        num_items: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> t.Union[list, np.ndarray]:
     """
         Create a data structure for holding packet projections along the GTU
         axis created from packets with shape packet_shape and able to hold
         either an unlimited or at most num_items number of items.
 
-        Parameters
-        ----------
-        packet_shape :  tuple of 3 ints
-            shape of the original packet
-        num_items :     int or None
-            expected number of items which will be stored in the holder
-            or None if not known in advance
+        :param packet_shape: shape of the original packet
+        :param num_items: (optional) expected number of items which will be
+                          stored in the holder or None if not known in advance
+        :param dtype: (optional) dtype of the items in the holder - only
+                      important if num_items is not None
+        :return: empty holder for yx projections
     """
     n_f, f_h, f_w = packet_shape[0:3]
     if num_items is None:
@@ -65,20 +73,22 @@ def create_y_x_projection_holder(packet_shape, num_items=None, dtype=np.uint8):
         return np.empty((num_items, f_h, f_w), dtype=dtype)
 
 
-def create_gtu_x_projection_holder(packet_shape, num_items=None,
-                                   dtype=np.uint8):
+def create_gtu_x_projection_holder(
+        packet_shape: t.Sequence[int],
+        num_items: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> t.Union[list, np.ndarray]:
     """
         Create a data structure for holding packet projections along the Y
         axis created from packets with shape packet_shape and able to hold
         either an unlimited or at most num_items number of items.
 
-        Parameters
-        ----------
-        packet_shape :  tuple of 3 ints
-            shape of the original packet
-        num_items :     int or None
-            expected number of items which will be stored in the holder
-            or None if not known in advance
+        :param packet_shape: shape of the original packet
+        :param num_items: (optional) expected number of items which will be
+                          stored in the holder or None if not known in advance
+        :param dtype: (optional) dtype of the items in the holder - only
+                      important if num_items is not None
+        :return: empty holder for gtux projections
     """
     n_f, f_h, f_w = packet_shape[0:3]
     if num_items is None:
@@ -87,20 +97,22 @@ def create_gtu_x_projection_holder(packet_shape, num_items=None,
         return np.empty((num_items, n_f, f_w), dtype=dtype)
 
 
-def create_gtu_y_projection_holder(packet_shape, num_items=None,
-                                   dtype=np.uint8):
+def create_gtu_y_projection_holder(
+        packet_shape: t.Sequence[int],
+        num_items: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> t.Union[list, np.ndarray]:
     """
         Create a data structure for holding packet projections along the X
         axis created from packets with shape packet_shape and able to hold
         either an unlimited or at most num_items number of items.
 
-        Parameters
-        ----------
-        packet_shape :  tuple of 3 ints
-            shape of the original packet
-        num_items :     int or None
-            expected number of items which will be stored in the holder
-            or None if not known in advance
+        :param packet_shape: shape of the original packet
+        :param num_items: (optional) expected number of items which will be
+                          stored in the holder or None if not known in advance
+        :param dtype: (optional) dtype of the items in the holder - only
+                      important if num_items is not None
+        :return: empty holder for gtuy projections
     """
     n_f, f_h, f_w = packet_shape[0:3]
     if num_items is None:
@@ -117,8 +129,12 @@ _holder_creators = {
 }
 
 
-def create_data_holders(packet_shape, item_types, num_items=None,
-                        dtype=np.uint8):
+def create_data_holders(
+        packet_shape: t.Sequence[int],
+        item_types: t.Union[t.Mapping[str, bool], t.Iterable[str]],
+        num_items: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> t.Union[t.Mapping[str, list], t.Mapping[str, np.ndarray]]:
     """
         Create a collection of data structures for holding data items specified
         in item_types (with these items being created from packets with shape
@@ -129,97 +145,119 @@ def create_data_holders(packet_shape, item_types, num_items=None,
         type is set to False, the value for the same key in the returned dict
         is None.
 
-        Parameters
-        ----------
-        packet_shape :  tuple of 3 ints
-            shape of the original packet
-        num_items :     int or None
-            expected number of items which will be stored in the holder
-            or None if not known in advance
+        :param packet_shape: shape of the original packet
+        :param item_types: the item types for which holders are to be created
+        :param num_items: (optional) expected number of items which will be
+                          stored in the holder or None if not known in advance
+        :param dtype: (optional) dtype of the items in the holder(s) - only
+                      important if num_items is not None
+        :return: mapping of empty holders indexed by the held item type
+                 name/key
     """
-    check_item_types(item_types)
-    return {k: (None if item_types[k] is False else
-            _holder_creators[k](packet_shape, num_items, dtype))
-            for k in cons.ALL_ITEM_TYPES}
+    if isinstance(item_types, t.Mapping):
+        check_item_types(item_types)
+        return {k: (None if item_types[k] is False else
+                _holder_creators[k](packet_shape, num_items=num_items,
+                                    dtype=dtype))
+                for k in cons.ALL_ITEM_TYPES}
+    else:
+        _types = dict.fromkeys(item_types, True)
+        check_item_types(_types)
+        return {k: _holder_creators[k](packet_shape, num_items=num_items,
+                                       dtype=dtype)
+                for k in _types.keys()}
+
 
 # data item creation
 
 
-def create_subpacket(packet, start_idx=0, end_idx=None, dtype=np.uint8):
+def create_subpacket(
+        packet: np.ndarray,
+        start_idx: int = 0,
+        end_idx: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> np.ndarray:
     """
         Convert packet to a (sub)packet made up of frames from start_idx
         to end_idx (minus the latter).
 
-        Parameters
-        ----------
-        packet :        3-dimensional numpy.ndarray
-            packet from which to create a (sub)packet
-        start_idx :     int
-            index of first frame in the packet to inculde
-        end_idx :       int or None
-            index of first frame in the packet to exclude
-        dtype :         str or np.number
-            data type of created subpacket
+        :param packet: packet from which to create the (sub)packet
+        :param start_idx: (optional) index of first packet frame to use for
+                          creating the (sub)packet
+        :param end_idx: (optional) index of first packet frame to NOT use for
+                        creating the (sub)packet (same semantics as 'stop'
+                        param for e.g. range() objects)
+        :param dtype: (optional) data type to cast the created (sub)packet to
+        :return: (sub)packet derived from the passed packet
     """
     return packet[start_idx:end_idx].astype(dtype)
 
 
-def create_y_x_projection(packet, start_idx=0, end_idx=None, dtype=np.uint8):
+def create_y_x_projection(
+        packet: np.ndarray,
+        start_idx: int = 0,
+        end_idx: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> np.ndarray:
     """
         Convert packet to a projection by extracting the maximum of values
         along the GTU axis of the packet made up of frames from start_idx
         to end_idx (minus the latter).
 
-        Parameters
-        ----------
-        packet :        3-dimensional numpy.ndarray
-            packet from which to create the projection
-        start_idx :     int
-            index of first packet frame to use in creating the projection
-        end_idx :       int or None
-            index of first packet frame to not use in creating the projection
-        dtype :         str or np.number
-            data type of created yx projection
+        :param packet: packet from which to create the projection
+        :param start_idx: (optional) index of first packet frame to use for
+                          creating the projection
+        :param end_idx: (optional) index of first packet frame to NOT use for
+                        creating the projection (same semantics as 'stop' param
+                        for e.g. range() objects)
+        :param dtype: (optional) data type to cast the created projection to
+        :return: projection derived from the passed packet
     """
     return np.max(packet[start_idx:end_idx], axis=0).astype(dtype)
 
 
-def create_gtu_x_projection(packet, start_idx=0, end_idx=None, dtype=np.uint8):
+def create_gtu_x_projection(
+        packet: np.ndarray,
+        start_idx: int = 0,
+        end_idx: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> np.ndarray:
     """
         Convert packet to a projection by extracting the maximum of values
         along the Y axis of the packet made up of frames from start_idx to
         end_idx (minus the latter).
 
-        Parameters
-        ----------
-        packet :        3-dimensional numpy.ndarray
-            packet from which to create the projection
-        start_idx :     int
-            index of first packet frame to use in creating the projection
-        end_idx :       int or None
-            index of first packet frame to not use in creating the projection
-        dtype :         str or np.number
-            data type of created gtux projection
+        :param packet: packet from which to create the projection
+        :param start_idx: (optional) index of first packet frame to use for
+                          creating the projection
+        :param end_idx: (optional) index of first packet frame to NOT use for
+                        creating the projection (same semantics as 'stop' param
+                        for e.g. range() objects)
+        :param dtype: (optional) data type to cast the created projection to
+        :return: projection derived from the passed packet
     """
     return np.max(packet[start_idx:end_idx], axis=1).astype(dtype)
 
 
-def create_gtu_y_projection(packet, start_idx=0, end_idx=None, dtype=np.uint8):
+def create_gtu_y_projection(
+        packet: np.ndarray,
+        start_idx: int = 0,
+        end_idx: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> np.ndarray:
     """
         Convert packet to a projection by extracting the maximum of values
         along the X axis of the packet made up of frames from start_idx to
         end_idx (minus the latter).
 
-        Parameters
-        ----------
-        packet :        3-dimensional numpy.ndarray
-            packet from which to create the projection
-        start_idx :     int
-            index of first packet frame to use in creating the projection
-        end_idx :       int or None
-            index of first packet frame to not use in creating the projection
-        dtype :         str or np.number
-            data type of created gtuy projection
+        :param packet: packet from which to create the projection
+        :param start_idx: (optional) index of first packet frame to use for
+                          creating the projection
+        :param end_idx: (optional) index of first packet frame to NOT use for
+                        creating the projection (same semantics as 'stop' param
+                        for e.g. range() objects)
+        :param dtype: (optional) data type to cast the created projection to
+        :return: projection derived from the passed packet
     """
     return np.max(packet[start_idx:end_idx], axis=2).astype(dtype)
 
@@ -232,8 +270,13 @@ _packet_converters = {
 }
 
 
-def convert_packet(packet, item_types, start_idx=0, end_idx=None,
-                   dtype=np.uint8):
+def convert_packet(
+        packet: np.ndarray,
+        item_types: t.Union[t.Mapping[str, bool], t.Iterable[str]],
+        start_idx: int = 0,
+        end_idx: int = None,
+        dtype: t.Union[str, np.dtype] = np.uint8
+) -> t.Mapping[str, np.ndarray]:
     """
         Convert packet to a set of data items as specified by the keys in the
         parameter item_types. This function serves as a wrapper which calls the
@@ -242,62 +285,77 @@ def convert_packet(packet, item_types, start_idx=0, end_idx=None,
         the item type is set to False, the value for the same key in the
         returned dict is None.
 
-        Parameters
-        ----------
-        packet :        3-dimensional numpy.ndarray
-            packet from which to create a projection along the y axis
-        start_idx :     int
-            index of first packet frame to use in creating the data items
-        end_idx :       int or None
-            index of first packet frame to not use in creating the data itmes
-        item_types :    dict of str to bool
-            the item types requested to be created from the original packet
+        :param packet: packet from which to create derived item types
+        :param item_types: the item types requested to be created from the
+                           original packet
+        :param start_idx: (optional) index of first packet frame to use for
+                          creating the derived items
+        :param end_idx: (optional) index of first packet frame to NOT use for
+                        creating the itmes (same semantics as 'stop' param
+                        for e.g. range() objects)
+        :param dtype: (optional) data type to cast the created items to
+        :return: mapping of items of requested types derived from the packet
+                 indexed by item type name/key
     """
-    check_item_types(item_types)
-    return {k: (None if item_types[k] is False else _packet_converters[k](
-                    packet, dtype=dtype, start_idx=start_idx, end_idx=end_idx))
-            for k in cons.ALL_ITEM_TYPES}
+    if isinstance(item_types, t.Mapping):
+        check_item_types(item_types)
+        return {k: (None if item_types[k] is False
+                    else _packet_converters[k](packet, dtype=dtype,
+                                               start_idx=start_idx,
+                                               end_idx=end_idx))
+                for k in cons.ALL_ITEM_TYPES}
+    else:
+        _types = dict.fromkeys(item_types, True)
+        check_item_types(_types)
+        return {k: _packet_converters[k](packet, dtype=dtype,
+                                         start_idx=start_idx,
+                                         end_idx=end_idx)
+                for k in _types.keys()}
+
 
 # get data item shape
 
 
-def get_y_x_projection_shape(packet_shape):
+def get_y_x_projection_shape(
+        packet_shape: t.Sequence[int]
+) -> t.Sequence[int]:
     """
         Get the shape of a packet projection along the GTU axis derived from a
         packet of shape packet_shape.
 
-        Parameters
-        ----------
-        packet_shape :      tuple of 3 ints
-            shape of the packet from which the projection is created
+        :param packet_shape: shape of the packet from which the projection is
+                             created
+        :return: shape of the projection
     """
     n_f, f_h, f_w = packet_shape[0:3]
     return (f_h, f_w)
 
 
-def get_gtu_x_projection_shape(packet_shape):
+def get_gtu_x_projection_shape(
+        packet_shape: t.Sequence[int]
+) -> t.Sequence[int]:
     """
         Get the shape of a packet projection along the Y axis derived from a
         packet of shape packet_shape.
 
-        Parameters
-        ----------
-        packet_shape :      tuple of 3 ints
-            shape of the packet from which the projection is created
+        :param packet_shape: shape of the packet from which the projection is
+                             created
+        :return: shape of the projection
     """
     n_f, f_h, f_w = packet_shape[0:3]
     return (n_f, f_w)
 
 
-def get_gtu_y_projection_shape(packet_shape):
+def get_gtu_y_projection_shape(
+        packet_shape: t.Sequence[int]
+) -> t.Sequence[int]:
     """
         Get the shape of a packet projection along the X axis derived from a
         packet of shape packet_shape.
 
-        Parameters
-        ----------
-        packet_shape :      tuple of 3 ints
-            shape of the packet from which the projection is created
+        :param packet_shape: shape of the packet from which the projection is
+                             created
+        :return: shape of the projection
     """
     n_f, f_h, f_w = packet_shape[0:3]
     return (n_f, f_h)
@@ -311,7 +369,10 @@ _item_shape_getters = {
 }
 
 
-def get_data_item_shapes(packet_shape, item_types):
+def get_data_item_shapes(
+        packet_shape: t.Sequence[int],
+        item_types: t.Union[t.Mapping[str, bool], t.Iterable[str]],
+) -> t.Mapping[str, t.Sequence[int]]:
     """
         Get the shapes of items of the given types derived from a packet
         of shape packet_shape. This function serves as a wrapper which
@@ -320,17 +381,21 @@ def get_data_item_shapes(packet_shape, item_types):
         to tuple of int. Where the item type is set to False, the value
         for the same key in the returned dict is None.
 
-        Parameters
-        ----------
-        packet_shape :      tuple of 3 ints
-            shape of the packet from which the projection is created
-        item_types :     dict of str to bool
-            the item types for which their shapes are requested
+        :param packet_shape: shape of the packet from which the specified item
+                             types are derived
+        :param item_types: item types for which their shapes are requested
+        :return: mapping of shapes for items derived from a packet with the
+                 given shape indexed by item type name/key
     """
-    check_item_types(item_types)
-    return {k: (None if item_types[k] is False else
-            _item_shape_getters[k](packet_shape))
-            for k in cons.ALL_ITEM_TYPES}
+    if isinstance(item_types, t.Mapping):
+        check_item_types(item_types)
+        return {k: (None if item_types[k] is False else
+                _item_shape_getters[k](packet_shape))
+                for k in cons.ALL_ITEM_TYPES}
+    else:
+        _types = dict.fromkeys(item_types, True)
+        check_item_types(_types)
+        return {k: _item_shape_getters[k](packet_shape) for k in _types.keys()}
 
 
 # classes
