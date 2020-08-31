@@ -14,8 +14,8 @@ def get_ini_parser(version):
     module_name = f"dataset.io.fs.config.ini.versions.version{int(version)}"
     module = importlib.import_module(module_name)
     cls = getattr(module, "ConfigParser")
-    handler = cls()
-    return handler
+    parser = cls()
+    return parser
 
 
 class AbstractIniConfigParser(abc.ABC):
