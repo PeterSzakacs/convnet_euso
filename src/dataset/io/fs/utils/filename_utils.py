@@ -27,22 +27,25 @@ def create_full_path(filenames, common_dir):
 class FilenameFormatter(abc.ABC):
 
     @abc.abstractmethod
-    def create_filename(self, name, item_type, **kwargs):
+    def create_filename(self, *args, **kwargs):
         pass
-
-    def create_filenames(self, name, item_types, **kwargs):
-        get_file = self.create_filename
-        return {key: get_file(name, key, **kwargs) for key in item_types}
 
 
 class TypeOnlyFormatter(FilenameFormatter):
 
-    def create_filename(self, name, item_type, **kwargs):
+    def create_filename(self, item_type, **kwargs):
         return f'{item_type}'
 
 
 class NameWithTypeSuffixFormatter(FilenameFormatter):
 
-    def create_filename(self, name, item_key, **kwargs):
+    def create_filename(self, dataset_name, item_type, **kwargs):
         delim = kwargs.get('delimiter') or '_'
-        return f'{name}{delim}{item_key}'
+        return f'{dataset_name}{delim}{item_type}'
+
+
+class NameWithSuffixFormatter(FilenameFormatter):
+
+    def create_filename(self, dataset_name, suffix, **kwargs):
+        delim = kwargs.get('delimiter') or '_'
+        return f'{dataset_name}{delim}{suffix}'

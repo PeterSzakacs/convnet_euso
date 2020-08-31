@@ -220,9 +220,13 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
     # misc. (helper methods)
 
     def _get_files(self, dataset_name, files_dir, item_types, config):
+        # mandatory backend properties/args
         backend_config = config['backend']
         filename_format = backend_config['filename_format']
         filename_extension = backend_config['filename_extension']
+        # optional backend properties/args
+        suffix = backend_config.get('suffix', None)
+        delimiter = backend_config.get('delimiter', None)
 
         formatter = self._formatters[filename_format]
         create_filename = formatter.create_filename
@@ -230,7 +234,10 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
         to_full_path = utils.create_full_path
 
         def _get_filename(item_type):
-            _file = create_filename(dataset_name, item_type)
+            _file = create_filename(dataset_name=dataset_name,
+                                    item_type=item_type,
+                                    suffix=suffix,
+                                    delimiter=delimiter)
             _file = append_extension(_file, filename_extension)
             _file = to_full_path(_file, files_dir)
             return _file

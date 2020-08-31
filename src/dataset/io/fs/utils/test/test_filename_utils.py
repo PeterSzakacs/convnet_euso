@@ -4,7 +4,8 @@ import unittest
 # module functions to test
 from ..filename_utils import append_file_extension, create_full_path
 # classes to test
-from ..filename_utils import TypeOnlyFormatter, NameWithTypeSuffixFormatter
+from ..filename_utils import TypeOnlyFormatter, NameWithSuffixFormatter, \
+    NameWithTypeSuffixFormatter
 
 
 class TestFileExtensionAppender(unittest.TestCase):
@@ -56,21 +57,11 @@ class TestTypeOnlyFormatter(unittest.TestCase):
 
     def test_get_single_file(self):
         formatter = TypeOnlyFormatter()
-        name, item_type = 'test_dataset', 'yx'
+        item_type = 'yx'
 
         expected_filename = 'yx'
-        actual_filename = formatter.create_filename(name, item_type)
+        actual_filename = formatter.create_filename(item_type)
         self.assertEqual(expected_filename, actual_filename)
-
-    def test_get_multiple_files(self):
-        formatter = TypeOnlyFormatter()
-        name, item_types = 'test_dataset', ['gtux', 'yx', 'gtuy']
-
-        expected_filenames = {
-            'gtux': 'gtux', 'gtuy': 'gtuy', 'yx': 'yx',
-        }
-        actual_filenames = formatter.create_filenames(name, item_types)
-        self.assertDictEqual(expected_filenames, actual_filenames)
 
 
 class TestNameWithTypeSuffixFormatter(unittest.TestCase):
@@ -83,18 +74,36 @@ class TestNameWithTypeSuffixFormatter(unittest.TestCase):
         actual_filename = formatter.create_filename(name, item_type)
         self.assertEqual(expected_filename, actual_filename)
 
-    def test_get_multiple_files(self):
+    def test_custom_delimiter(self):
         formatter = NameWithTypeSuffixFormatter()
-        name, item_types = 'test', ['softmax_class_value', 'reconstruction_yx']
+        name, item_types = 'test', 'softmax_class_value'
         delimiter = '.'
 
-        expected_filenames = {
-            'softmax_class_value': 'test.softmax_class_value',
-            'reconstruction_yx': 'test.reconstruction_yx',
-        }
-        actual_filenames = formatter.create_filenames(name, item_types,
-                                                      delimiter=delimiter)
-        self.assertDictEqual(expected_filenames, actual_filenames)
+        expected_filename = 'test.softmax_class_value'
+        actual_filename = formatter.create_filename(name, item_types,
+                                                    delimiter=delimiter)
+        self.assertEqual(expected_filename, actual_filename)
+
+
+class TestNameWithSuffixFormatter(unittest.TestCase):
+
+    def test_get_single_file(self):
+        formatter = NameWithSuffixFormatter()
+        name, suffix = f'test_dataset', 'meta'
+
+        expected_filename = 'test_dataset_meta'
+        actual_filename = formatter.create_filename(name, suffix)
+        self.assertEqual(expected_filename, actual_filename)
+
+    def test_custom_delimiter(self):
+        formatter = NameWithTypeSuffixFormatter()
+        name, suffix = 'test', 'targets'
+        delimiter = '.'
+
+        expected_filename = 'test.targets'
+        actual_filename = formatter.create_filename(name, suffix,
+                                                    delimiter=delimiter)
+        self.assertEqual(expected_filename, actual_filename)
 
 
 if __name__ == '__main__':
