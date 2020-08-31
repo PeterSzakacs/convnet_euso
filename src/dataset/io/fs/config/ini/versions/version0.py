@@ -74,7 +74,7 @@ class ConfigParser(ini.AbstractIniConfigParser):
         dtype = general_sec['dtype']
         packet_shape = (n_f, f_h, f_w)
         shapes = shape_utils.get_data_item_shapes(
-            packet_shape, dict.fromkeys(item_types, True)
+            packet_shape, item_types
         )
 
         return {

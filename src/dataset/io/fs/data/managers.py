@@ -1,4 +1,4 @@
-import dataset.data.utils as data_utils
+import dataset.data_utils as data_utils
 import dataset.io.fs.facades as data_facades
 import dataset.io.fs.managers as managers
 

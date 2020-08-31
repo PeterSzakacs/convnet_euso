@@ -150,7 +150,7 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
             _shape = type_config['shape']
             _file = files[item_type]
             item = handler.load(_file, dtype=_dtype, num_items=num_items,
-                                shape=_shape)
+                                item_shape=_shape)
             items[item_type] = item
         return items
 
@@ -163,10 +163,6 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
         types_config = dict(config['types'])
         self._check_types_before_update(types_config, items)
 
-        # get number of data items (of each type) to save and check against
-        # the actual passed data
-        num_items = self._check_and_get_num_items(items, config)
-
         # get filenames
         files = self._get_files(dataset_name, save_dir, types_config, config)
 
@@ -176,10 +172,7 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
         for item_type, config in types_config.items():
             _file = files[item_type]
             _arr = items[item_type]
-            _dtype = config['dtype']
-            _shape = config['shape']
-            handler.save(_file, _arr, num_items=num_items, dtype=_dtype,
-                         shape=_shape)
+            handler.save(_file, _arr)
         return files
 
     def append(self, dataset_name, files_dir, config, items):
@@ -207,7 +200,7 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
             _dtype = config['dtype']
             _shape = config['shape']
             handler.append(_file, _arr, num_items=num_items, dtype=_dtype,
-                           shape=_shape)
+                           item_shape=_shape)
         return files
 
     def delete(self, dataset_name, files_dir, config, delete_types=None):

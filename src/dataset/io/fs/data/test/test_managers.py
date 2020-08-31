@@ -1,15 +1,14 @@
 import random
-import uuid
 import unittest
 import unittest.mock as mock
+import uuid
 
 import numpy as np
 
+import dataset.constants as constants
+import dataset.data_utils as data_utils
 import dataset.io.fs.data.managers as managers
 import dataset.io.fs.facades as fs_facades
-import dataset.data.converters as converters
-import dataset.data.shapes as shape_utils
-import dataset.data.constants as constants
 
 
 class TestLoadDataFromFilesystem(unittest.TestCase):
@@ -39,7 +38,7 @@ class TestLoadDataFromFilesystem(unittest.TestCase):
         for item_type, values in item_types.items():
             exp_filename = f'/res/{item_type}.{exp_extension}'
             exp_method.assert_any_call(exp_filename, dtype=values['dtype'],
-                                       shape=values['shape'],
+                                       item_shape=values['shape'],
                                        num_items=num_items)
 
     @mock.patch('os.path.isdir', return_value=True)
@@ -74,7 +73,7 @@ class TestLoadDataFromFilesystem(unittest.TestCase):
             exp_filename = f'/data/test_{item_type}.{exp_extension}'
             config = item_types[item_type]
             exp_method.assert_any_call(exp_filename, dtype=config['dtype'],
-                                       shape=config['shape'],
+                                       item_shape=config['shape'],
                                        num_items=num_items)
 
 
@@ -93,9 +92,8 @@ class TestSaveDataToFilesystem(unittest.TestCase):
         exp_extension = config['backend']['filename_extension']
 
         # prepare input data arrays
-        items = converters.convert_packet(
-            np.empty(shape=packet_shape, dtype='uint32'),
-            dict.fromkeys(item_types, True)
+        items = data_utils.convert_packet(
+            np.empty(shape=packet_shape, dtype='uint32'), item_types.keys()
         )
         for item_type in item_types:
             item = items[item_type]
@@ -115,10 +113,7 @@ class TestSaveDataToFilesystem(unittest.TestCase):
         self.assertEqual(len(item_types), exp_method.call_count)
         for item_type, values in item_types.items():
             exp_filename = f'/set/{item_type}.{exp_extension}'
-            exp_method.assert_any_call(exp_filename, items[item_type],
-                                       dtype=values['dtype'],
-                                       shape=values['shape'],
-                                       num_items=num_items)
+            exp_method.assert_any_call(exp_filename, items[item_type])
 
 
 class TestAppendDataToFilesystem(unittest.TestCase):
@@ -136,9 +131,8 @@ class TestAppendDataToFilesystem(unittest.TestCase):
         exp_extension = config['backend']['filename_extension']
 
         # prepare input data arrays
-        items = converters.convert_packet(
-            np.empty(shape=packet_shape, dtype='uint32'),
-            dict.fromkeys(item_types, True)
+        items = data_utils.convert_packet(
+            np.empty(shape=packet_shape, dtype='uint32'), item_types.keys()
         )
         for item_type in item_types:
             item = items[item_type]
@@ -160,7 +154,7 @@ class TestAppendDataToFilesystem(unittest.TestCase):
             exp_filename = f'/set/{item_type}.{exp_extension}'
             exp_method.assert_any_call(exp_filename, items[item_type],
                                        dtype=values['dtype'],
-                                       shape=values['shape'],
+                                       item_shape=values['shape'],
                                        num_items=num_items)
 
 
@@ -265,8 +259,7 @@ def _get_types_config(packet_shape, item_types=None):
         itypes = samples(all_itypes, randint(1, len(all_itypes)))
     else:
         itypes = item_types
-    shapes = shape_utils.get_data_item_shapes(packet_shape,
-                                              dict.fromkeys(itypes, True))
+    shapes = data_utils.get_data_item_shapes(packet_shape, itypes)
     return {itype: {'dtype': choice(all_dtypes),
                     'shape': shapes[itype]}
             for itype in itypes}
