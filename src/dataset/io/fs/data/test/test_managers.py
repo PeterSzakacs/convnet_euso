@@ -24,15 +24,15 @@ class TestLoadDataFromFilesystem(unittest.TestCase):
         exp_backend = config['backend']['name']
         exp_extension = config['backend']['filename_extension']
 
-        # setup handlers
-        mock_handlers = _get_mock_handlers()
-        exp_method = mock_handlers[exp_backend].load
+        # setup facades
+        mock_facades = _get_mock_facades()
+        exp_method = mock_facades[exp_backend].load
 
         # call load
-        manager = managers.FilesystemDataManager(io_facades=mock_handlers)
+        manager = managers.FilesystemDataManager(io_facades=mock_facades)
         dset_data = manager.load('testset', '/res', config)
 
-        # check returned data and the correct call args to IO handlers
+        # check returned data and the correct call args to IO facades
         self.assertSetEqual(set(dset_data.keys()), set(item_types.keys()))
         self.assertEqual(len(item_types), exp_method.call_count)
         for item_type, values in item_types.items():
@@ -57,16 +57,16 @@ class TestLoadDataFromFilesystem(unittest.TestCase):
 
         load_types = ['yx']
 
-        # setup handlers
-        mock_handlers = _get_mock_handlers()
-        exp_method = mock_handlers[exp_backend].load
+        # setup facades
+        mock_facades = _get_mock_facades()
+        exp_method = mock_facades[exp_backend].load
 
         # call load
-        manager = managers.FilesystemDataManager(io_facades=mock_handlers)
+        manager = managers.FilesystemDataManager(io_facades=mock_facades)
         dset_data = manager.load('test', '/data', config,
                                  load_types=load_types)
 
-        # check returned data and the correct call args to IO handlers
+        # check returned data and the correct call args to IO facades
         self.assertSetEqual(set(dset_data.keys()), set(load_types))
         self.assertEqual(len(load_types), exp_method.call_count)
         for item_type in load_types:
@@ -100,12 +100,12 @@ class TestSaveDataToFilesystem(unittest.TestCase):
             item = np.reshape(item, (1, *item.shape))
             items[item_type] = np.repeat(item, num_items, axis=0)
 
-        # setup handlers
-        mock_handlers = _get_mock_handlers()
-        exp_method = mock_handlers[exp_backend].save
+        # setup facades
+        mock_facades = _get_mock_facades()
+        exp_method = mock_facades[exp_backend].save
 
         # call save
-        manager = managers.FilesystemDataManager(io_facades=mock_handlers)
+        manager = managers.FilesystemDataManager(io_facades=mock_facades)
         filenames = manager.save('dataset', '/set', config, items)
 
         # verify expected calls
@@ -139,12 +139,12 @@ class TestAppendDataToFilesystem(unittest.TestCase):
             item = np.reshape(item, (1, *item.shape))
             items[item_type] = np.repeat(item, num_items, axis=0)
 
-        # setup handlers
-        mock_handlers = _get_mock_handlers()
-        exp_method = mock_handlers[exp_backend].append
+        # setup facades
+        mock_facades = _get_mock_facades()
+        exp_method = mock_facades[exp_backend].append
 
         # call append
-        manager = managers.FilesystemDataManager(io_facades=mock_handlers)
+        manager = managers.FilesystemDataManager(io_facades=mock_facades)
         filenames = manager.append('dataset', '/set', config, items)
 
         # verify expected calls
@@ -170,12 +170,12 @@ class TestDeleteDataFromFilesystem(unittest.TestCase):
         exp_backend = config['backend']['name']
         exp_extension = config['backend']['filename_extension']
 
-        # setup handlers
-        mock_handlers = _get_mock_handlers()
-        exp_method = mock_handlers[exp_backend].delete
+        # setup facades
+        mock_facades = _get_mock_facades()
+        exp_method = mock_facades[exp_backend].delete
 
         # call delete
-        manager = managers.FilesystemDataManager(io_facades=mock_handlers)
+        manager = managers.FilesystemDataManager(io_facades=mock_facades)
         filenames = manager.delete('dataset', '/set', config)
 
         # verify expected calls
@@ -195,12 +195,12 @@ class TestDeleteDataFromFilesystem(unittest.TestCase):
         exp_backend = config['backend']['name']
         exp_extension = config['backend']['filename_extension']
 
-        # setup handlers
-        mock_handlers = _get_mock_handlers()
-        exp_method = mock_handlers[exp_backend].delete
+        # setup facades
+        mock_facades = _get_mock_facades()
+        exp_method = mock_facades[exp_backend].delete
 
         # call delete
-        manager = managers.FilesystemDataManager(io_facades=mock_handlers)
+        manager = managers.FilesystemDataManager(io_facades=mock_facades)
         filenames = manager.delete('dataset', '/set', config)
 
         # verify expected calls
@@ -211,13 +211,13 @@ class TestDeleteDataFromFilesystem(unittest.TestCase):
             exp_method.assert_any_call(exp_filename)
 
 
-def _get_mock_handlers(return_value=np.ones(shape=(1, 10, 2))):
-    handlers = fs_facades.IO_HANDLERS
-    mock_handlers = {backend: mock.create_autospec(handler)
-                     for backend, handler in handlers.items()}
-    for backend, handler in mock_handlers.items():
-        handler.load.return_value = return_value
-    return mock_handlers
+def _get_mock_facades(return_value=np.ones(shape=(1, 10, 2))):
+    facades = fs_facades.FACADES
+    mock_facades = {backend: mock.create_autospec(facade)
+                    for backend, facade in facades.items()}
+    for backend, facade in mock_facades.items():
+        facade.load.return_value = return_value
+    return mock_facades
 
 
 def _get_config():

@@ -7,8 +7,8 @@ class FilesystemTargetsManager(
 ):
 
     def __init__(self, io_facades=None, filename_formatters=None):
-        custom_handlers = dict(io_facades or {})
-        _handlers = targets_facades.IO_HANDLERS.copy()
-        _handlers.update(custom_handlers)
+        custom_facades = dict(io_facades or {})
+        _facades = targets_facades.FACADES.copy()
+        _facades.update(custom_facades)
 
-        super().__init__(_handlers, filename_formatters)
+        super().__init__(_facades, filename_formatters)

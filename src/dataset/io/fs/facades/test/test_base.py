@@ -28,7 +28,7 @@ class BaseFacadeTest(unittest.TestCase):
             TEST_DIR, cls.get_temp_dir_id(facade_key)
         )
         os.makedirs(temp_dir, exist_ok=True)
-        cls._facade = facades.IO_HANDLERS[facade_key]
+        cls._facade = facades.FACADES[facade_key]
         cls._temp_dir = temp_dir
 
     @classmethod
