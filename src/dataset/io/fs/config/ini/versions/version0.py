@@ -99,7 +99,8 @@ class ConfigParser(ini.AbstractIniConfigParser):
                 'backend': {
                     'name': 'npy',
                     'filename_extension': 'npy',
-                    'filename_format': 'name_with_type_suffix',
+                    'filename_format': 'name_with_suffix',
+                    'suffix': 'class_targets',
                 },
             },
             'metadata': {
@@ -107,7 +108,8 @@ class ConfigParser(ini.AbstractIniConfigParser):
                 'backend': {
                     'name': 'tsv',
                     'filename_extension': 'tsv',
-                    'filename_format': 'name_with_type_suffix',
+                    'filename_format': 'name_with_suffix',
+                    'suffix': 'meta',
                 },
             }
         }

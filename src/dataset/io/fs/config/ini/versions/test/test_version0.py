@@ -53,7 +53,8 @@ class TestLegacyConfigParsing(unittest.TestCase):
                 'backend': {
                     'name': 'npy',
                     'filename_extension': 'npy',
-                    'filename_format': 'name_with_type_suffix',
+                    'filename_format': 'name_with_suffix',
+                    'suffix': 'class_targets'
                 },
                 'types': {
                     'softmax_class_value': {
@@ -66,7 +67,8 @@ class TestLegacyConfigParsing(unittest.TestCase):
                 'backend': {
                     'name': 'tsv',
                     'filename_extension': 'tsv',
-                    'filename_format': 'name_with_type_suffix',
+                    'filename_format': 'name_with_suffix',
+                    'suffix': 'meta',
                 },
                 'fields': {'bg_lambda', 'length', 'yx_angle'},
             }
