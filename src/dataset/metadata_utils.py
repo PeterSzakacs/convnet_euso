@@ -32,7 +32,12 @@ class MetadataHolder:
     @property
     def attributes(self):
         return {
-            'backend': 'tsv',
+            'backend': {
+                'name': 'tsv',
+                'filename_format': 'name_with_suffix',
+                'filename_extension': 'tsv',
+                'suffix': 'meta',
+            },
             **self._attrs,
             'fields': self.metadata_fields,
         }

@@ -48,24 +48,32 @@ class NumpyDataset:
     @property
     def attributes(self):
         item_types, dtype = self.item_types, self.dtype
-        types = {it: {'dtype': dtype}
+        shapes = self.item_shapes
+        types = {it: {'dtype': dtype, 'shape': shapes[it]}
                  for it, is_present in item_types.items() if is_present}
         return {
             'name': self.name,
             'num_items': self.num_data,
             'data': {
                 'packet_shape': self.accepted_packet_shape,
-                'backend': 'npy',
-                'types': {
-                    it: {'dtype': dtype}
-                    for it, is_present in item_types.items() if is_present
+                'backend': {
+                    'name': 'npy',
+                    'filename_format': 'name_with_type_suffix',
+                    'filename_extension': 'npy',
                 },
+                'types': types,
             },
             'targets': {
-                'backend': 'npy',
+                'backend': {
+                    'name': 'npy',
+                    'filename_format': 'name_with_suffix',
+                    'filename_extension': 'npy',
+                    'suffix': 'class_targets',
+                },
                 'types': {
                     'softmax_class_value': {
-                        'dtype': 'uint8'
+                        'dtype': 'uint8',
+                        'shape': (2, ),
                     }
                 },
             },
