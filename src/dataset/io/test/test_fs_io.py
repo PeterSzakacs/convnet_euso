@@ -5,9 +5,7 @@ import unittest.mock as mock
 import dataset.constants as cons
 import dataset.data_utils as dat
 import dataset.dataset_utils as ds
-import dataset.io.fs.data.npy_io as data_io
 import dataset.io.fs.meta.tsv_io as meta_io
-import dataset.io.fs.targets.npy_io as targets_io
 import dataset.io.fs_io as fs_io
 import test.test_setups as testset
 
