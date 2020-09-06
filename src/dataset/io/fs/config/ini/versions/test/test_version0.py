@@ -14,7 +14,7 @@ class TestLegacyConfigParsing(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.maxDiff = None
-        cls.parser = v0.ConfigParser()
+        cls.parser = v0.ConfigConverter()
         cls.raw_config = {
             'general': {
                 'num_data': '100', 'dtype': 'uint8',
@@ -110,7 +110,7 @@ class TestVersion0ConfigParsing(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.maxDiff = None
-        cls.parser = v0.ConfigParser()
+        cls.parser = v0.ConfigConverter()
         cls.raw_config = {
             'general': {
                 'version': '0', 'num_items': '200',
@@ -246,7 +246,7 @@ class TestVersion0ConfigParsing(unittest.TestCase):
                 'version': '2',
             },
         }
-        parser = v0.ConfigParser()
+        parser = v0.ConfigConverter()
         self.assertRaises(ValueError, parser.parse_config, raw_config)
 
 
@@ -260,7 +260,7 @@ class TestVersion0ConfigCreation(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.maxDiff = None
-        cls.parser = v0.ConfigParser()
+        cls.parser = v0.ConfigConverter()
         cls.dataset_attrs = {
             'num_items': 200,
             'data': {

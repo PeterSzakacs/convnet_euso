@@ -1,15 +1,16 @@
+import os
 import typing as t
 
 import dataset.constants as cons
 import dataset.dataset_utils as ds
-import dataset.io.fs.config.ini.base as ini_base
+import dataset.io.fs.base as fs_io_base
 import dataset.io.fs.config.ini_io as ini_io
 import dataset.io.fs.data.managers as data_io
 import dataset.io.fs.meta.tsv_io as meta_io
 import dataset.io.fs.targets.managers as targets_io
 
 
-class DatasetFsPersistencyHandler:
+class DatasetFsPersistencyHandler(fs_io_base.FsPersistencyHandler):
 
     def __init__(
             self,
@@ -19,35 +20,14 @@ class DatasetFsPersistencyHandler:
             targets_handler=None,
             metadata_handler=None
     ):
-        self._conf = ini_io.IniConfigPersistencyHandler()
+        super(self.__class__, self).__init__(load_dir, save_dir)
+        self._conf = ini_io.IniConfigPersistenceManager()
         self._data_handler = (data_handler or
                               data_io.FilesystemDataManager())
         self._target_handler = (targets_handler or
                                 targets_io.FilesystemTargetsManager())
         self._meta_handler = (metadata_handler or
                               meta_io.TSVMetadataPersistencyHandler())
-        self.loaddir = load_dir
-        self.savedir = save_dir
-
-    # properties
-
-    @property
-    def loaddir(self):
-        return self._conf.loaddir
-
-    @loaddir.setter
-    def loaddir(self, value):
-        self._conf.loaddir = value
-        self._meta_handler.loaddir = value
-
-    @property
-    def savedir(self):
-        return self._conf.savedir
-
-    @savedir.setter
-    def savedir(self, value):
-        self._conf.savedir = value
-        self._meta_handler.savedir = value
 
     # dataset load
 
@@ -66,11 +46,11 @@ class DatasetFsPersistencyHandler:
             ----------
             :param name:        the dataset name/config filename prefix.
         """
-        config_handler = self._conf
-        version = config_handler.get_config_version(name)
-        if version != config_handler.config_parser.version:
-            config_handler.config_parser = ini_base.get_ini_parser(version)
-        config = config_handler.load_config(name)
+        self._check_before_read()
+        filename = '{}_{}'.format(name, 'config.ini')
+        filename = os.path.join(self.loaddir, filename)
+
+        config = self._conf.load(filename)
         config['data']['num_items'] = config['num_items']
         config['targets']['num_items'] = config['num_items']
         return config
@@ -118,6 +98,7 @@ class DatasetFsPersistencyHandler:
                                        config['data'], load_types=load_types)
         targets = self._target_handler.load(name, self.loaddir,
                                             config['targets'])
+        self._meta_handler.loaddir = self.loaddir
         metadata = self._meta_handler.load_metadata(name)
 
         # TODO: Think of a way to load dataset with items that does not depend
@@ -148,11 +129,14 @@ class DatasetFsPersistencyHandler:
             :param metafields_order:    (optional) ordering of fields (columns)
                                         in the created metadata TSV.
         """
-        name = dataset.name
-        config = dataset.attributes
-        self._conf.save_config(name, config)
+        self._check_before_write()
+        name, config = dataset.name, dataset.attributes
+        filename = '{}_{}'.format(name, 'config.ini')
+        filename = os.path.join(self.savedir, filename)
+        self._conf.save(filename, config)
 
         metadata, metafields = dataset.get_metadata(), dataset.metadata_fields
+        self._meta_handler.savedir = self.savedir
         self._meta_handler.save_metadata(name, metadata, metafields=metafields,
                                          metafields_order=metafields_order)
 

@@ -1,75 +1,118 @@
 import configparser
 import os
+import typing as t
 
-import dataset.io.fs.base as fs_io_base
 import dataset.io.fs.config.ini.base as ini_base
 
 
-class IniConfigPersistencyHandler(fs_io_base.FsPersistencyHandler):
+class IniConfigPersistenceManager:
 
-    # static attributes
+    def __init__(
+            self,
+            config_converter: ini_base.AbstractIniConfigConverter = None
+    ):
+        """Base class for managing persistence of dataset properties/attributes
+        using config in INI format.
 
-    DEFAULT_CONFIG_FILE_SUFFIX = '_config.ini'
-
-    def __init__(self, config_parser=None, file_suffix=None,
-                 load_dir=None, save_dir=None):
-        super(self.__class__, self).__init__(load_dir, save_dir)
-        # default parser is at version 0
-        self.config_parser = config_parser or ini_base.get_ini_parser(0)
-        self.file_suffix = file_suffix or self.DEFAULT_CONFIG_FILE_SUFFIX
+        :param config_converter: Converter instance to use by default for
+                                 saving all managed configs during this manager
+                                 instance lifecycle (defaults to the one for
+                                 the highest current version of the INI config
+                                 format)
+        """
+        # default/highest config version is 0
+        self.config_converter = (config_converter
+                                 or ini_base.get_ini_converter(0))
 
     # properties
 
     @property
-    def file_suffix(self):
-        return self._suffix
+    def config_converter(self):
+        return self._converter
 
-    @file_suffix.setter
-    def file_suffix(self, value):
-        self._suffix = value
-
-    @property
-    def config_parser(self):
-        return self._parser
-
-    @config_parser.setter
-    def config_parser(self, value):
-        self._parser = value
+    @config_converter.setter
+    def config_converter(self, value):
+        self._converter = value
 
     # methods
 
-    def get_config_version(self, name):
-        self._check_before_read()
-        parser = self._read_config(name)
+    def get_config_version(
+            self,
+            file: str
+    ) -> int:
+        """Get dataset config version from the given config file.
+
+        :param file: Dataset config file (in INI format)
+        :return: Config version as an int
+        """
+        parser = self._read_config(file)
         try:
+            # The 'general' section and its 'version' attribute shall be until
+            # further notice mandatory for all config versions going forward.
+            # Therefore any converter should be able
             return int(parser['general']['version'])
         except KeyError:
             return 0
 
-    def load_config(self, name):
-        self._check_before_read()
-        parser = self._read_config(name)
-        raw_config = {s: dict(parser.items(s)) for s in parser.sections()}
-        return self.config_parser.parse_config(raw_config)
+    def load(
+            self,
+            file: str
+    ) -> t.Mapping[str, t.Any]:
+        """Load dataset attributes/properties from INI formatted config file.
 
-    def save_config(self, name, dataset_dict):
-        self._check_before_write()
-        raw_config = self.config_parser.create_config(dataset_dict)
+        :param file: Dataset config filename/path
+        :return: Representation of dataset attributes/properties as a dict or
+                 mapping
+        """
+        parser = self._read_config(file)
+        converter = self.config_converter
+        version = self._get_version(parser)
+        if version != converter.version:
+            converter = ini_base.get_ini_converter(version)
+
+        raw_config = {s: dict(parser.items(s)) for s in parser.sections()}
+        return converter.parse_config(raw_config)
+
+    def save(
+            self,
+            file: str,
+            dataset_attrs: t.Mapping[str, t.Any]
+    ) -> None:
+        """Save dataset attributes/properties as a single INI-formatted config
+        file with the given name.
+
+        :param file: Filename for storing dataset config
+        :param dataset_attrs: Dataset attributes/properties from which the
+                              INI-formatted config representing them is created
+        """
+        raw_config = self.config_converter.create_config(dataset_attrs)
         parser = configparser.ConfigParser()
         parser.update(raw_config)
-        filename = '{}{}'.format(name, self._suffix)
-        filepath = os.path.join(self.savedir, filename)
-        with open(filepath, 'w', encoding='UTF-8') as configfile:
+        with open(file, 'w', encoding='UTF-8') as configfile:
             parser.write(configfile)
 
     # helper methods
-    
-    def _read_config(self, name):
-        filename = '{}{}'.format(name, self._suffix)
-        filepath = os.path.join(self.loaddir, filename)
-        if not os.path.isfile(filepath):
+
+    @staticmethod
+    def _read_config(
+            file: str
+    ):
+        if not os.path.isfile(file):
             raise FileNotFoundError(
-                'Config file {} does not exist'.format(filepath))
+                'Config file {} does not exist'.format(file))
         parser = configparser.ConfigParser()
-        parser.read(filepath, encoding='UTF-8')
+        parser.read(file, encoding='UTF-8')
         return parser
+
+    @staticmethod
+    def _get_version(
+            parser: configparser.ConfigParser
+    ):
+        try:
+            # The 'general' section and its 'version' attribute shall be until
+            # further notice mandatory for all config versions going forward.
+            # For legacy configs without such an attribute, it defaults to 0,
+            # since the version 0 parser is specifically built to handle these.
+            return int(parser['general']['version'])
+        except KeyError:
+            return 0

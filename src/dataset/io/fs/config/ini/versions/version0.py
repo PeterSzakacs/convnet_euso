@@ -5,7 +5,7 @@ import dataset.data_utils as shape_utils
 import dataset.io.fs.config.ini.base as ini
 
 
-class ConfigParser(ini.AbstractIniConfigParser):
+class ConfigConverter(ini.AbstractIniConfigConverter):
 
     @property
     def version(self):
@@ -146,7 +146,7 @@ class ConfigParser(ini.AbstractIniConfigParser):
             'data': {
                 'packet_shape': (n_f, f_h, f_w),
                 'types': {
-                    itype: ConfigParser._extract_item_type_config(
+                    itype: ConfigConverter._extract_item_type_config(
                         config[f'data:{itype}']
                     ) for itype in d_types
                 },
@@ -154,7 +154,7 @@ class ConfigParser(ini.AbstractIniConfigParser):
             },
             'targets': {
                 'types': {
-                    itype: ConfigParser._extract_item_type_config(
+                    itype: ConfigConverter._extract_item_type_config(
                         config[f'targets:{itype}']
                     ) for itype in t_types
                 },
