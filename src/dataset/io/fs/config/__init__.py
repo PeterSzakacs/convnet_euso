@@ -1,9 +1,10 @@
+from .base import SingleFileConfigPersistenceManager
 from .ini.managers import IniConfigPersistenceManager
 
 
 def get_config_manager(
         config_format: str = 'ini'
-):
+) -> SingleFileConfigPersistenceManager:
     """Retrieve manager for file-backed dataset configs based on given criteria
     (currently only by config format, e.g. ini, xml, json, etc.).
 

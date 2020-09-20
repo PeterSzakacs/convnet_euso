@@ -4,9 +4,12 @@ import typing as t
 
 from . import base
 from . import versions
+from .. import base as config_base
 
 
-class IniConfigPersistenceManager:
+class IniConfigPersistenceManager(
+    config_base.SingleFileConfigPersistenceManager
+):
 
     def __init__(
             self,
@@ -14,6 +17,12 @@ class IniConfigPersistenceManager:
     ):
         """Base class for managing persistence of dataset properties/attributes
         using config in INI format.
+
+        The actual logic for conversion of dataset properties/attributes to and
+        from the filesystem stored config format is handled by separate classes
+        implementing the AbstractIniConfigConverter interface to which this
+        class delegates. This is to enable versioning and a gradual evolution
+        of the config structure.
 
         :param config_converter: Converter instance to use by default for
                                  saving all managed configs during this manager
