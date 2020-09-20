@@ -4,7 +4,7 @@ import typing as t
 import dataset.constants as cons
 import dataset.dataset_utils as ds
 import dataset.io.fs.base as fs_io_base
-import dataset.io.fs.config.ini_io as ini_io
+import dataset.io.fs.config as config_io
 import dataset.io.fs.data.managers as data_io
 import dataset.io.fs.meta.tsv_io as meta_io
 import dataset.io.fs.targets.managers as targets_io
@@ -21,7 +21,7 @@ class DatasetFsPersistencyHandler(fs_io_base.FsPersistencyHandler):
             metadata_handler=None
     ):
         super(self.__class__, self).__init__(load_dir, save_dir)
-        self._conf = ini_io.IniConfigPersistenceManager()
+        self._conf = config_io.get_config_manager()
         self._data_handler = (data_handler or
                               data_io.FilesystemDataManager())
         self._target_handler = (targets_handler or

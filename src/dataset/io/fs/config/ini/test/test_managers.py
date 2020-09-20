@@ -3,14 +3,14 @@ import os
 import unittest
 import unittest.mock as mock
 
-import dataset.io.fs.config.ini.base as ini_base
-import dataset.io.fs.config.ini_io as ini_io
 import test.test_setups as testset
+from .. import base
+from .. import managers
 
 
 class TestIniConfigPersistenceManager(unittest.TestCase):
 
-    class MockIniConverter(ini_base.AbstractIniConfigConverter):
+    class MockIniConverter(base.AbstractIniConfigConverter):
 
         attrs = None
 
@@ -30,7 +30,7 @@ class TestIniConfigPersistenceManager(unittest.TestCase):
     def test_get_config_version_unversioned(self, m_isfile, m_open):
         m_open.return_value = io.StringIO("[general]\nnum_data = 0\n")
 
-        manager = ini_io.IniConfigPersistenceManager()
+        manager = managers.IniConfigPersistenceManager()
         version = manager.get_config_version('test.ini')
         self.assertEqual(version, 0)
 
@@ -39,7 +39,7 @@ class TestIniConfigPersistenceManager(unittest.TestCase):
     def test_get_config_version_specific(self, m_isfile, m_open):
         m_open.return_value = io.StringIO("[general]\nversion = 2\n")
 
-        manager = ini_io.IniConfigPersistenceManager()
+        manager = managers.IniConfigPersistenceManager()
         version = manager.get_config_version('test_config.ini')
         self.assertEqual(version, 2)
 
@@ -48,7 +48,7 @@ class TestIniConfigPersistenceManager(unittest.TestCase):
     def test_load_config(self, m_isfile, m_open):
         m_open.return_value = io.StringIO("[general]\nversion = 0\n")
 
-        manager = ini_io.IniConfigPersistenceManager(
+        manager = managers.IniConfigPersistenceManager(
             config_converter=self.MockIniConverter())
         config = manager.load('test.ini')
         self.assertEqual(config['test'], 'val')
@@ -59,7 +59,7 @@ class TestIniConfigPersistenceManager(unittest.TestCase):
         m_open.return_value = buf
 
         mock_converter = self.MockIniConverter()
-        manager = ini_io.IniConfigPersistenceManager(
+        manager = managers.IniConfigPersistenceManager(
             config_converter=mock_converter)
         configfile = os.path.join('./test', 'test_config.ini')
         manager.save(configfile, {'version': 0})

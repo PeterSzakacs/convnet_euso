@@ -1,22 +1,5 @@
 import abc
-import importlib
 import typing as t
-
-
-def get_ini_converter(version):
-    """
-    Get INI config parser to handle dataset configs of a given version.
-
-    :param version: INI config version
-    :type version: int or str
-    :return: parser instance supporting given config version
-    :type: AbstractConfigParser
-    """
-    module_name = f"dataset.io.fs.config.ini.versions.version{int(version)}"
-    module = importlib.import_module(module_name)
-    cls = getattr(module, "ConfigConverter")
-    parser = cls()
-    return parser
 
 
 class AbstractIniConfigConverter(abc.ABC):

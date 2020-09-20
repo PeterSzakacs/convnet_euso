@@ -1,6 +1,6 @@
 import unittest
 
-import dataset.io.fs.config.ini.versions.version0 as v0
+from .. import version0 as v0
 
 
 class TestLegacyConfigParsing(unittest.TestCase):

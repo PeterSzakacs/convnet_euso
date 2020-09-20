@@ -2,14 +2,15 @@ import configparser
 import os
 import typing as t
 
-import dataset.io.fs.config.ini.base as ini_base
+from . import base
+from . import versions
 
 
 class IniConfigPersistenceManager:
 
     def __init__(
             self,
-            config_converter: ini_base.AbstractIniConfigConverter = None
+            config_converter: base.AbstractIniConfigConverter = None
     ):
         """Base class for managing persistence of dataset properties/attributes
         using config in INI format.
@@ -22,7 +23,7 @@ class IniConfigPersistenceManager:
         """
         # default/highest config version is 0
         self.config_converter = (config_converter
-                                 or ini_base.get_ini_converter(0))
+                                 or versions.get_ini_converter(0))
 
     # properties
 
@@ -68,7 +69,7 @@ class IniConfigPersistenceManager:
         converter = self.config_converter
         version = self._get_version(parser)
         if version != converter.version:
-            converter = ini_base.get_ini_converter(version)
+            converter = versions.get_ini_converter(version)
 
         raw_config = {s: dict(parser.items(s)) for s in parser.sections()}
         return converter.parse_config(raw_config)
