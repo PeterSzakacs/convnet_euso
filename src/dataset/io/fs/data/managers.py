@@ -1,16 +1,14 @@
 import dataset.data_utils as data_utils
-import dataset.io.fs.facades as data_facades
+import dataset.io.fs.facades as facades
 import dataset.io.fs.managers as managers
 
 
 class FilesystemDataManager(managers.SingleFilePerItemTypePersistenceManager):
 
-    def __init__(self, io_facades=None, filename_formatters=None):
-        custom_facades = dict(io_facades or {})
-        _facades = data_facades.FACADES.copy()
-        _facades.update(custom_facades)
+    def __init__(self, facades_provider=None, filename_formatters=None):
+        facades_provider = facades_provider or facades.get_facades_provider()
 
-        super().__init__(_facades, filename_formatters)
+        super().__init__(facades_provider, filename_formatters)
 
     def _check_and_get_types_subset(self, types_config, types_subset):
         _types_subset = super()._check_and_get_types_subset(

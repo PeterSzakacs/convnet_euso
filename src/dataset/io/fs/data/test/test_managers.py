@@ -5,6 +5,7 @@ import uuid
 
 import numpy as np
 
+import common.providers as providers
 import dataset.constants as constants
 import dataset.data_utils as data_utils
 import dataset.io.fs.data.managers as managers
@@ -27,9 +28,10 @@ class TestLoadDataFromFilesystem(unittest.TestCase):
         # setup facades
         mock_facades = _get_mock_facades()
         exp_method = mock_facades[exp_backend].load
+        provider = _get_mocks_provider(mock_facades)
 
         # call load
-        manager = managers.FilesystemDataManager(io_facades=mock_facades)
+        manager = managers.FilesystemDataManager(facades_provider=provider)
         dset_data = manager.load('testset', '/res', config)
 
         # check returned data and the correct call args to IO facades
@@ -60,9 +62,10 @@ class TestLoadDataFromFilesystem(unittest.TestCase):
         # setup facades
         mock_facades = _get_mock_facades()
         exp_method = mock_facades[exp_backend].load
+        provider = _get_mocks_provider(mock_facades)
 
         # call load
-        manager = managers.FilesystemDataManager(io_facades=mock_facades)
+        manager = managers.FilesystemDataManager(facades_provider=provider)
         dset_data = manager.load('test', '/data', config,
                                  load_types=load_types)
 
@@ -103,9 +106,10 @@ class TestSaveDataToFilesystem(unittest.TestCase):
         # setup facades
         mock_facades = _get_mock_facades()
         exp_method = mock_facades[exp_backend].save
+        provider = _get_mocks_provider(mock_facades)
 
         # call save
-        manager = managers.FilesystemDataManager(io_facades=mock_facades)
+        manager = managers.FilesystemDataManager(facades_provider=provider)
         filenames = manager.save('dataset', '/set', config, items)
 
         # verify expected calls
@@ -142,9 +146,10 @@ class TestAppendDataToFilesystem(unittest.TestCase):
         # setup facades
         mock_facades = _get_mock_facades()
         exp_method = mock_facades[exp_backend].append
+        provider = _get_mocks_provider(mock_facades)
 
         # call append
-        manager = managers.FilesystemDataManager(io_facades=mock_facades)
+        manager = managers.FilesystemDataManager(facades_provider=provider)
         filenames = manager.append('dataset', '/set', config, items)
 
         # verify expected calls
@@ -173,9 +178,10 @@ class TestDeleteDataFromFilesystem(unittest.TestCase):
         # setup facades
         mock_facades = _get_mock_facades()
         exp_method = mock_facades[exp_backend].delete
+        provider = _get_mocks_provider(mock_facades)
 
         # call delete
-        manager = managers.FilesystemDataManager(io_facades=mock_facades)
+        manager = managers.FilesystemDataManager(facades_provider=provider)
         filenames = manager.delete('dataset', '/set', config)
 
         # verify expected calls
@@ -198,9 +204,10 @@ class TestDeleteDataFromFilesystem(unittest.TestCase):
         # setup facades
         mock_facades = _get_mock_facades()
         exp_method = mock_facades[exp_backend].delete
+        provider = _get_mocks_provider(mock_facades)
 
         # call delete
-        manager = managers.FilesystemDataManager(io_facades=mock_facades)
+        manager = managers.FilesystemDataManager(facades_provider=provider)
         filenames = manager.delete('dataset', '/set', config)
 
         # verify expected calls
@@ -212,12 +219,20 @@ class TestDeleteDataFromFilesystem(unittest.TestCase):
 
 
 def _get_mock_facades(return_value=np.ones(shape=(1, 10, 2))):
-    facades = fs_facades.FACADES
-    mock_facades = {backend: mock.create_autospec(facade)
-                    for backend, facade in facades.items()}
-    for backend, facade in mock_facades.items():
+    _resolver = fs_facades.get_facades_provider()
+    _available = _resolver.available_keys
+    _mocks = {key: mock.create_autospec(_resolver.get_instance(key))
+              for key in _available}
+    for key, facade in _mocks.items():
         facade.load.return_value = return_value
-    return mock_facades
+    return _mocks
+
+
+def _get_mocks_provider(mock_facades):
+    _provider = providers.ClassInstanceProvider()
+    for key, facade in mock_facades.items():
+        _provider.set_class(key, type(facade), cached_instance=facade)
+    return _provider
 
 
 def _get_config():

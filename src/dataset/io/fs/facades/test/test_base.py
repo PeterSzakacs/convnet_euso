@@ -13,7 +13,10 @@ class BaseFacadeTest(test_utils.BaseIOTest):
     def setUpClass(cls):
         super(BaseFacadeTest, cls).setUpClass()
         facade_key = cls._get_facade_key()
-        cls._facade = facades.FACADES[facade_key]
+        provider = facades.get_facades_provider()
+        cls._facade = provider.get_instance(
+            facade_key, new_instance=True
+        )
 
     @classmethod
     def _get_temp_dir_id(cls):

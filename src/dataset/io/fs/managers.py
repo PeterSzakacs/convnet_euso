@@ -2,41 +2,37 @@ import abc
 import os
 import typing as t
 
-import dataset.io.fs.facades as facades
+import common.providers as providers
 import dataset.io.fs.utils as utils
 
 
-class FsPersistenceManager(abc.ABC):
-    """Base class defining the interface to use for managing persistent items
-    for a dataset subcategory (e.g. data, targets, metadata).
+class DatasetSectionFsPersistenceManager(abc.ABC):
+    """Base class defining the interface to use for managing persistence for
+    dataset section (e.g. data, targets, metadata) items using normal files.
 
-    :param io_facades: Mapping from name of the subcategory storage backend to
-                       the relevant facade for performing the actual IO for it.
+    :param io_facades_provider: Used for resolving the facade instance to use 
+                                based on values (name) from config.
     :param filename_formatters: (optional) Custom mapping from name of specific
-                                base filename format for the subcategory items
-                                files to the formatter which resolves it based
-                                on dataset name and item type. If not set, will
-                                use the default formatters as specified in
-                                utils.FILENAME_FORMATTERS. Custom formatters
-                                take precedence over defaults and the final
-                                mapping is made by merging.
+                                base filename format for the section items
+                                files to the formatter which resolves it. If 
+                                not set, will use the default formatters as 
+                                specified in utils.FILENAME_FORMATTERS. Custom 
+                                formatters take precedence over defaults and 
+                                the final mapping is made by merging.
     """
 
     def __init__(
             self,
-            io_facades: t.Mapping[str, facades.BaseFilesystemPersistenceFacade],
+            io_facades_provider: providers.ClassInstanceProvider,
             filename_formatters: t.Mapping[str, utils.FilenameFormatter] = None
     ):
-        if not io_facades:
-            # null or an empty dict
-            raise ValueError('io_handlers must be initialized')
 
         custom_formatters = dict(filename_formatters or {})
         _formatters = utils.FILENAME_FORMATTERS.copy()
         _formatters.update(custom_formatters)
 
         self._formatters = _formatters
-        self._facades = io_facades
+        self._provider = io_facades_provider
 
     # public API
 
@@ -48,62 +44,68 @@ class FsPersistenceManager(abc.ABC):
             config: t.Mapping[str, t.Any],
             load_types: t.Iterable[str] = None
     ):
-        """Load items for the dataset sub-category from secondary storage.
+        """Load items for the dataset section from secondary storage.
 
         :param dataset_name: name of the dataset
         :param files_dir: directory storing the top-level dataset config (items
                           are loaded from locations relative to it)
-        :param config: subcategory config
+        :param config: section config
         :param load_types: (optional) subset of available item types/fields to
                            load (others will be ignored)
         """
         pass
 
     @abc.abstractmethod
-    def save(self,
-             dataset_name: str,
-             files_dir: str,
-             config: t.Mapping[str, t.Any],
-             items: t.Union[t.Mapping[str, t.Sequence], t.Sequence]):
-        """Save items for the dataset sub-category to secondary storage.
+    def save(
+            self,
+            dataset_name: str,
+            files_dir: str,
+            config: t.Mapping[str, t.Any],
+            items: t.Union[t.Mapping[str, t.Sequence], t.Sequence]
+    ):
+        """Save items for the dataset section to secondary storage.
 
         :param dataset_name: name of the dataset
         :param files_dir: directory storing the top-level dataset config (items
                           are stored to locations relative to it)
-        :param config: subcategory config
-        :param items: subcategory items to store
+        :param config: section config
+        :param items: section items to store
         """
         pass
 
     @abc.abstractmethod
-    def append(self,
-               dataset_name: str,
-               files_dir: str,
-               config: t.Mapping[str, t.Any],
-               items: t.Union[t.Mapping[str, t.Sequence], t.Sequence]):
-        """Append passed items for the dataset sub-category to already existing
+    def append(
+            self,
+            dataset_name: str,
+            files_dir: str,
+            config: t.Mapping[str, t.Any],
+            items: t.Union[t.Mapping[str, t.Sequence], t.Sequence]
+    ):
+        """Append passed items for the dataset section to already existing
          stored items in secondary storage.
 
         :param dataset_name: name of the dataset
         :param files_dir: directory storing the top-level dataset config (items
                           to update are stored in locations relative to it)
-        :param config: subcategory config
-        :param items: subcategory items to append to existing stored items
+        :param config: section config
+        :param items: section items to append to existing stored items
         """
         pass
 
     @abc.abstractmethod
-    def delete(self,
-               dataset_name: str,
-               files_dir: str,
-               config: t.Mapping[str, t.Any],
-               delete_types: t.Iterable[str] = None):
-        """Delete items for the dataset sub-category from secondary storage.
+    def delete(
+            self,
+            dataset_name: str,
+            files_dir: str,
+            config: t.Mapping[str, t.Any],
+            delete_types: t.Iterable[str] = None
+    ):
+        """Delete items for the dataset section from secondary storage.
 
         :param dataset_name: name of the dataset
         :param files_dir: directory storing the top-level dataset config (items
                           are stored to locations relative to it)
-        :param config: subcategory config
+        :param config: section config
         :param delete_types: (optional) subset of available item types/fields
                              to be deleted (others will be ignored/kept)
         """
@@ -121,7 +123,9 @@ class FsPersistenceManager(abc.ABC):
         return _dir
 
 
-class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
+class SingleFilePerItemTypePersistenceManager(
+    DatasetSectionFsPersistenceManager, abc.ABC
+):
 
     # public API
 
@@ -144,7 +148,7 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
         # load items
         items = {}
         backend_config = config['backend']
-        handler = self._facades[backend_config['name']]
+        handler = self._provider.get_instance(backend_config['name'])
         for item_type, type_config in _load_types.items():
             _dtype = type_config['dtype']
             _shape = type_config['shape']
@@ -168,7 +172,7 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
 
         # save all items
         backend_config = config['backend']
-        handler = self._facades[backend_config['name']]
+        handler = self._provider.get_instance(backend_config['name'])
         for item_type, config in types_config.items():
             _file = files[item_type]
             _arr = items[item_type]
@@ -193,7 +197,7 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
 
         # append items to existing files
         backend_config = config['backend']
-        handler = self._facades[backend_config['name']]
+        handler = self._provider.get_instance(backend_config['name'])
         for item_type, config in types_config.items():
             _file = files[item_type]
             _arr = items[item_type]
@@ -212,7 +216,7 @@ class SingleFilePerItemTypePersistenceManager(FsPersistenceManager, abc.ABC):
         _files = self._get_files(dataset_name, _files_dir, _itypes, config)
 
         backend_config = config['backend']
-        handler = self._facades[backend_config['name']]
+        handler = self._provider.get_instance(backend_config['name'])
         for _filename in _files.values():
             handler.delete(_filename)
         return _files
