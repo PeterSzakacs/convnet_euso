@@ -24,15 +24,12 @@ class DatasetSectionFsPersistenceManager(abc.ABC):
     def __init__(
             self,
             io_facades_provider: providers.ClassInstanceProvider,
-            filename_formatters: t.Mapping[str, utils.FilenameFormatter] = None
+            formatters_provider: providers.ClassInstanceProvider = None
     ):
 
-        custom_formatters = dict(filename_formatters or {})
-        _formatters = utils.FILENAME_FORMATTERS.copy()
-        _formatters.update(custom_formatters)
-
-        self._formatters = _formatters
-        self._provider = io_facades_provider
+        self._formatters_provider = (formatters_provider
+                                     or utils.get_formatters_provider())
+        self._facades_provider = io_facades_provider
 
     # public API
 
@@ -148,7 +145,7 @@ class SingleFilePerItemTypePersistenceManager(
         # load items
         items = {}
         backend_config = config['backend']
-        handler = self._provider.get_instance(backend_config['name'])
+        handler = self._facades_provider.get_instance(backend_config['name'])
         for item_type, type_config in _load_types.items():
             _dtype = type_config['dtype']
             _shape = type_config['shape']
@@ -172,7 +169,7 @@ class SingleFilePerItemTypePersistenceManager(
 
         # save all items
         backend_config = config['backend']
-        handler = self._provider.get_instance(backend_config['name'])
+        handler = self._facades_provider.get_instance(backend_config['name'])
         for item_type, config in types_config.items():
             _file = files[item_type]
             _arr = items[item_type]
@@ -197,7 +194,7 @@ class SingleFilePerItemTypePersistenceManager(
 
         # append items to existing files
         backend_config = config['backend']
-        handler = self._provider.get_instance(backend_config['name'])
+        handler = self._facades_provider.get_instance(backend_config['name'])
         for item_type, config in types_config.items():
             _file = files[item_type]
             _arr = items[item_type]
@@ -216,7 +213,7 @@ class SingleFilePerItemTypePersistenceManager(
         _files = self._get_files(dataset_name, _files_dir, _itypes, config)
 
         backend_config = config['backend']
-        handler = self._provider.get_instance(backend_config['name'])
+        handler = self._facades_provider.get_instance(backend_config['name'])
         for _filename in _files.values():
             handler.delete(_filename)
         return _files
@@ -232,7 +229,7 @@ class SingleFilePerItemTypePersistenceManager(
         suffix = backend_config.get('suffix', None)
         delimiter = backend_config.get('delimiter', None)
 
-        formatter = self._formatters[filename_format]
+        formatter = self._formatters_provider.get_instance(filename_format)
         create_filename = formatter.create_filename
         append_extension = utils.append_file_extension
         to_full_path = utils.create_full_path
