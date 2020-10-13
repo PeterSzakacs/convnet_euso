@@ -266,8 +266,116 @@ class TestNumpyDataset(testset.DatasetItemsMixin, testset.DatasetTargetsMixin,
                 self.assertEqual(items_dict[itype][0].dtype.name, 'float16')
         self.assertEqual(dset.dtype, 'float16')
 
-    # TODO: Possibly think of a way to test ds.shuffle_dataset,
-    # though it has low priority
+    # dataset attributes - necessary for preserving the config of an existing
+    # persisted dataset which a given instance should represent
+
+    def test_get_attributes_default(self):
+        self.maxDiff = None
+        item_types = self.item_types.copy()
+        item_types['raw'] = False
+        item_types['gtuy'] = False
+        dset = ds.NumpyDataset('test1', self.packet_shape,
+                               item_types=item_types)
+        dset.dtype = 'uint16'
+        dset.add_data_item(self.items['raw'][0], self.mock_targets[0],
+                           self.mock_meta[0])
+        attrs = dset.attributes
+        exp_attrs = {
+            'version': 0,
+            'num_items': 1,
+            'data': {
+                'packet_shape': self.packet_shape,
+                'backend': {
+                    'name': 'npy',
+                    'filename_format': 'name_with_type_suffix',
+                    'filename_extension': 'npy',
+                },
+                'types': {
+                    itype: {
+                        'shape': self.item_shapes[itype],
+                        'dtype': 'uint16',
+                    } for itype, is_present in item_types.items() if is_present
+                }
+            },
+            'targets': {
+                'backend': {
+                    'name': 'npy',
+                    'filename_format': 'name_with_type_suffix',
+                    'filename_extension': 'npy',
+                },
+                'types': {
+                    'softmax_class_value': {
+                        'shape': (2, ),
+                        'dtype': 'uint8',
+                    }
+                }
+            },
+            'metadata': {
+                'backend': {
+                    'name': 'tsv',
+                    'filename_format': 'name_with_suffix',
+                    'filename_extension': 'tsv',
+                    'suffix': 'meta',
+                },
+                'fields': self.metafields,
+            }
+        }
+        self.assertDictEqual(exp_attrs, attrs)
+
+    def test_get_attributes_updated(self):
+        self.maxDiff = None
+        item_types = self.item_types.copy()
+        item_types['raw'] = False
+        item_types['gtuy'] = False
+
+        exp_attrs = {
+            'version': 0,
+            'num_items': 1,
+            'data': {
+                'packet_shape': self.packet_shape,
+                'backend': {
+                    'name': 'npy',
+                    'filename_format': 'name_with_type_suffix',
+                    'filename_extension': 'npy',
+                },
+                'types': {
+                    itype: {
+                        'shape': self.item_shapes[itype],
+                        'dtype': 'uint16',
+                    } for itype, is_present in item_types.items() if is_present
+                }
+            },
+            'targets': {
+                'backend': {
+                    'name': 'npy',
+                    'suffix': 'softmax_class_values',
+                    'filename_format': 'name_with_suffix',
+                    'filename_extension': 'test',
+                },
+                'types': {
+                    'softmax_class_value': {
+                        'shape': (2, ),
+                        'dtype': 'uint8',
+                    }
+                }
+            },
+            'metadata': {
+                'backend': {
+                    'name': 'tsv',
+                    'filename_format': 'name_with_suffix',
+                    'filename_extension': 'tsv_test_ext',
+                    'suffix': 'meta_data',
+                },
+                'fields': self.metafields,
+            }
+        }
+        dset = ds.NumpyDataset('test1', self.packet_shape,
+                               item_types=item_types, **exp_attrs.copy())
+        dset.dtype = 'uint16'
+        dset.add_data_item(self.items['raw'][0], self.mock_targets[0],
+                           self.mock_meta[0])
+
+        self.assertDictEqual(exp_attrs, dset.attributes)
 
 
 if __name__ == '__main__':

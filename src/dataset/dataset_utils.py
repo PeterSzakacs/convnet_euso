@@ -18,12 +18,15 @@ class NumpyDataset:
 
     def __init__(self, name, packet_shape, resizable=True, dtype=np.uint8,
                  item_types=None, **attrs):
+        from warnings import warn
+        warn("NumpyDataset is deprecated and is scheduled to be replaced by a "
+             "newer implementation")
         item_types = item_types or {'raw': True, 'gtux': False, 'gtuy': False,
                                     'yx': False}
         self._data = dat.DataHolder(packet_shape, item_types=item_types,
                                     dtype=dtype)
         self._targ = targ.TargetsHolder()
-        self._meta = meta.MetadataHolder()
+        self._meta = meta.MetadataHolder(**attrs.get('metadata', {}))
         self._num_data = 0
         self._attrs = attrs
         self.resizable = resizable
@@ -47,12 +50,25 @@ class NumpyDataset:
 
     @property
     def attributes(self):
+        """
+        Config of this dataset.
+
+        If this dataset object was directly created in memory via new Dataset()
+        it currently does not have any backend etc. attributes defined. In such
+        cases, a new dict is returned with default values supplied.
+
+        If dataset object is loaded from secondary storage, the converted
+        config is passed via attrs to the constructor. The dataset object
+        has to in such cases respect/preserve the settings (backend, etc.)
+        contained in the config.
+        """
         item_types, dtype = self.item_types, self.dtype
         shapes = self.item_shapes
         types = {it: {'dtype': dtype, 'shape': shapes[it]}
-                 for it, is_present in item_types.items() if is_present}
-        return {
-            'name': self.name,
+                 for it, is_present in item_types.items()
+                 if is_present}
+        attrs = {
+            'version': 0,
             'num_items': self.num_data,
             'data': {
                 'packet_shape': self.accepted_packet_shape,
@@ -66,9 +82,8 @@ class NumpyDataset:
             'targets': {
                 'backend': {
                     'name': 'npy',
-                    'filename_format': 'name_with_suffix',
+                    'filename_format': 'name_with_type_suffix',
                     'filename_extension': 'npy',
-                    'suffix': 'class_targets',
                 },
                 'types': {
                     'softmax_class_value': {
@@ -79,6 +94,10 @@ class NumpyDataset:
             },
             'metadata': self._meta.attributes
         }
+        if self._attrs:
+            attrs['data']['backend'] = self._attrs['data']['backend']
+            attrs['targets']['backend'] = self._attrs['targets']['backend']
+        return attrs
 
     @property
     def name(self):

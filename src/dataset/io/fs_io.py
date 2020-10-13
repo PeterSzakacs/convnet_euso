@@ -161,5 +161,5 @@ class DatasetFsPersistencyHandler(fs_io_base.FsPersistencyHandler):
         itypes = dict.fromkeys(cons.ALL_ITEM_TYPES, False)
         itypes.update({k: True for k in load_types})
         dataset = ds.NumpyDataset(name, config['data']['packet_shape'],
-                                  item_types=itypes, dtype=dtype)
+                                  item_types=itypes, dtype=dtype, **config)
         return dataset
