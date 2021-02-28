@@ -76,7 +76,7 @@ class ClassInstanceProvider:
         """
         return set(self._classes.keys())
 
-    def get_class(self, key: str) -> t.Type:
+    def get_class(self, key: str) -> t.Optional[t.Type]:
         """Retrieve the class/type bound to the given key (case-insensitive).
 
         :param key: The key to which this class is bound.
